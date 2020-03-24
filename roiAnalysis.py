@@ -2,7 +2,6 @@ import os
 import sys
 import xmltodict
 import json
-import glob
 import warnings
 import re
 import config
@@ -12,32 +11,35 @@ import numpy as np
 import pandas as pd
 import matplotlib.image as mpimg
 import plotnine as pltn
+import bootstrapped.bootstrap as bs
+import bootstrapped.stats_functions as bs_stats
 
 from copy import deepcopy
+from scipy.sparse import csr_matrix
+from glob import glob
 from nipype.interfaces import fsl
 from matplotlib import pyplot as plt
 from nilearn import plotting
 from tkinter import Tk, filedialog
 
 
-class TsnrBrain:
-    file_type = config.file_type
+class Analysis:
     brain_extract = config.brain_extract
     frac_inten = config.frac_inten
     dof = config.dof
+
     atlas_number = config.atlas_number
     conf_level_number = config.conf_level_number
     roi_stat_number = config.roi_stat_number
+
     include_rois = config.include_rois
     exclude_rois = config.exclude_rois
+
     save_stats_only = config.save_stats_only
     run_analysis = config.run_analysis
-    mb_search = "mb"  # TODO: implement this and the rest of the searching
-
-    # Parameters to plot in the 2D table
-    plot_MB = "True"
-    plot_SENSE = "True"
-    plot_half = "False"
+    stat_map_folder = config.stat_map_folder
+    stat_map_suffix = config.stat_map_suffix
+    bootstrap = config.bootstrap
 
     _roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
     _conf_level_list = [('80', 1.28),
@@ -66,7 +68,6 @@ class TsnrBrain:
     _atlas_path = ""
     _atlas_label_path = ""
     _atlas_name = ""
-    _jsonArray = []
     _labelArray = []
 
     def __init__(self, brain, atlas="", atlas_path="", labels=""):
@@ -75,7 +76,7 @@ class TsnrBrain:
         self.atlas_path = atlas_path
 
         self.no_ext_brain = atlas + "_" + os.path.splitext(self.brain)[0]
-        self.tsnr_brain = 'QA_report/' + os.path.splitext(self.brain)[0] + '_tSNR.hdr'  # Todo: change qa_report
+        self.tsnr_brain = self.stat_map_folder + os.path.splitext(self.brain)[0] + self.stat_map_suffix
 
         self.mean_brain = ""
         self.bet_brain = ""
@@ -91,7 +92,13 @@ class TsnrBrain:
                                      '%s_Confidence_Interval' % self._conf_level_list[int(self.conf_level_number)][0],
                                      'Min', 'Max']
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, brain_number_current, brain_number_total):
+        if brain_number_current == 0:
+            print('\n--- Analysis ---')
+
+        print('\nAnalysing brain {brain_num_cur}/{brain_num_tot}: {brain}.\n'.format(brain_num_cur=brain_number_current+1,
+                                                                                     brain_num_tot=brain_number_total,
+                                                                                     brain=self.brain))
         self.roi_flirt_transform()
         self.roi_stats()
 
@@ -212,13 +219,19 @@ class TsnrBrain:
             roiTSNRs[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
             roiTSNRs[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
 
-            roiTSNRs[0, -1] = np.count_nonzero(~np.isnan(roiTempStore))  # Number of non-nan voxels in total
-            roiTSNRs[1, -1] = np.nanmean(roiTempStore)
-            roiTSNRs[2, -1] = np.nanstd(roiTempStore)
+            # Statistic calculations for all voxels assigned to an ROI
+            if exclude_rois is None or 0 not in exclude_rois:
+                start_val = 1
+            else:
+                start_val = 0
+
+            roiTSNRs[0, -1] = np.count_nonzero(~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
+            roiTSNRs[1, -1] = np.nanmean(roiTempStore[start_val:, :])
+            roiTSNRs[2, -1] = np.nanstd(roiTempStore[start_val:, :])
             roiTSNRs[3, -1] = self._conf_level_list[int(self.conf_level_number)][1] \
                               * roiTSNRs[2, -1] / np.sqrt(roiTSNRs[0, -1])  # 95% CI calculation
-            roiTSNRs[4, -1] = np.nanmin(roiTempStore)
-            roiTSNRs[5, -1] = np.nanmax(roiTempStore)
+            roiTSNRs[4, -1] = np.nanmin(roiTempStore[start_val:, :])
+            roiTSNRs[5, -1] = np.nanmax(roiTempStore[start_val:, :])
 
             # Convert NaNs to zeros
             for column, voxel_num in enumerate(roiTSNRs[0]):
@@ -228,8 +241,15 @@ class TsnrBrain:
 
             warnings.filterwarnings('default')  # Reactivate warnings
 
-            headers = ['ROI_voxels', 'ROI_mean', 'ROI_std',
-                       'ROI_%s_CI' % self._conf_level_list[int(self.conf_level_number)][0], 'ROI_min', 'ROI_max']
+            # Bootstrapping
+            if self.bootstrap:
+                for counter, roi in enumerate(list(range(0, roiNum-1))):
+                    print(counter)  # TODO: indent this print statement and say it may take a while. "  - Bootstrapping roi 1/50."
+                    roiTSNRs[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi) # TODO: Speed up code, multithreading?
+                roiTSNRs[3, -1] = Utils.calculate_confidence_interval(roiTempStore, -1)  # TODO does this work? Not sure if -1 works
+
+            headers = ['Voxels', 'Mean', 'Std_dev',
+                       'Conf_Int_%s' % self._conf_level_list[int(self.conf_level_number)][0], 'Min', 'Max']
 
             # Save results as dataframe
             tsnr_result = pd.DataFrame(data=roiTSNRs,
@@ -243,13 +263,12 @@ class TsnrBrain:
             # Save JSON file
             with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
                 json.dump(tsnr_result.to_dict(), file, indent=2)
-                self._jsonArray.append(self._save_location + self.no_ext_brain + ".json")
 
             # Save variable for atlas_scale function
             self.roiTSNRs = roiTSNRs
 
         def nipype_file_cleanup():
-            """Clean up unnecessary NiPype output."""
+            """Clean up unnecessary output."""
             if self.save_stats_only:
                 for file in self.file_list:
                     os.remove(file)
@@ -258,19 +277,25 @@ class TsnrBrain:
         calculate_stats()
         nipype_file_cleanup()
 
-    def atlas_scale(self, max_roi_stat=None):
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total):
         """Produces up to three scaled json files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois). Only the first json file will be created if using if
         running the analysis with all atlases."""
+        if brain_number_current == 0:
+            print('\n--- Image creation ---')
+
+        print('\n Creating images for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(brain_num_cur=brain_number_current+1,
+                                                                                          brain_num_tot=brain_number_total,
+                                                                                          brain=self.brain))
+
         within_brain_stat = nib.load(self.atlas_path)
         within_brain_stat = within_brain_stat.get_fdata()
 
-        if max_roi_stat is not None:
-            between_brain_stat = deepcopy(within_brain_stat)
-            mixed_brain_stat = deepcopy(within_brain_stat)
+        between_brain_stat = deepcopy(within_brain_stat)
+        mixed_brain_stat = deepcopy(within_brain_stat)
 
-            roi_scaled_stat = [(y/x) * 100 for x, y in zip(max_roi_stat, self.roiTSNRs[TsnrBrain.roi_stat_number, :])]
-            global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiTSNRs[TsnrBrain.roi_stat_number, :]]
+        roi_scaled_stat = [(y/x) * 100 for x, y in zip(max_roi_stat, self.roiTSNRs[Analysis.roi_stat_number, :])]
+        global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiTSNRs[Analysis.roi_stat_number, :]]
 
         roi_stat_brain_size = within_brain_stat.shape
 
@@ -282,16 +307,12 @@ class TsnrBrain:
                     roi_row = int(within_brain_stat[x][y][z])
                     if roi_row == 0:
                         within_brain_stat[x][y][z] = np.nan
-
-                        if max_roi_stat is not None:
-                            between_brain_stat[x][y][z] = np.nan
-                            mixed_brain_stat[x][y][z] = np.nan
+                        between_brain_stat[x][y][z] = np.nan
+                        mixed_brain_stat[x][y][z] = np.nan
                     else:
                         within_brain_stat[x][y][z] = self.roiTSNRs[self.roi_stat_number, roi_row]
-
-                        if max_roi_stat is not None:
-                            between_brain_stat[x][y][z] = roi_scaled_stat[roi_row]
-                            mixed_brain_stat[x][y][z] = global_scaled_stat[roi_row]
+                        between_brain_stat[x][y][z] = roi_scaled_stat[roi_row]
+                        mixed_brain_stat[x][y][z] = global_scaled_stat[roi_row]
 
         # Convert atlas to NIFTI and save it
         affine = np.eye(4)
@@ -299,14 +320,13 @@ class TsnrBrain:
         scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_atlas.nii.gz"
                                  % self.atlas_scale_filename[self.roi_stat_number])
 
-        if max_roi_stat is not None:
-            scaled_atlas = nib.Nifti1Image(between_brain_stat, affine)
-            scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_roi_scaled_atlas.nii.gz"
-                                     % self.atlas_scale_filename[self.roi_stat_number])
+        scaled_atlas = nib.Nifti1Image(between_brain_stat, affine)
+        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_roi_scaled_atlas.nii.gz"
+                                 % self.atlas_scale_filename[self.roi_stat_number])
 
-            scaled_atlas = nib.Nifti1Image(mixed_brain_stat, affine)
-            scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_global_scaled_atlas.nii.gz"
-                                     % self.atlas_scale_filename[self.roi_stat_number])
+        scaled_atlas = nib.Nifti1Image(mixed_brain_stat, affine)
+        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_global_scaled_atlas.nii.gz"
+                                 % self.atlas_scale_filename[self.roi_stat_number])
 
     @classmethod
     def batch_run_analysis(cls):
@@ -315,37 +335,42 @@ class TsnrBrain:
         except OSError:
             raise Exception('FSL environment variable not set.')
 
+        print('\n--- Environment Setup ---')
+
         if cls._brain_directory == "":
             print('Select the directory of the raw MRI/fMRI brains.')
 
-            cls._brain_directory = file_browser()
+            cls._brain_directory = Utils.file_browser()
 
-            os.chdir(cls._brain_directory)  # TODO: Is this necessary?
+            # Save copy of config.py to retain settings. It is saved here as after changing directory it will be harder
+            # to find
+            Utils.save_config(cls._brain_directory)
 
-        cls._atlas_name = os.path.splitext(TsnrBrain._atlas_label_list[int(TsnrBrain.atlas_number)][1])[0]
+            os.chdir(cls._brain_directory)
+
+        cls._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(Analysis.atlas_number)][1])[0]
+        print('Using the ' + cls._atlas_name + ' atlas.')
 
         cls._save_location = cls._atlas_name + "_ROI_report/"
-        print('Using the ' + cls._atlas_name + ' atlas.')
+
+        brain_file_nifti = [os.path.basename(f) for f in glob(cls._brain_directory + "/*.nii")]
+        brain_file_hdr = [os.path.basename(f) for f in glob(cls._brain_directory + "/*.hdr")]
+        cls.brain_file_list = brain_file_nifti + brain_file_hdr
+
+        if len(cls.brain_file_list) == 0:
+            raise NameError("No files found.")
 
         if not os.path.exists(cls._brain_directory + "/" + cls._save_location):
             os.mkdir(cls._brain_directory + "/" + cls._save_location)
 
-        if cls.file_type.lower() == 'nifti':
-            cls.brain_file_list = [os.path.basename(f) for f in glob.glob(cls._brain_directory + "/*.nii")]
-        elif cls.file_type.lower() == 'analyze':
-            cls.brain_file_list = [os.path.basename(f) for f in glob.glob(cls._brain_directory + "/*.hdr")]
-        else:
-            raise NameError('Unknown input.')
-
-        if len(cls.brain_file_list) == 0:
-            raise NameError("No files of type %s found." % cls.file_type)
+        Utils.move_file('config.py', cls._brain_directory, cls._save_location)  # Move config file to analysis folder
 
         cls.roi_label_list()
 
         brain_class_list = []
         for brain in cls.brain_file_list:
-            brain_class_list.append(TsnrBrain(brain, atlas=cls._atlas_name, atlas_path=cls._atlas_path,
-                                              labels=cls._labelArray))
+            brain_class_list.append(Analysis(brain, atlas=cls._atlas_name, atlas_path=cls._atlas_path,
+                                             labels=cls._labelArray))
 
         return brain_class_list
 
@@ -380,25 +405,14 @@ class TsnrBrain:
         for counter, stat in enumerate(cls._roi_stat_list):
             print(("Statistic number " + str(counter) + ": " + stat))
 
-        print("\n   Class attributes (with default values):")
-        public_class_attr_names = [attribute for attribute in dir(TsnrBrain)
-                                   if not callable(getattr(TsnrBrain, attribute))  # Exclude functions
-                                   if not attribute.startswith('_')]  # 'private' methods start with _
-
-        for name in public_class_attr_names:
-            print(name + ": " + str(getattr(TsnrBrain, name)))
-
-        print("\nMultiple optional parameters can be provided when calling the script using the format: "
-              "'script_name attribute = value'. For example, 'roiTsnrAnalysis_v3.py atlas_number=3 dof=10'."
-              "\n\nNOTE: If save_json_only is True all other saving parameters are ignored.")
+        print("\nEdit the config.py file to change tool parameters.")
 
         sys.exit()
 
 
-class StatTables:
-    # TODO: remove overall, no roi values and nan values
-    plot_parameters = [TsnrBrain.plot_MB, TsnrBrain.plot_SENSE, TsnrBrain.plot_half]
-
+class Figures:
+    _brain_plot_file_extension = ["_Mean_atlas.nii.gz", "_Mean_roi_scaled_atlas.nii.gz",
+                                  "_Mean_global_scaled_atlas.nii.gz"]
     # Config imported files
     dpi = config.plot_dpi
     font_size = config.plot_font_size
@@ -410,7 +424,13 @@ class StatTables:
 
     vmin = config.brain_fig_value_min
     vmax = config.brain_fig_value_max
-    base_extension = config.brain_fig_file_extension
+    base_extension = _brain_plot_file_extension[config.brain_fig_file]
+    brain_table_cols = config.brain_table_cols
+    brain_table_rows = config.brain_table_rows
+    brain_table_x_size = config.brain_table_x_size
+    brain_table_y_size = config.brain_table_y_size
+    brain_x_coord = config.brain_x_coord
+    brain_z_coord = config.brain_z_coord
 
     table_cols = config.table_cols
     table_rows = config.table_rows
@@ -419,7 +439,7 @@ class StatTables:
 
     single_fig_regions = config.single_roi_fig_regions
     single_fig_x_axis = config.single_roi_fig_x_axis
-    single_fig_colour = config.single_roi_fig_colour
+    single_fig_fill = config.single_roi_fig_colour
     single_fig_label_x = config.single_roi_fig_label_x
     single_fig_label_y = config.single_roi_fig_label_y
     single_fig_label_fill = config.single_roi_fig_label_fill
@@ -427,10 +447,12 @@ class StatTables:
 
     @classmethod
     def construct_plots(cls):
+        print('\n--- Figure creation ---')
+
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
 
-        plt.rcParams['figure.figsize'] = 50, 10  # Brain plot code
+        plt.rcParams['figure.figsize'] = cls.brain_table_x_size, cls.brain_table_y_size  # Brain plot code
 
         df = pd.read_json("combined_results.json")
 
@@ -443,19 +465,20 @@ class StatTables:
         if cls.make_figure_table:
             cls.figure_table(df)
 
-
     @classmethod
     def figure_table(cls, df):
+        df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
+
         # Group and sort df so figures are sorted according to the first panel
-        df = df.groupby([cls.table_cols, cls.table_rows]).apply(lambda x: x.sort_values(['ROI_mean']))  # Group by parameters and sort
+        df = df.groupby([cls.table_cols, cls.table_rows]).apply(lambda x: x.sort_values(['Mean']))  # Group by parameters and sort
         roi_ord = pd.Categorical(df['index'], categories=df['index'].unique())  # Set roi_ord to an ordered categorical
         df = df.assign(roi_cat=roi_ord)  # Create new column called roi_ord
         df = df.reset_index(drop=True)  # Reset index to remove grouping
 
         print("Preparing two parameter table!")
-        figure_table = (pltn.ggplot(df, pltn.aes("ROI_mean", "roi_ord"))
+        figure_table = (pltn.ggplot(df, pltn.aes("Mean", "roi_ord"))
                         + pltn.geom_point(na_rm=True, size=1)
-                        + pltn.geom_errorbarh(pltn.aes(xmin="ROI_mean-ROI_95_CI", xmax="ROI_mean+ROI_95_CI"),
+                        + pltn.geom_errorbarh(pltn.aes(xmin="Mean-Conf_Int_95", xmax="Mean+Conf_Int_95"),
                                               na_rm=True, height=None)
                         + pltn.scale_y_discrete(labels=[])
                         + pltn.ylab(cls.ylab)
@@ -521,9 +544,9 @@ class StatTables:
 
             print("Setting up {thisroi}_barplot.png".format(thisroi=thisroi))
 
-            figure = (pltn.ggplot(current_df, pltn.aes(x=cls.single_fig_x_axis, y='ROI_mean',
-                                                       ymin="ROI_mean-ROI_95_CI", ymax="ROI_mean+ROI_95_CI",
-                                                       fill='factor({colour})'.format(colour=cls.single_fig_colour)))
+            figure = (pltn.ggplot(current_df, pltn.aes(x=cls.single_fig_x_axis, y='Mean',
+                                                       ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
+                                                       fill='factor({colour})'.format(colour=cls.single_fig_fill)))
                       + pltn.theme_538()
                       + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                       + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
@@ -566,7 +589,8 @@ class StatTables:
             plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
             plot = plotting.plot_anat(json + cls.base_extension,
                                       draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
-                                      vmin=cls.vmin, vmax=cls.vmax, cut_coords=(58, 58), cmap='inferno')  # TODO: make coords variable
+                                      vmin=cls.vmin, vmax=cls.vmax, cut_coords=(cls.brain_x_coord, cls.brain_z_coord),
+                                      cmap='inferno')
             plot.savefig(image_name)
             plot.close()
 
@@ -608,30 +632,28 @@ class StatTables:
 
         plot_values = unique_params  # Get axis values
         axis_titles = list(ParamParser.parameter_dict.keys())  # Get axis titles
+        plot_values_sorted = [plot_values[axis_titles.index(cls.brain_table_cols)],  # Sort axis values
+                              plot_values[axis_titles.index(cls.brain_table_rows)]]
 
-        x_axis_size = len(plot_values[0])
-        y_axis_size = len(plot_values[1])
-
-        possible_params = list(ParamParser.parameter_dict.keys())
+        x_axis_size = len(plot_values_sorted[0])
+        y_axis_size = len(plot_values_sorted[1])
 
         for file_num, file_name in enumerate(df['File_name'].unique()):
             temp_param_store = []
-            test = df[df['File_name'] == file_name].iloc[0]  # Get the first row of the relevant file name
+            file_name_row = df[df['File_name'] == file_name].iloc[0]  # Get the first row of the relevant file name
 
-            for counter, parameter in enumerate(cls.plot_parameters):
-                if parameter != "False":
-                    temp_param_store.append(str(test[possible_params[counter]]))
+            temp_param_store.append(str(file_name_row[cls.brain_table_cols]))
+            temp_param_store.append(str(file_name_row[cls.brain_table_rows]))
 
             current_params.append(temp_param_store)  # Store parameters used for file
 
-            col_nums.append(plot_values[0].index(current_params[file_num][0]))  # Work out col number
-            row_nums.append(plot_values[1].index(current_params[file_num][1]))  # Work out row number
-
+            col_nums.append(plot_values_sorted[0].index(current_params[file_num][0]))  # Work out col number
+            row_nums.append(plot_values_sorted[1].index(current_params[file_num][1]))  # Work out row number
 
             cell_nums.append(np.ravel_multi_index((row_nums[file_num], col_nums[file_num]),
                                                   (y_axis_size, x_axis_size))) # Find linear index of figure
 
-        return plot_values, axis_titles, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
+        return plot_values_sorted, axis_titles, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
 
     @classmethod
     def label_blank_cell_axes(cls, plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size):
@@ -669,14 +691,15 @@ class StatTables:
 
 class ParamParser:
     parameter_dict = config.parameter_dict
+    binary_params = config.binary_params
     skip_verify_params = config.skip_verify_params
 
     @classmethod
-    def run_parse(cls, json_array):
+    def run_parse(cls):
         parameter_values_raw = []
+        combined_results_create = True
 
-        if len(json_array) == 0:  # TODO: remove this if statement? As will always want to change directory into here
-            json_array = cls.json_search()
+        json_array = cls.json_search()
 
         while True:
             if "combined_results.json" in json_array:
@@ -690,6 +713,9 @@ class ParamParser:
                         os.remove("combined_results.json")
                         json_array.remove("combined_results.json")
                         print("File removed!")
+                        combined_results_create = True
+                    else:
+                        combined_results_create = False
                     break
             else:
                 break
@@ -721,43 +747,45 @@ class ParamParser:
 
             if skip_verify == "y":
                 parameter_values_raw.append(param_nums)
-                combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
             else:
                 parameter_values_raw.append(cls.verify_params(json, param_nums, used_parameters))
-                # TODO: put combined dataframe in this else statement too
 
-        # Save combined results
-        combined_dataframe = combined_dataframe.reset_index()
-        combined_dataframe.to_json("combined_results.json", orient='records')
+            if combined_results_create:
+                combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
+
+        if combined_results_create:
+            # Save combined results
+            combined_dataframe = combined_dataframe.reset_index()
+            combined_dataframe.to_json("combined_results.json", orient='records')
 
     @classmethod
-    def parse_params(cls, json_file):
-        """Search for MRI parameters in each json file name for use in table headers."""
+    def parse_params(cls, json_file_name):
+        """Search for MRI parameters in each json file name for use in table headers and created the combined json."""
         param_nums = []
 
         for key in cls.parameter_dict:
-            parameter = cls.parameter_dict[key]  # TODO: explain this and the rest of this class
+            parameter = cls.parameter_dict[key]  # Extract search term
 
-            if parameter == "half":
-                param = re.search("{}".format(parameter), json_file, flags=re.IGNORECASE)
+            if parameter in cls.binary_params:
+                param = re.search("{}".format(parameter), json_file_name, flags=re.IGNORECASE)
 
                 if param is not None:
-                    param_nums.append(param[0])  # Extract the number from the parameter
+                    param_nums.append('On')  # Save 'on' if parameter is found in file name
                 else:
-                    param_nums.append(str(param))  # Save None if parameter not found in file name
-
+                    param_nums.append('Off')  # Save 'off' if parameter not found in file name
 
             else:
                 # Float search
-                param = re.search("{}[0-9]p[0-9]".format(parameter), json_file, flags=re.IGNORECASE)
-                # TODO: use a lookup table to search for parameters
+                param = re.search("{}[0-9]p[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
                 if param is not None:
                     param_nums.append(param[0][1] + "." + param[0][-1])
+                    continue
 
-                # Integer search
-                param = re.search("{}[0-9]".format(parameter), json_file, flags=re.IGNORECASE)
+                # If float search didnt work then Integer search
+                param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
                 if param is not None:
                     param_nums.append(param[0][-1])  # Extract the number from the parameter
+
                 else:
                     param_nums.append(str(param))  # Save None if parameter not found in file name
 
@@ -792,7 +820,9 @@ class ParamParser:
                         print("{} = {}".format(key, param_nums[counter]))
                         new_param_num = input("Actual value: ")
 
-                        if re.match("[0-9]", new_param_num):  # TODO change this for half scan as you wont input a number
+                        if re.match("[0-9]", new_param_num) and key not in cls.binary_params:
+                            param_nums[counter] = new_param_num
+                        elif key in cls.binary_params:
                             param_nums[counter] = new_param_num
 
                 print("\nRe-checking...")  # Repeat the verification process
@@ -801,17 +831,15 @@ class ParamParser:
     def json_search():
         print('Select the directory of json files.')
 
-        json_directory = file_browser()
+        json_directory = Utils.file_browser()
 
         os.chdir(json_directory)
 
-        json_file_list = [os.path.basename(f) for f in glob.glob(json_directory + "/*.json")]
+        json_file_list = [os.path.basename(f) for f in glob(json_directory + "/*.json")]
 
         if len(json_file_list) == 0:
             raise NameError('No json files found.')
         else:
-            for file in json_file_list:
-                TsnrBrain._jsonArray.append(json_directory + "/" + file)
             return json_file_list
 
     @classmethod
@@ -831,65 +859,79 @@ class ParamParser:
 
             new_dataframe['File_name'] = os.path.splitext(json)[0]  # Save filename
 
-            dataframe = dataframe.append(new_dataframe)
+            dataframe = dataframe.append(new_dataframe, sort=True)
 
         return dataframe
 
 
-def file_browser():
-    root = Tk()  # Create tkinter window
-    root.withdraw()  # Hide tkinter window
-    root.update()
-    directory = filedialog.askdirectory()
-    root.update()
-    root.destroy()  # Destroy tkinter window
+class Utils:
+    @staticmethod
+    def file_browser():
+        root = Tk()  # Create tkinter window
 
-    return directory
+        root.withdraw()  # Hide tkinter window
+        root.update()
+
+        directory = filedialog.askdirectory()
+
+        root.update()
+        root.destroy()  # Destroy tkinter window
+
+        return directory
+
+    @staticmethod
+    def save_config(directory):
+        with open(directory + '/config.py', 'w') as f:
+            with open('config.py', 'r') as r:
+                for line in r:
+                    f.write(line)
+
+    @staticmethod
+    def calculate_confidence_interval(data, roi):
+        values = csr_matrix([x for x in data[roi, :] if str(x) != 'nan'])  # TODO
+        results = bs.bootstrap(values, stat_func=bs_stats.mean)
+        conf_int = results.value - results.lower_bound
+
+        return conf_int
+
+    @staticmethod
+    def move_file(name, original_dir, new_dir):
+        os.rename(original_dir + '/' + name, new_dir + '/' + name)
 
 
 if __name__ == '__main__':
     # Run help if passed as parameter
     if len(sys.argv) > 1:
         if sys.argv[1] == 'help':
-            TsnrBrain.help()
-
-        # Extract key value pairs passed as command line arguments
-        args = dict([arg.split('=', maxsplit=1) for arg in sys.argv[1:]])
-
-        # Set TsnrBrain class attribute to the passed in parameter (if it exists)
-        for key in args:
-            if not hasattr(TsnrBrain, key):
-                raise AttributeError('Class `TsnrBrain` has no attribute %s' % key)
-            setattr(TsnrBrain, key, args[key])
+            Analysis.help()
 
     # Running the full analysis is optional
-    if TsnrBrain.run_analysis:
+    if Analysis.run_analysis:
         # Run class setup
-        brain_list = TsnrBrain.batch_run_analysis()
+        brain_list = Analysis.batch_run_analysis()
 
         # Run analysis
-        for brain in brain_list:
-            brain()
+        for brain_counter, brain in enumerate(brain_list):
+            brain(brain_counter, len(brain_list))
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison
         find the largest ROI stat out of all the brains analyzed.'''
-        roi_stats = deepcopy(brain_list[0].roiTSNRs[TsnrBrain.roi_stat_number, :])
+        roi_stats = deepcopy(brain_list[0].roiTSNRs[Analysis.roi_stat_number, :])
         for brain in brain_list:
-            for counter, roi_stat in enumerate(brain.roiTSNRs[TsnrBrain.roi_stat_number, :]):
+            for counter, roi_stat in enumerate(brain.roiTSNRs[Analysis.roi_stat_number, :]):
                 if roi_stat > roi_stats[counter]:
                     roi_stats[counter] = roi_stat
 
-            # Run atlas_scale function and pass in max roi stats for between brain scaling
-        for brain in brain_list:
-            brain.atlas_scale(roi_stats)
+        # Run atlas_scale function and pass in max roi stats for between brain scaling
+        for brain_counter, brain in enumerate(brain_list):
+            brain.atlas_scale(roi_stats, brain_counter, len(brain_list))
 
     # Parameter Parsing
-    ParamParser.run_parse(TsnrBrain._jsonArray)
+    ParamParser.run_parse()
 
     # Plotting
-    StatTables.construct_plots()
-    plot_array = []
+    Figures.construct_plots()
 
     print('Done!')
 
