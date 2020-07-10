@@ -17,7 +17,7 @@ import bootstrapped.stats_functions as bs_stats
 from copy import deepcopy
 from scipy.sparse import csr_matrix
 from glob import glob
-from nipype.interfaces import fsl
+from nipype.interfaces import fsl, freesurfer
 from matplotlib import pyplot as plt
 from nilearn import plotting
 from tkinter import Tk, filedialog
@@ -27,6 +27,7 @@ class Analysis:
     brain_extract = config.brain_extract
     frac_inten = config.frac_inten
     dof = config.dof
+    use_freesurf_file = config.use_freesurf_file
 
     atlas_number = config.atlas_number
     conf_level_number = config.conf_level_number
@@ -92,7 +93,7 @@ class Analysis:
                                      '%s_Confidence_Interval' % self._conf_level_list[int(self.conf_level_number)][0],
                                      'Min', 'Max']
 
-    def __call__(self, brain_number_current, brain_number_total):
+    def __call__(self, brain_number_current, brain_number_total, freesurfer_excluded_voxels=None):
         if brain_number_current == 0:
             print('\n--- Analysis ---')
 
@@ -100,7 +101,7 @@ class Analysis:
                                                                                      brain_num_tot=brain_number_total,
                                                                                      brain=self.brain))
         self.roi_flirt_transform()
-        self.roi_stats()
+        self.roi_stats(excluded_voxels=freesurfer_excluded_voxels)
 
     def roi_flirt_transform(self):
         """Function which uses NiPype to transform the chosen atlas into the native space."""
@@ -166,7 +167,7 @@ class Analysis:
         invert_transform()
         mni_to_brain()
 
-    def roi_stats(self):
+    def roi_stats(self, excluded_voxels=None):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
         def calculate_stats():
@@ -190,11 +191,19 @@ class Analysis:
 
             # Create arrays to store the tSNR values before and after statistics
             roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
-            roiTSNRs = np.full([6, roiNum + 1], np.nan)
+            roiTSNRs = np.full([7, roiNum + 1], np.nan)
 
             # Where the magic happens
-            for counter, roi in enumerate(idxMNI):
-                roiTempStore[int(roi), counter] = idxBrain[counter]
+            if self.freesurfer_space_to_native_space() is not None:
+                roiTSNRs[6, 0:-1] = 0
+                for counter, roi in enumerate(idxMNI):
+                    if excluded_voxels[counter] == 0:
+                        roiTempStore[int(roi), counter] = idxBrain[counter]
+                    else:
+                        roiTSNRs[6, int(roi)] += 1
+            else:
+                for counter, roi in enumerate(idxMNI):
+                    roiTempStore[int(roi), counter] = idxBrain[counter]
 
             # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat
             # calculations
@@ -220,6 +229,7 @@ class Analysis:
             roiTSNRs[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
 
             # Statistic calculations for all voxels assigned to an ROI
+            # If No ROI is part of excluded ROIs, start overall ROI calculation from 0, otherwise start from 1
             if exclude_rois is None or 0 not in exclude_rois:
                 start_val = 1
             else:
@@ -243,13 +253,17 @@ class Analysis:
 
             # Bootstrapping
             if self.bootstrap:
-                for counter, roi in enumerate(list(range(0, roiNum-1))):
-                    print(counter)  # TODO: indent this print statement and say it may take a while. "  - Bootstrapping roi 1/50."
-                    roiTSNRs[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi) # TODO: Speed up code, multithreading?
-                roiTSNRs[3, -1] = Utils.calculate_confidence_interval(roiTempStore, -1)  # TODO does this work? Not sure if -1 works
+                for counter, roi in enumerate(list(range(0, roiNum))):
+                    if counter == 0:
+                        print("This may take a while...")
+                    print("  - Bootstrapping roi {}/{}".format(counter, roiNum))
+                    roiTSNRs[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)  # TODO: Speed up code, multithreading?
+                # Calculate overall statistics
+                roiTSNRs[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])  # TODO does this work?
 
             headers = ['Voxels', 'Mean', 'Std_dev',
-                       'Conf_Int_%s' % self._conf_level_list[int(self.conf_level_number)][0], 'Min', 'Max']
+                       'Conf_Int_%s' % self._conf_level_list[int(self.conf_level_number)][0],
+                       'Min', 'Max', 'Freesurfer excluded voxels']
 
             # Save results as dataframe
             tsnr_result = pd.DataFrame(data=roiTSNRs,
@@ -328,8 +342,68 @@ class Analysis:
         scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_global_scaled_atlas.nii.gz"
                                  % self.atlas_scale_filename[self.roi_stat_number])
 
+    @staticmethod
+    def freesurfer_space_to_native_space():
+        """Function which removes freesurfer padding and transforms freesurfer segmentation to native space."""
+        native_segmented_brain = freesurfer.Label2Vol(seg_file='freesurfer/aparc+aseg.mgz',
+                                                      template_file='freesurfer/rawavg.mgz',
+                                                      vol_label_file='freesurfer/native_segmented_brain.mgz',
+                                                      reg_header='freesurfer/aparc+aseg.mgz')
+        native_segmented_brain.run()
+
+        freesurf_native_segmented_brain = nib.load('freesurfer/native_segmented_brain.mgz')
+        freesurf_native_segmented_brain = freesurf_native_segmented_brain.get_fdata()
+        freesurf_native_segmented_brain = freesurf_native_segmented_brain.flatten()
+        # Make option of restricting to grey matter only
+
+        # Using set instead of list for performance reasons
+        # Refers to freesurfer lookup table of CSF and white matter
+        csf_wm_values = {0, 2, 4, 5, 7, 14, 15, 24, 25, 41, 43, 44, 46, 72, 77, 78, 79, 98, 159, 160, 161, 162,
+                                  165, 167, 168, 177, 213, 219, 221, 223, 498, 499, 690, 691, 701, 703, 3000, 3001,
+                                  3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015,
+                                  3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029,
+                                  3030, 3031, 3032, 3033, 3034, 3035, 4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007,
+                                  4008, 4009, 4010, 4011, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4019, 4020, 4021,
+                                  4022, 4023, 4024, 4025, 4026, 4027, 4028, 4029, 4030, 4031, 4032, 4033, 4034, 4035,
+                                  3201, 3203, 3204, 3205, 3206, 3207, 4201, 4203, 4204, 4205, 4206, 4207, 3100, 3101,
+                                  3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115,
+                                  3116, 3117, 3118, 3119, 3120, 3121, 3122, 3123, 3124, 3125, 3126, 3127, 3128, 3129,
+                                  3130, 3131, 3132, 3133, 3134, 3135, 3136, 3137, 3138, 3139, 3140, 3141, 3142, 3143,
+                                  3144, 3145, 3146, 3147, 3148, 3149, 3150, 3151, 3152, 3153, 3154, 3155, 3156, 3157,
+                                  3158, 3159, 3160, 3161, 3162, 3163, 3164, 3165, 3166, 3167, 3168, 3169, 3170, 3171,
+                                  3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181, 4100, 4101, 4102, 4103,
+                                  4104, 4105, 4106, 4107, 4108, 4109, 4110, 4111, 4112, 4113, 4114, 4115, 4116, 4117,
+                                  4118, 4119, 4120, 4121, 4122, 4123, 4124, 4125, 4126, 4127, 4128, 4129, 4130, 4131,
+                                  4132, 4133, 4134, 4135, 4136, 4137, 4138, 4139, 4140, 4141, 4142, 4143, 4144, 4145,
+                                  4146, 4147, 4148, 4149, 4150, 4151, 4152, 4153, 4154, 4155, 4156, 4157, 4158, 4159,
+                                  4160, 4161, 4162, 4163, 4164, 4165, 4166, 4167, 4168, 4169, 4170, 4171, 4172, 4173,
+                                  4174, 4175, 4176, 4177, 4178, 4179, 4180, 4181, 5001, 5002, 13100, 13101, 13102,
+                                  13103, 13104, 13105, 13106, 13107, 13108, 13109, 13110, 13111, 13112, 13113, 13114,
+                                  13115, 13116, 13117, 13118, 13119, 13120, 13121, 13122, 13123, 13124, 13125, 13126,
+                                  13127, 13128, 13129, 13130, 13131, 13132, 13133, 13134, 13135, 13136, 13137, 13138,
+                                  13139, 13140, 13141, 13142, 13143, 13144, 13145, 13146, 13147, 13148, 13149, 13150,
+                                  13151, 13152, 13153, 13154, 13155, 13156, 13157, 13158, 13159, 13160, 13161, 13162,
+                                  13163, 13164, 13165, 13166, 13167, 13168, 13169, 13170, 13171, 13172, 13173, 13174,
+                                  13175, 14100, 14101, 14102, 14103, 14104, 14105, 14106, 14107, 14108, 14109, 14110,
+                                  14111, 14112, 14113, 14114, 14115, 14116, 14117, 14118, 14119, 14120, 14121, 14122,
+                                  14123, 14124, 14125, 14126, 14127, 14128, 14129, 14130, 14131, 14132, 14133, 14134,
+                                  14135, 14136, 14137, 14138, 14139, 14140, 14141, 14142, 14143, 14144, 14145, 14146,
+                                  14147, 14148, 14149, 14150, 14151, 14152, 14153, 14154, 14155, 14156, 14157, 14158,
+                                  14159, 14160, 14161, 14162, 14163, 14164, 14165, 14166, 14167, 14168, 14169, 14170,
+                                  14171, 14172, 14173, 14174, 14175}
+
+        idxCSF_or_WM = np.full([freesurf_native_segmented_brain.shape], 0)
+
+        # Get list of voxels, made duplicate of 1's, if voxel is of a value in the list above then set to 0.
+        for counter, voxel in enumerate(freesurf_native_segmented_brain):
+            if voxel in csf_wm_values:
+                idxCSF_or_WM[counter] = 1
+
+        return idxCSF_or_WM
+
     @classmethod
     def batch_run_analysis(cls):
+        """Set up environment and find files before running analysis."""
         try:
             cls._fsl_path = os.environ['FSLDIR']
         except OSError:
@@ -353,6 +427,7 @@ class Analysis:
 
         cls._save_location = cls._atlas_name + "_ROI_report/"
 
+        # Find all nifti and analyze files
         brain_file_nifti = [os.path.basename(f) for f in glob(cls._brain_directory + "/*.nii")]
         brain_file_hdr = [os.path.basename(f) for f in glob(cls._brain_directory + "/*.hdr")]
         cls.brain_file_list = brain_file_nifti + brain_file_hdr
@@ -365,6 +440,7 @@ class Analysis:
 
         Utils.move_file('config.py', cls._brain_directory, cls._save_location)  # Move config file to analysis folder
 
+        # Extract labels from selected FSL atlas
         cls.roi_label_list()
 
         brain_class_list = []
@@ -887,10 +963,14 @@ class Utils:
                     f.write(line)
 
     @staticmethod
-    def calculate_confidence_interval(data, roi):
-        values = csr_matrix([x for x in data[roi, :] if str(x) != 'nan'])  # TODO
-        results = bs.bootstrap(values, stat_func=bs_stats.mean)
-        conf_int = results.value - results.lower_bound
+    def calculate_confidence_interval(data, roi=None):
+        if roi is not None:
+            values = csr_matrix([x for x in data[roi, :] if str(x) != 'nan'])
+        else:
+            data = data.flatten()
+            values = csr_matrix([x for x in data if str(x) != 'nan'])
+        results = bs.bootstrap(values, stat_func=bs_stats.median)  # TODO how does this work with excluded voxels
+        conf_int = results.value - results.lower_bound  # TODO what does this return
 
         return conf_int
 
@@ -910,9 +990,15 @@ if __name__ == '__main__':
         # Run class setup
         brain_list = Analysis.batch_run_analysis()
 
-        # Run analysis
-        for brain_counter, brain in enumerate(brain_list):
-            brain(brain_counter, len(brain_list))
+        if Analysis.use_freesurf_file:
+            csf_or_wm_voxels = Analysis.freesurfer_space_to_native_space()
+            # Run analysis
+            for brain_counter, brain in enumerate(brain_list):
+                brain(brain_counter, len(brain_list), freesurfer_excluded_voxels=csf_or_wm_voxels)
+        else:
+            # Run analysis
+            for brain_counter, brain in enumerate(brain_list):
+                brain(brain_counter, len(brain_list))
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison

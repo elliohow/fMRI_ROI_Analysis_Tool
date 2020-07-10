@@ -5,6 +5,7 @@
 brain_extract = True  # True or false. Select True to use BET. Recommended: True
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
+use_freesurf_file = True  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
 run_analysis = True  # True or false. Select false if json files have already been created.
 save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
@@ -28,7 +29,6 @@ bootstrap = False
 #  12: Thalamus/Thalamus-maxprob-thr0-1mm.nii.gz
 atlas_number = 2  # Number corresponding to the atlas above. e.g. 2 for Harvard oxford cortical atlas
 
-
 # conf_level_number options (confidence level, corresponding critical z value)=
 #  0: 80%, 1.28
 #  1: 85%, 1.44
@@ -38,7 +38,6 @@ atlas_number = 2  # Number corresponding to the atlas above. e.g. 2 for Harvard 
 #  5: 99%, 2.58
 conf_level_number = 3  # Set the confidence level for confidence interval calculations. Recommended: 3
 
-
 # roi_stat_list options =
 #  0: Voxel number
 #  1: Mean
@@ -47,7 +46,6 @@ conf_level_number = 3  # Set the confidence level for confidence interval calcul
 #  4: Min
 #  5: Max
 roi_stat_number = 1  # Set the statistic to scale the brain figures by. Recommended: 1
-
 
 # Provide a list of rois to include in analysis e.g. [3, 5] or "all" for all rois. Recommended: "all"
 include_rois = "all"
