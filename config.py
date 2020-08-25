@@ -7,7 +7,7 @@ frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
 use_freesurf_file = True  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
-run_analysis = True  # True or false. Select false if json files have already been created.
+run_analysis_steps = "all"  # TODO: True or false. Select false if json files have already been created.
 save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
 stat_map_folder = 'stat_map/'  # Folder name which contains the statistical map files
 stat_map_suffix = '_statmap.nii'  # File name suffix of the statistical map files. Include the file extension.

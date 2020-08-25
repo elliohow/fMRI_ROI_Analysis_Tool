@@ -13,6 +13,7 @@ import matplotlib.image as mpimg
 import plotnine as pltn
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
+import concurrent.futures  # TODO: Implement
 
 from copy import deepcopy
 from scipy.sparse import csr_matrix
@@ -37,7 +38,7 @@ class Analysis:
     exclude_rois = config.exclude_rois
 
     save_stats_only = config.save_stats_only
-    run_analysis = config.run_analysis
+    run_analysis = config.run_analysis_steps
     stat_map_folder = config.stat_map_folder
     stat_map_suffix = config.stat_map_suffix
     bootstrap = config.bootstrap
@@ -86,14 +87,14 @@ class Analysis:
         self.invt_mni_transform = ""
         self.mni_to_brain = ""
         self.mni_to_brain_mat = ""
-        self.roiTSNRs = ""
+        self.roiResults = ""
         self.roi_stat_list = ""
         self.file_list = []
         self.atlas_scale_filename = ['Voxels', 'Mean', 'Standard_Deviation',
                                      '%s_Confidence_Interval' % self._conf_level_list[int(self.conf_level_number)][0],
                                      'Min', 'Max']
 
-    def __call__(self, brain_number_current, brain_number_total, freesurfer_excluded_voxels=None):
+    def __call__(self, brain_number_current, brain_number_total, freesurfer_excluded_voxels):
         if brain_number_current == 0:
             print('\n--- Analysis ---')
 
@@ -191,16 +192,16 @@ class Analysis:
 
             # Create arrays to store the tSNR values before and after statistics
             roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
-            roiTSNRs = np.full([7, roiNum + 1], np.nan)
+            roiResults = np.full([7, roiNum + 1], np.nan)
 
             # Where the magic happens
             if self.freesurfer_space_to_native_space() is not None:
-                roiTSNRs[6, 0:-1] = 0
+                roiResults[6, 0:-1] = 0
                 for counter, roi in enumerate(idxMNI):
                     if excluded_voxels[counter] == 0:
                         roiTempStore[int(roi), counter] = idxBrain[counter]
                     else:
-                        roiTSNRs[6, int(roi)] += 1
+                        roiResults[6, int(roi)] += 1
             else:
                 for counter, roi in enumerate(idxMNI):
                     roiTempStore[int(roi), counter] = idxBrain[counter]
@@ -220,13 +221,13 @@ class Analysis:
 
             warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-            roiTSNRs[0, 0:-1] = np.count_nonzero(~np.isnan(roiTempStore), axis=1) # Number of non-nan voxels in each ROI
-            roiTSNRs[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
-            roiTSNRs[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
-            roiTSNRs[3, 0:-1] = self._conf_level_list[int(self.conf_level_number)][1] \
-                                * roiTSNRs[2, 0:-1] / np.sqrt(roiTSNRs[0, 0:-1])  # 95% confidence interval calculation
-            roiTSNRs[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
-            roiTSNRs[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
+            roiResults[0, 0:-1] = np.count_nonzero(~np.isnan(roiTempStore), axis=1) # Number of non-nan voxels in each ROI
+            roiResults[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
+            roiResults[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
+            roiResults[3, 0:-1] = self._conf_level_list[int(self.conf_level_number)][1] \
+                                * roiResults[2, 0:-1] / np.sqrt(roiResults[0, 0:-1])  # 95% confidence interval calculation
+            roiResults[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
+            roiResults[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
 
             # Statistic calculations for all voxels assigned to an ROI
             # If No ROI is part of excluded ROIs, start overall ROI calculation from 0, otherwise start from 1
@@ -235,19 +236,19 @@ class Analysis:
             else:
                 start_val = 0
 
-            roiTSNRs[0, -1] = np.count_nonzero(~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
-            roiTSNRs[1, -1] = np.nanmean(roiTempStore[start_val:, :])
-            roiTSNRs[2, -1] = np.nanstd(roiTempStore[start_val:, :])
-            roiTSNRs[3, -1] = self._conf_level_list[int(self.conf_level_number)][1] \
-                              * roiTSNRs[2, -1] / np.sqrt(roiTSNRs[0, -1])  # 95% CI calculation
-            roiTSNRs[4, -1] = np.nanmin(roiTempStore[start_val:, :])
-            roiTSNRs[5, -1] = np.nanmax(roiTempStore[start_val:, :])
+            roiResults[0, -1] = np.count_nonzero(~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
+            roiResults[1, -1] = np.nanmean(roiTempStore[start_val:, :])
+            roiResults[2, -1] = np.nanstd(roiTempStore[start_val:, :])
+            roiResults[3, -1] = self._conf_level_list[int(self.conf_level_number)][1] \
+                              * roiResults[2, -1] / np.sqrt(roiResults[0, -1])  # 95% CI calculation
+            roiResults[4, -1] = np.nanmin(roiTempStore[start_val:, :])
+            roiResults[5, -1] = np.nanmax(roiTempStore[start_val:, :])
 
             # Convert NaNs to zeros
-            for column, voxel_num in enumerate(roiTSNRs[0]):
+            for column, voxel_num in enumerate(roiResults[0]):
                 if voxel_num == 0.0:
                     for row in list(range(1, 6)):
-                        roiTSNRs[row][column] = 0.0
+                        roiResults[row][column] = 0.0
 
             warnings.filterwarnings('default')  # Reactivate warnings
 
@@ -257,16 +258,16 @@ class Analysis:
                     if counter == 0:
                         print("This may take a while...")
                     print("  - Bootstrapping roi {}/{}".format(counter, roiNum))
-                    roiTSNRs[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)  # TODO: Speed up code, multithreading?
+                    roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)  # TODO: Speed up code, multithreading?
                 # Calculate overall statistics
-                roiTSNRs[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])  # TODO does this work?
+                roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])  # TODO does this work?
 
             headers = ['Voxels', 'Mean', 'Std_dev',
                        'Conf_Int_%s' % self._conf_level_list[int(self.conf_level_number)][0],
                        'Min', 'Max', 'Freesurfer excluded voxels']
 
             # Save results as dataframe
-            tsnr_result = pd.DataFrame(data=roiTSNRs,
+            tsnr_result = pd.DataFrame(data=roiResults,
                                        index=headers,
                                        columns=self.label_list)
 
@@ -279,7 +280,7 @@ class Analysis:
                 json.dump(tsnr_result.to_dict(), file, indent=2)
 
             # Save variable for atlas_scale function
-            self.roiTSNRs = roiTSNRs
+            self.roiResults = roiResults
 
         def nipype_file_cleanup():
             """Clean up unnecessary output."""
@@ -308,8 +309,8 @@ class Analysis:
         between_brain_stat = deepcopy(within_brain_stat)
         mixed_brain_stat = deepcopy(within_brain_stat)
 
-        roi_scaled_stat = [(y/x) * 100 for x, y in zip(max_roi_stat, self.roiTSNRs[Analysis.roi_stat_number, :])]
-        global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiTSNRs[Analysis.roi_stat_number, :]]
+        roi_scaled_stat = [(y/x) * 100 for x, y in zip(max_roi_stat, self.roiResults[Analysis.roi_stat_number, :])]
+        global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiResults[Analysis.roi_stat_number, :]]
 
         roi_stat_brain_size = within_brain_stat.shape
 
@@ -324,7 +325,7 @@ class Analysis:
                         between_brain_stat[x][y][z] = np.nan
                         mixed_brain_stat[x][y][z] = np.nan
                     else:
-                        within_brain_stat[x][y][z] = self.roiTSNRs[self.roi_stat_number, roi_row]
+                        within_brain_stat[x][y][z] = self.roiResults[self.roi_stat_number, roi_row]
                         between_brain_stat[x][y][z] = roi_scaled_stat[roi_row]
                         mixed_brain_stat[x][y][z] = global_scaled_stat[roi_row]
 
@@ -352,8 +353,9 @@ class Analysis:
         native_segmented_brain.run()
 
         freesurf_native_segmented_brain = nib.load('freesurfer/native_segmented_brain.mgz')
-        freesurf_native_segmented_brain = freesurf_native_segmented_brain.get_fdata()
-        freesurf_native_segmented_brain = freesurf_native_segmented_brain.flatten()
+        freesurf_native_segmented_brain = freesurf_native_segmented_brain.get_fdata().flatten()
+        # TODO: is this method chaining valid? freesurf_native_segmented_brain = freesurf_native_segmented_brain.flatten()
+
         # Make option of restricting to grey matter only
 
         # Using set instead of list for performance reasons
@@ -404,6 +406,7 @@ class Analysis:
     @classmethod
     def batch_run_analysis(cls):
         """Set up environment and find files before running analysis."""
+        # TODO: Move to utils?
         try:
             cls._fsl_path = os.environ['FSLDIR']
         except OSError:
@@ -435,6 +438,7 @@ class Analysis:
         if len(cls.brain_file_list) == 0:
             raise NameError("No files found.")
 
+        # Make folder to save ROI_report if not already created
         if not os.path.exists(cls._brain_directory + "/" + cls._save_location):
             os.mkdir(cls._brain_directory + "/" + cls._save_location)
 
@@ -445,6 +449,7 @@ class Analysis:
 
         brain_class_list = []
         for brain in cls.brain_file_list:
+            # Initialise Analysis class for each file found
             brain_class_list.append(Analysis(brain, atlas=cls._atlas_name, atlas_path=cls._atlas_path,
                                              labels=cls._labelArray))
 
@@ -452,6 +457,7 @@ class Analysis:
 
     @classmethod
     def roi_label_list(cls):
+        """Extract labels from specified FSL atlas XML file."""
         cls._atlas_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(cls.atlas_number)][0]
         cls._atlas_label_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(cls.atlas_number)][1]
 
@@ -660,9 +666,9 @@ class Figures:
             cls.vmax = 100
 
         for file_num, json in enumerate(json_array):
-            image_name = json + ".png"
 
-            plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
+            # Save brain image using nilearn
+            image_name = json + ".png"
             plot = plotting.plot_anat(json + cls.base_extension,
                                       draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                       vmin=cls.vmin, vmax=cls.vmax, cut_coords=(cls.brain_x_coord, cls.brain_z_coord),
@@ -670,7 +676,9 @@ class Figures:
             plot.savefig(image_name)
             plot.close()
 
+            # Import saved image into subplot
             img = mpimg.imread(json + ".png")
+            plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
             plt.imshow(img)
 
             ax = plt.gca()
@@ -986,26 +994,27 @@ if __name__ == '__main__':
             Analysis.help()
 
     # Running the full analysis is optional
-    if Analysis.run_analysis:
+    if Analysis.run_analysis == "all":
         # Run class setup
         brain_list = Analysis.batch_run_analysis()
 
         if Analysis.use_freesurf_file:
             csf_or_wm_voxels = Analysis.freesurfer_space_to_native_space()
-            # Run analysis
-            for brain_counter, brain in enumerate(brain_list):
-                brain(brain_counter, len(brain_list), freesurfer_excluded_voxels=csf_or_wm_voxels)
         else:
-            # Run analysis
+            csf_or_wm_voxels = None
+
+        # Run analysis
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            # TODO: check this parallel processing works
             for brain_counter, brain in enumerate(brain_list):
-                brain(brain_counter, len(brain_list))
+                executor.submit(brain(brain_counter, len(brain_list), freesurfer_excluded_voxels=csf_or_wm_voxels))
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison
         find the largest ROI stat out of all the brains analyzed.'''
-        roi_stats = deepcopy(brain_list[0].roiTSNRs[Analysis.roi_stat_number, :])
+        roi_stats = deepcopy(brain_list[0].roiResults[Analysis.roi_stat_number, :])
         for brain in brain_list:
-            for counter, roi_stat in enumerate(brain.roiTSNRs[Analysis.roi_stat_number, :]):
+            for counter, roi_stat in enumerate(brain.roiResults[Analysis.roi_stat_number, :]):
                 if roi_stat > roi_stats[counter]:
                     roi_stats[counter] = roi_stat
 
