@@ -2,15 +2,16 @@
 # A copy of this file will be saved in
 
 '''Nipype settings'''
-brain_extract = True  # True or false. Select True to use BET. Recommended: True
+brain_extract = True  # True or false. Select True to use BET. Recommended: True TODO: deprecate this
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
-use_freesurf_file = True  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
+use_freesurf_file = False  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
-run_analysis_steps = "all"  # TODO: True or false. Select false if json files have already been created.
+make_table_only = False # True or false. If true, a csv file template containing brain file information is created and then the program is terminated.
+run_steps = "plot"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
 save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
-stat_map_folder = 'stat_map/'  # Folder name which contains the statistical map files
-stat_map_suffix = '_statmap.nii'  # File name suffix of the statistical map files. Include the file extension.
+stat_map_folder = 'QA_report/'  # Folder name which contains the statistical map files
+stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. Include the file extension.
 bootstrap = False
 
 # atlas_number options =
@@ -52,17 +53,15 @@ include_rois = "all"
 # Provide a list of rois to exclude in analysis e.g. [3, 5] or "none" to exclude none. Recommended: "none"
 exclude_rois = "none"
 
-
 '''Parsing settings'''
-# MRI parameters to parse file names for. Key indicates parameter name and value indicates how it would be represented
-# in the file name.
+# MRI parameters to parse in the format of a dict. Key indicates parameter name and value indicates how it would be represented in the file name (if using name parameter searching) If using table parameter searching, values can be blank.
 parameter_dict = {"MB": "mb",
-                  "SENSE": "s",
-                  "Half scan": "half"}
-binary_params = ["Half scan"]  # Add parameters here which will either be off or on
-# Set skip_verify_params to true if you are confident the file names reflect the MRI parameters. Recommended: False
-skip_verify_params = False
-
+                  "SENSE": "s"}
+binary_params = []  # Add parameters here which will either be off or on.
+# Set verify_param_method to true if you are confident the file names reflect the MRI parameters. Recommended: False
+verify_param_method = "table"  # "table", "name" or "manual". How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime.
+param_table_name = "paramValues.csv"  # Optional. Only used if verify_param_method equals "table". Only change if creating a param table manually. Default value: "paramValues.csv"
+always_replace_combined_json = True  # True or False. Recommended: True
 
 '''General plot settings'''
 plot_dpi = 100  # Recommended value 600
@@ -73,8 +72,7 @@ make_figure_table = True  # True or False
 make_brain_table = True  # True or False
 make_one_region_fig = False  # True or False
 
-
-'''Brain image figure'''
+'''Brain facet grid'''
 # 'brain_fig_value_min' and 'brain_fig_value_max' can be changed to provide cutoff values. For example, set min to 50
 # and max to 100 to make areas with values below 50 to disappear and values over 100 to be set to the same
 # bright colour.
@@ -85,7 +83,8 @@ brain_fig_value_max = None  # Recommended value None. Note: will default to 100 
 # 0: _Mean_atlas.nii.gz
 # 1: _Mean_roi_scaled_atlas.nii.gz",
 # 2: _Mean_global_scaled_atlas.nii.gz"
-brain_fig_file = 0  # Number corresponding to the options. e.g. 2 for global_scaled_atlas.
+# 3: Produce all three figures
+brain_fig_file = 3  # Number corresponding to the options. e.g. 2 for global_scaled_atlas.
 
 brain_table_cols = 'MB'  # String should be a key from the parameter_dict
 brain_table_rows = 'SENSE'  # String should be a key from the parameter_dict
@@ -97,15 +96,14 @@ brain_table_y_size = 10  # Change the size of the y-axis. Recommended: 10
 brain_x_coord = 91
 brain_z_coord = 91
 
-'''Two parameter table'''
+'''Two parameter scatter plot'''
 table_cols = 'MB'  # String should be a key from the parameter_dict
 table_rows = 'SENSE'  # String should be a key from the parameter_dict
 
 table_y_label = 'ROI'
 table_x_label = 'TSNR mean'
 
-
-'''One region figure'''
+'''One region bar chart'''
 # Provide a list of regions to plot e.g. [3, 5] or 'all' for all rois. Or use None to provide regions at runtime.
 single_roi_fig_regions = None
 
@@ -119,4 +117,5 @@ single_roi_fig_label_y = "temporal Signal to Noise Ratio"
 single_roi_fig_label_fill = "SENSE factor"
 
 # Figure colours
-single_roi_fig_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026'] # Hex values of colour blind friendly colour scale
+single_roi_fig_colours = ['#ffeda0', '#feb24c', '#fc4e2a',
+                          '#bd0026']  # Hex values of colour blind friendly colour scale
