@@ -5,6 +5,7 @@ import json
 import warnings
 import re
 import config
+import argparse
 
 import nibabel as nib
 import numpy as np
@@ -20,6 +21,7 @@ from scipy.sparse import csr_matrix
 from glob import glob
 from nipype.interfaces import fsl, freesurfer
 from matplotlib import pyplot as plt
+from matplotlib import ticker
 from nilearn import plotting
 from tkinter import Tk, filedialog
 
@@ -293,44 +295,44 @@ class Analysis:
             brain_num_tot=brain_number_total,
             brain=self.brain))
 
-        within_brain_stat = nib.load(self.atlas_path)
-        within_brain_stat = within_brain_stat.get_fdata()
+        brain_stat = nib.load(self.atlas_path)
+        brain_stat = brain_stat.get_fdata()
 
-        between_brain_stat = deepcopy(within_brain_stat)
-        mixed_brain_stat = deepcopy(within_brain_stat)
+        within_roi_stat = deepcopy(brain_stat)
+        mixed_roi_stat = deepcopy(brain_stat)
 
         roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.roiResults[config.roi_stat_number, :])]
         global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiResults[config.roi_stat_number, :]]
 
-        roi_stat_brain_size = within_brain_stat.shape
+        roi_stat_brain_size = brain_stat.shape
 
         # Iterate through each voxel in the atlas
         for x in range(0, roi_stat_brain_size[0]):
             for y in range(0, roi_stat_brain_size[1]):
                 for z in range(0, roi_stat_brain_size[2]):
                     # Set new value of voxel to the required statistic
-                    roi_row = int(within_brain_stat[x][y][z])
+                    roi_row = int(brain_stat[x][y][z])
                     if roi_row == 0:
-                        within_brain_stat[x][y][z] = np.nan
-                        between_brain_stat[x][y][z] = np.nan
-                        mixed_brain_stat[x][y][z] = np.nan
+                        brain_stat[x][y][z] = np.nan
+                        within_roi_stat[x][y][z] = np.nan
+                        mixed_roi_stat[x][y][z] = np.nan
                     else:
-                        within_brain_stat[x][y][z] = self.roiResults[config.roi_stat_number, roi_row]
-                        between_brain_stat[x][y][z] = roi_scaled_stat[roi_row]
-                        mixed_brain_stat[x][y][z] = global_scaled_stat[roi_row]
+                        brain_stat[x][y][z] = self.roiResults[config.roi_stat_number, roi_row]
+                        within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
+                        mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
 
         # Convert atlas to NIFTI and save it
         affine = np.eye(4)
-        scaled_atlas = nib.Nifti1Image(within_brain_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_atlas.nii.gz"
+        scaled_atlas = nib.Nifti1Image(brain_stat, affine)
+        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s.nii.gz"
                                  % self.atlas_scale_filename[config.roi_stat_number])
 
-        scaled_atlas = nib.Nifti1Image(between_brain_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_roi_scaled_atlas.nii.gz"
+        scaled_atlas = nib.Nifti1Image(within_roi_stat, affine)
+        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_within_roi_scaled.nii.gz"
                                  % self.atlas_scale_filename[config.roi_stat_number])
 
-        scaled_atlas = nib.Nifti1Image(mixed_brain_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_global_scaled_atlas.nii.gz"
+        scaled_atlas = nib.Nifti1Image(mixed_roi_stat, affine)
+        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_mixed_roi_scaled.nii.gz"
                                  % self.atlas_scale_filename[config.roi_stat_number])
 
     @staticmethod
@@ -411,8 +413,8 @@ class Analysis:
         cls._labelArray.append('Overall')
 
     @classmethod
-    def help(cls):
-        """Produce help text when the parameter "help" is passed with the filename. I.e. "roiAnalysis.py help"."""
+    def print_info(cls):
+        """Produce print_info text when the parameter "print_info" is passed with the filename. I.e. "roiAnalysis.py print_info"."""
         print("\n   Atlas list:")
         for counter, atlas in enumerate(cls._atlas_label_list):
             print("Atlas number " + str(counter) + ": " + os.path.splitext(atlas[1])[0])
@@ -431,8 +433,8 @@ class Analysis:
 
 
 class Figures:
-    _brain_plot_file_extension = ["_Mean_atlas.nii.gz", "_Mean_roi_scaled_atlas.nii.gz",
-                                  "_Mean_global_scaled_atlas.nii.gz", "all"]
+    _brain_plot_file_extension = ["_Mean.nii.gz", "_Mean_within_roi_scaled.nii.gz",
+                                  "_Mean_mixed_roi_scaled.nii.gz", "all"]
     base_extension = _brain_plot_file_extension[config.brain_fig_file]
 
     @classmethod
@@ -518,7 +520,6 @@ class Figures:
 
                 try:
                     chosen_rois = list(map(int, chosen_rois))  # Convert each list item to integers
-
                 except ValueError:
                     print('Comma-separated list contains non integers.\n')
                     chosen_rois = []
@@ -542,8 +543,7 @@ class Figures:
 
             figure = (pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
                                                        ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
-                                                       fill='factor({colour})'.format(
-                                                           colour=config.single_roi_fig_colour)))
+                                                       fill='factor({colour})'.format(colour=config.single_roi_fig_colour)))
                       + pltn.theme_538()
                       + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                       + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
@@ -580,7 +580,7 @@ class Figures:
         plot_values, axis_titles, current_params, col_nums, \
         row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
-        if base_extension != "_Mean_atlas.nii.gz" and config.brain_fig_value_max is None:
+        if base_extension != "_Mean.nii.gz":
             config.brain_fig_value_max = 100
 
         for file_num, json in enumerate(json_array):
@@ -592,6 +592,7 @@ class Figures:
                                       vmin=config.brain_fig_value_min, vmax=config.brain_fig_value_max,
                                       cut_coords=(config.brain_x_coord, config.brain_z_coord),
                                       cmap='inferno')
+
             plot.savefig(image_name)
             plot.close()
 
@@ -616,7 +617,8 @@ class Figures:
 
         cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size)
 
-        plt.tight_layout()
+        if config.brain_tight_layout:
+            plt.tight_layout()
         plt.savefig(f"Figures/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
         plt.close()
         print("Saved brain table!")
@@ -696,9 +698,8 @@ class Figures:
 class ParamParser:
     @classmethod
     def run_parse(cls):
-        combined_results_create = True
-
         json_array = cls.json_search()
+        combined_results_create = True
 
         while True and not config.always_replace_combined_json:
             if "combined_results.json" in json_array:
@@ -719,51 +720,52 @@ class ParamParser:
             else:
                 break
 
-        # Double check if the user wants to skip parameter verification
-        if config.verify_param_method == "manual":
-            skip_verify = input(
-                "Do you want to skip the verification of parameters and rely on file names instead? (y or n) ")
-            skip_verify = skip_verify.lower()
-
-            if skip_verify != "y":
-                print("\nDo you want to verify the following MRI parameters during this step?")
-
-                used_parameters = []
-                for parameter in config.parameter_dict:
-                    answer = input(parameter + "? (y or n) ")
-
-                    if answer.lower() in ("y", "yes"):
-                        used_parameters.append(1)
-                    else:
-                        used_parameters.append(0)
-
-        else:
-            skip_verify = "y"
-
-        combined_dataframe = pd.DataFrame()
-
-        if config.verify_param_method == "table":
-            table = pd.read_csv(config.param_table_name)  # Load param table
-
-        for json in json_array:
-            if json == "combined_results.json":
-                continue
-
-            if config.verify_param_method in ("manual", "name"):
-                param_nums = cls.parse_params_from_file_name(json)
-            else:
-                param_nums = cls.parse_params_from_table_file(json, table)
-
-            if skip_verify != "y":
-                param_nums = cls.manually_verify_params(json, param_nums, used_parameters)
-
-            if combined_results_create and param_nums:
-                combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
-
         if combined_results_create:
-            # Save combined results
-            combined_dataframe = combined_dataframe.reset_index()
-            combined_dataframe.to_json("combined_results.json", orient='records')
+            # Double check if the user wants to skip parameter verification
+            if config.verify_param_method == "manual":
+                skip_verify = input(
+                    "Do you want to skip the verification of parameters and rely on file names instead? (y or n) ")
+                skip_verify = skip_verify.lower()
+
+                if skip_verify != "y":
+                    print("\nDo you want to verify the following MRI parameters during this step?")
+
+                    used_parameters = []
+                    for parameter in config.parameter_dict:
+                        answer = input(parameter + "? (y or n) ")
+
+                        if answer.lower() in ("y", "yes"):
+                            used_parameters.append(1)
+                        else:
+                            used_parameters.append(0)
+
+            else:
+                skip_verify = "y"
+
+            combined_dataframe = pd.DataFrame()
+
+            if config.verify_param_method == "table":
+                table = pd.read_csv(config.param_table_name)  # Load param table
+
+            for json in json_array:
+                if json == "combined_results.json":
+                    continue
+
+                if config.verify_param_method in ("manual", "name"):
+                    param_nums = cls.parse_params_from_file_name(json)
+                else:
+                    param_nums = cls.parse_params_from_table_file(json, table)
+
+                if skip_verify != "y":
+                    param_nums = cls.manually_verify_params(json, param_nums, used_parameters)
+
+                if param_nums:
+                    combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
+
+            if combined_results_create:
+                # Save combined results
+                combined_dataframe = combined_dataframe.reset_index()
+                combined_dataframe.to_json("combined_results.json", orient='records')
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
@@ -862,18 +864,28 @@ class ParamParser:
                 print("\nRe-checking...")  # Repeat the verification process
 
     @staticmethod
-    def json_search():
+    def json_search(cmdline_arg=None):
         if config.run_steps == "all":
             json_directory = os.getcwd() + f"/{Analysis._save_location}"
 
             if config.verify_param_method == "table":  # Move excel file containing parameter file info
                 Utils.move_file(config.param_table_name, os.getcwd(), json_directory)
 
-        else:
-            print('Select the directory of json files.')
-            json_directory = Utils.file_browser()
+            os.chdir(json_directory)
 
-        os.chdir(json_directory)
+        elif config.json_file_loc in ("", " "):
+            print('Select the directory of json files.')
+            json_directory = Utils.file_browser(chdir=True)
+
+        else:
+            json_directory = config.json_file_loc
+
+            try:
+                os.chdir(json_directory)
+            except FileNotFoundError:
+                raise FileNotFoundError('json_file_loc in config.py is not a valid directory.')
+
+            print(f'Gathering json files from {config.json_file_loc}.')
 
         json_file_list = [os.path.basename(f) for f in glob(json_directory + "/*.json")]
 
@@ -906,6 +918,34 @@ class ParamParser:
 
 
 class Utils:
+    @staticmethod
+    def argparser():
+        # Create the parser
+        parser = argparse.ArgumentParser(prog='roi_analysis_tool',
+                                         description='Convert voxelwise statistics to regionwise statistics for MRI data.')
+
+        # Add the arguments
+        parser.add_argument('--brain_loc', dest='brain_loc', action='store', type=str,
+                            help='Directory location of brain files for analysis. '
+                                 'Can be set in config.py to use a GUI to find folder instead).')
+
+        parser.add_argument('--json_loc', dest='json_loc', action='store', type=str,
+                            help='Directory location of json files produced by the roi_analysis_tool '
+                                 '(can be set in config.py to use a GUI to find folder instead).')
+
+        parser.add_argument('--make_table', dest='make_table', action='store_true',
+                            help='Use this flag to create a csv file to store parameter information about files.'
+                                 'Recommended that this file is created and filled in before tool execution'
+                                 ' (this setting can alternatively be set to True or False in config.py).')
+
+        parser.add_argument('--print_info', dest='print_info', action='store_true',
+                            help='Use this flag to print a list of possible atlases and other information.')
+
+        # Execute the parse_args() method
+        args = parser.parse_args()
+
+        return args
+
     @staticmethod
     def find_brain_files(brain_directory):
         brain_file_nifti = [os.path.basename(f) for f in glob(brain_directory + "/*.nii")]
@@ -964,18 +1004,30 @@ class Utils:
         print('\n--- Environment Setup ---')
 
         if Analysis._brain_directory == "":
-            print('Select the directory of the raw MRI/fMRI brains.')
 
-            Analysis._brain_directory = Utils.file_browser(chdir=True)
+            if config.brain_file_loc in ("", " "):
+                print('Select the directory of the raw MRI/fMRI brains.')
+
+                Analysis._brain_directory = Utils.file_browser()
+
+            else:
+                Analysis._brain_directory = config.brain_file_loc
+
+                print(f'Gathering brain files from {config.brain_file_loc}.')
 
             # Save copy of config.py to retain settings. It is saved here as after changing directory it will be harder
             # to find
             cls.save_config(Analysis._brain_directory)
 
+            try:
+                os.chdir(Analysis._brain_directory)
+            except FileNotFoundError:
+                raise FileNotFoundError('brain_file_loc in config.py is not a valid directory.')
+
         Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]
         print('Using the ' + Analysis._atlas_name + ' atlas.')
 
-        Analysis_save_location = Analysis._atlas_name + "_ROI_report/"
+        Analysis._save_location = Analysis._atlas_name + "_ROI_report/"
 
         # Find all nifti and analyze files
         Analysis.brain_file_list = cls.find_brain_files(Analysis._brain_directory)
@@ -1037,20 +1089,27 @@ class Utils:
 
 
 if __name__ == '__main__':
-    # Run help if passed as parameter
-    if len(sys.argv) > 1:
-        if sys.argv[1] == 'help':
-            Analysis.help()
+    args = Utils.argparser()
 
-    if config.make_table_only:
+    # Check arguments passed over command line
+    if args.print_info:
+        Analysis.print_info()
+
+    if config.make_table_only or args.make_table:
         Utils.make_table()
 
-    # Running the full analysis is optional
+    if args.brain_loc is not None:
+        config.brain_file_loc = args.brain_loc
+
+    if args.json_loc is not None:
+        config.json_file_loc = args.json_loc
+
+    # Run the analysis
     if config.run_steps in ("analyse", "all"):
         # Run class setup
         brain_list = Utils.setup_analysis()
 
-        if Analysis.use_freesurf_file:
+        if config.use_freesurf_file:
             csf_or_wm_voxels = Analysis.freesurfer_space_to_native_space()
         else:
             csf_or_wm_voxels = None

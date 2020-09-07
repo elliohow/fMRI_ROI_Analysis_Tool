@@ -2,17 +2,19 @@
 # A copy of this file will be saved in
 
 '''Nipype settings'''
-brain_extract = True  # True or false. Select True to use BET. Recommended: True TODO: deprecate this
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
 use_freesurf_file = False  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
-make_table_only = False # True or false. If true, a csv file template containing brain file information is created and then the program is terminated.
+make_table_only = False # True or false. If true, a csv file template containing brain file information is created and then the program is terminated. Can be set using a command line flag instead.
 run_steps = "plot"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
 save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
 stat_map_folder = 'QA_report/'  # Folder name which contains the statistical map files
 stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. Include the file extension.
 bootstrap = False
+
+brain_file_loc = ""  # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.
+json_file_loc = "/Users/lpxeh10/Desktop/Elliot/Achieva_11Feb_2020/NIFTI/HarvardOxford-Cortical_ROI_report"  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 
 # atlas_number options =
 #  0: Cerebellum/Cerebellum-MNIflirt-maxprob-thr0-1mm.nii.gz
@@ -64,11 +66,11 @@ param_table_name = "paramValues.csv"  # Optional. Only used if verify_param_meth
 always_replace_combined_json = True  # True or False. Recommended: True
 
 '''General plot settings'''
-plot_dpi = 100  # Recommended value 600
-plot_font_size = 30  # Recommended value 30
+plot_dpi = 200  # Recommended value 600
+plot_font_size = 40  # Recommended value 30
 plot_scale = 10  # Recommended value 10
 
-make_figure_table = True  # True or False
+make_figure_table = False  # True or False
 make_brain_table = True  # True or False
 make_one_region_fig = False  # True or False
 
@@ -77,19 +79,21 @@ make_one_region_fig = False  # True or False
 # and max to 100 to make areas with values below 50 to disappear and values over 100 to be set to the same
 # bright colour.
 brain_fig_value_min = 0  # Recommended value 0
-brain_fig_value_max = None  # Recommended value None. Note: will default to 100 for scaled maps.
+brain_fig_value_max = 180  # Recommended value None. Note: will default to 100 for scaled maps.
+
+brain_tight_layout = False  # True or False. Use a tight layout when laying otu the figure. Recommended: False
 
 # brain_plot_file options =
-# 0: _Mean_atlas.nii.gz
-# 1: _Mean_roi_scaled_atlas.nii.gz",
-# 2: _Mean_global_scaled_atlas.nii.gz"
+# 0: _Mean.nii.gz
+# 1: _Mean_within_roi_scaled.nii.gz",
+# 2: _Mean_mixed_roi_scaled.nii.gz"
 # 3: Produce all three figures
-brain_fig_file = 3  # Number corresponding to the options. e.g. 2 for global_scaled_atlas.
+brain_fig_file = 3  # Number corresponding to the options. e.g. 2 for mixed_roi_scaled.
 
 brain_table_cols = 'MB'  # String should be a key from the parameter_dict
 brain_table_rows = 'SENSE'  # String should be a key from the parameter_dict
 
-brain_table_x_size = 50  # Change the size of the x-axis. Recommended: 50
+brain_table_x_size = 40  # Change the size of the x-axis. Recommended: 50
 brain_table_y_size = 10  # Change the size of the y-axis. Recommended: 10
 
 # Voxel location to slice the images at in the x and z axes. Recommended settings for both variables: 91 or 58
