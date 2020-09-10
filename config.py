@@ -14,7 +14,7 @@ stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. 
 bootstrap = False
 
 brain_file_loc = ""  # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.
-json_file_loc = "/Users/lpxeh10/Desktop/Elliot/Achieva_11Feb_2020/NIFTI/HarvardOxford-Cortical_ROI_report"  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+json_file_loc = ""  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 
 # atlas_number options =
 #  0: Cerebellum/Cerebellum-MNIflirt-maxprob-thr0-1mm.nii.gz
@@ -79,7 +79,7 @@ make_one_region_fig = False  # True or False
 # and max to 100 to make areas with values below 50 to disappear and values over 100 to be set to the same
 # bright colour.
 brain_fig_value_min = 0  # Recommended value 0
-brain_fig_value_max = 180  # Recommended value None. Note: will default to 100 for scaled maps.
+brain_fig_value_max = None  # Recommended value None. Note: will default to 100 for scaled maps.
 
 brain_tight_layout = False  # True or False. Use a tight layout when laying otu the figure. Recommended: False
 

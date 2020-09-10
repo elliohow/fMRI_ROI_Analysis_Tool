@@ -21,7 +21,6 @@ from scipy.sparse import csr_matrix
 from glob import glob
 from nipype.interfaces import fsl, freesurfer
 from matplotlib import pyplot as plt
-from matplotlib import ticker
 from nilearn import plotting
 from tkinter import Tk, filedialog
 
@@ -949,9 +948,10 @@ class Utils:
     @staticmethod
     def find_brain_files(brain_directory):
         brain_file_nifti = [os.path.basename(f) for f in glob(brain_directory + "/*.nii")]
+        brain_file_nifti_gz = [os.path.basename(f) for f in glob(brain_directory + "/*.nii.gz")]
         brain_file_hdr = [os.path.basename(f) for f in glob(brain_directory + "/*.hdr")]
 
-        return brain_file_nifti + brain_file_hdr
+        return brain_file_nifti + brain_file_nifti_gz + brain_file_hdr
 
     @staticmethod
     def file_browser(chdir=False):
