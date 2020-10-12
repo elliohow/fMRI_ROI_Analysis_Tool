@@ -70,9 +70,13 @@ plot_dpi = 200  # Recommended value 600
 plot_font_size = 40  # Recommended value 30
 plot_scale = 10  # Recommended value 10
 
-make_figure_table = False  # True or False
-make_brain_table = True  # True or False
+# Figure colours
+colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']  # Hex values of colour blind friendly colour scale
+
+make_scatter_table = True  # True or False
+make_brain_table = False  # True or False
 make_one_region_fig = False  # True or False
+make_histogram = False  # True or False
 
 '''Brain facet grid'''
 # 'brain_fig_value_min' and 'brain_fig_value_max' can be changed to provide cutoff values. For example, set min to 50
@@ -104,11 +108,13 @@ brain_z_coord = 91
 table_cols = 'MB'  # String should be a key from the parameter_dict
 table_rows = 'SENSE'  # String should be a key from the parameter_dict
 
-table_y_label = 'ROI'
 table_x_label = 'TSNR mean'
+table_y_label = 'ROI'
+
+table_row_order = 'both'  # 'roi', 'stat' or 'both'. Recommended: 'both'
 
 '''One region bar chart'''
-# Provide a list of regions to plot e.g. [3, 5] or 'all' for all rois. Or use None to provide regions at runtime.
+# Provide a comma-separated list of regions to plot e.g. 3, 5 or 'all' for all rois. Or use None to provide regions at runtime.
 single_roi_fig_regions = None
 
 # Figure 'aesthetics'
@@ -120,6 +126,24 @@ single_roi_fig_label_x = "Multiband factor"
 single_roi_fig_label_y = "temporal Signal to Noise Ratio"
 single_roi_fig_label_fill = "SENSE factor"
 
+'''Region histogram'''
+# Provide a comma-separated list of regions to plot e.g. 3, 5 or 'all' for all rois. Or use None to provide regions at runtime.
+histogram_fig_regions = 4
+
+histogram_binwidth = 5
+
+# Figure faceting
+histogram_fig_x_facet = 'MB'
+histogram_fig_y_facet = 'SENSE'
+
 # Figure colours
-single_roi_fig_colours = ['#ffeda0', '#feb24c', '#fc4e2a',
-                          '#bd0026']  # Hex values of colour blind friendly colour scale
+histogram_fig_colour = '#fc4e2a'  # Hex value of colour blind friendly colour
+
+# Figure labels
+histogram_fig_label_x = "temporal Signal to Noise Ratio"
+histogram_fig_label_y = "Frequency"
+
+histogram_stat_line_size = 1.5
+histogram_show_mean = True
+histogram_show_median = True
+histogram_show_legend = True

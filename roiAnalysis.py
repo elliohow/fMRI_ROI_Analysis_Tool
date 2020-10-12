@@ -1,7 +1,6 @@
 import os
 import sys
 import xmltodict
-import json
 import warnings
 import re
 import config
@@ -16,6 +15,7 @@ import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
 import concurrent.futures  # TODO: Implement
 
+import simplejson as json
 from copy import deepcopy
 from scipy.sparse import csr_matrix
 from glob import glob
@@ -86,7 +86,7 @@ class Analysis:
             brain_num_tot=brain_number_total,
             brain=self.brain))
         self.roi_flirt_transform()
-        self.roi_stats()
+        self.roi_stats(brain_number_current, brain_number_total)
 
     def roi_flirt_transform(self):
         """Function which uses NiPype to transform the chosen atlas into the native space."""
@@ -150,7 +150,7 @@ class Analysis:
         invert_transform()
         mni_to_brain()
 
-    def roi_stats(self, excluded_voxels=None):
+    def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels=None):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
 
@@ -256,18 +256,42 @@ class Analysis:
                        'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
                        'Min', 'Max', 'Freesurfer excluded voxels']
 
+            # Reorganise matrix to later remove nan rows
+            roiTempStore = roiTempStore.transpose()
+            i = np.arange(roiTempStore.shape[1])
+            # Find indices of nans and put them at the end of each column
+            a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
+            # Reorganise matrix with nans at end
+            roiTempStore[:] = roiTempStore[a, i]
+
             # Save results as dataframe
             results = pd.DataFrame(data=roiResults,
                                    index=headers,
                                    columns=self.label_list)
+            raw_results = pd.DataFrame(data=roiTempStore,
+                                       columns=self.label_list[:-1])
 
             # Remove the required rows from the dataframe
             if exclude_rois:
                 results = results.drop(results.columns[exclude_rois], axis=1)
+                raw_results = raw_results.drop(raw_results.columns[exclude_rois], axis=1)
 
-            # Save JSON file
+            if exclude_rois is None or 0 not in exclude_rois:
+                raw_results = raw_results.drop(raw_results.columns[0], axis=1)
+
+            # Remove rows where all columns have NaNs (essential to keep file size down)
+            raw_results = raw_results.dropna(axis=0, how='all')
+
+            raw_results_path = f"{Analysis._brain_directory}/{Analysis._save_location}Raw_results/"
+            Utils.check_and_make_dir(raw_results_path)
+
+            # Save JSON files
+            print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}.\n')
+
             with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
                 json.dump(results.to_dict(), file, indent=2)
+            with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
+                json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)
 
             # Save variable for atlas_scale function
             self.roiResults = roiResults
@@ -445,87 +469,74 @@ class Figures:
 
         plt.rcParams['figure.figsize'] = config.brain_table_x_size, config.brain_table_y_size  # Brain plot code
 
-        df = pd.read_json("combined_results.json")
+        combined_results_df = pd.read_json("combined_results.json")
 
         if config.make_one_region_fig:
-            cls.one_region_bar_chart(df)
+            cls.one_region_bar_chart(combined_results_df)
 
         if config.make_brain_table:
             if Figures.base_extension == "all":
                 for base_extension in Figures._brain_plot_file_extension[0:-1]:
-                    cls.brain_facet_grid(df, base_extension)
+                    cls.brain_facet_grid(combined_results_df, base_extension)
             else:
-                cls.brain_facet_grid(df, Figures.base_extension)
+                cls.brain_facet_grid(combined_results_df, Figures.base_extension)
 
-        if config.make_figure_table:
-            cls.scatter_plot(df)
+        if config.make_scatter_table:
+            cls.scatter_plot(combined_results_df)
+
+        if config.make_histogram:
+            cls.region_histogram(combined_results_df)
 
     @classmethod
     def scatter_plot(cls, df):
+        Utils.check_and_make_dir("Figures/Scatterplots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
-        # Group and sort df so figures are sorted according to the first panel
         df = df.groupby([config.table_cols, config.table_rows]).apply(
             lambda x: x.sort_values(['Mean']))  # Group by parameters and sort
-        roi_ord = pd.Categorical(df['index'], categories=df['index'].unique())  # Set roi_ord to an ordered categorical
-        df = df.assign(roi_cat=roi_ord)  # Create new column called roi_ord
         df = df.reset_index(drop=True)  # Reset index to remove grouping
 
-        print("Preparing two parameter table!")
-        figure_table = (pltn.ggplot(df, pltn.aes("Mean", "roi_ord"))
-                        + pltn.geom_point(na_rm=True, size=1)
-                        + pltn.geom_errorbarh(pltn.aes(xmin="Mean-Conf_Int_95", xmax="Mean+Conf_Int_95"),
-                                              na_rm=True, height=None)
-                        + pltn.scale_y_discrete(labels=[])
-                        + pltn.ylab(config.table_y_label)
-                        + pltn.xlab(config.table_x_label)
-                        + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
-                                          drop=True, labeller="label_both")
-                        + pltn.theme_538()  # Set theme
-                        + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=0),
-                                     panel_grid_major_x=pltn.themes.element_line(alpha=1),
-                                     panel_background=pltn.element_rect(fill="gray", alpha=0.1),
-                                     dpi=config.plot_dpi))
+        scatterplots = ['roi_ordered', 'stat_ordered']
+        if config.table_row_order == 'roi':
+            scatterplots.remove('stat')
+        elif config.table_row_order == 'statorder':
+            scatterplots.remove('roi_ordered')
 
-        figure_table.save("Figures/two_param_table.png", height=config.plot_scale, width=config.plot_scale * 3,
-                          verbose=False, limitsize=False)
-        print("Saved two parameter table!")
+        for scatterplot in scatterplots:
+            print(f"Preparing {scatterplot} scatterplot!")
+
+            if scatterplot == 'roi_ordered':
+                roi_ord = pd.Categorical(df['index'],
+                                         categories=df['index'].unique())  # Order rows based on first facet
+            else:
+                roi_ord = pd.Categorical(df.groupby(['MB', 'SENSE']).cumcount())  # Order each facet individually
+
+            figure_table = (pltn.ggplot(df, pltn.aes(x="Mean", y=roi_ord))
+                            + pltn.geom_point(na_rm=True, size=1)
+                            + pltn.geom_errorbarh(pltn.aes(xmin="Mean-Conf_Int_95", xmax="Mean+Conf_Int_95"),
+                                                  na_rm=True, height=None)
+                            + pltn.scale_y_discrete(labels=[])
+                            + pltn.ylab(config.table_y_label)
+                            + pltn.xlab(config.table_x_label)
+                            + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
+                                              drop=True, labeller="label_both")
+                            + pltn.theme_538()  # Set theme
+                            + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=0),
+                                         panel_grid_major_x=pltn.themes.element_line(alpha=1),
+                                         panel_background=pltn.element_rect(fill="gray", alpha=0.1),
+                                         dpi=config.plot_dpi))
+
+            figure_table.save(f"Figures/Scatterplots/{scatterplot}_scatterplot.png", height=config.plot_scale, width=config.plot_scale * 3,
+                              verbose=False, limitsize=False)
+            print("Saved scatterplot!")
 
     @classmethod
     def one_region_bar_chart(cls, df):
+        Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
-        if config.single_roi_fig_regions is None:
-            chosen_rois = []
-
-            for roi_num, roi in enumerate(list_rois):
-                print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))
-        else:
-            if config.single_roi_fig_regions.lower() == "all":
-                chosen_rois = list(range(0, len(list_rois)))
-            else:
-                chosen_rois = config.single_roi_fig_regions
-
-        while not chosen_rois:
-            roi_ans = input("Type a comma-separated list of the ROIs (listed above) you want to produce a figure for, "
-                            "'e.g. 2,15,7,23' or 'all' for all rois. \nAlternatively press enter to skip this step: ")
-            print("")
-
-            if roi_ans.lower() == "all":
-                chosen_rois = list(range(0, len(list_rois)))
-
-            elif len(roi_ans) > 0:
-                chosen_rois = roi_ans.split(",")  # Split by comma
-
-                try:
-                    chosen_rois = list(map(int, chosen_rois))  # Convert each list item to integers
-                except ValueError:
-                    print('Comma-separated list contains non integers.\n')
-                    chosen_rois = []
-
-            else:  # Else statement for blank input
-                chosen_rois = []
-                break
+        chosen_rois = cls.find_chosen_rois(list_rois, plot_name="One region bar chart",
+                                           config_region_var=config.single_roi_fig_regions)
 
         for roi in chosen_rois:
             thisroi = list_rois[roi]
@@ -540,38 +551,123 @@ class Figures:
 
             print("Setting up {thisroi}_barplot.png".format(thisroi=thisroi))
 
-            figure = (pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
-                                                       ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
-                                                       fill='factor({colour})'.format(colour=config.single_roi_fig_colour)))
-                      + pltn.theme_538()
-                      + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
-                      + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
-                      + pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
-                                  fill=config.single_roi_fig_label_fill)
-                      + pltn.scale_x_discrete(labels=[])
-                      + pltn.theme(panel_grid_major_x=pltn.element_line(alpha=0),
-                                   axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
-                                   axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
-                                   axis_text_y=pltn.element_text(size=20, color='black'),
-                                   legend_title=pltn.element_text(size=20, color='black'),
-                                   legend_text=pltn.element_text(size=18, color='black'),
-                                   subplots_adjust={'right': 0.85},
-                                   legend_position=(0.9, 0.8),
-                                   dpi=config.plot_dpi
-                                   )
-                      + pltn.geom_text(pltn.aes(y=-.7, label='MB'),
-                                       color='black', size=20, va='top')
-                      + pltn.scale_fill_manual(values=config.single_roi_fig_colours)
-                      # + pltn.scale_fill_grey()
-                      )
+            figure = (
+                    pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
+                                                     ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
+                                                     fill='factor({colour})'.format(
+                                                         colour=config.single_roi_fig_colour)))
+                    + pltn.theme_538()
+                    + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
+                    + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
+                    + pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
+                                fill=config.single_roi_fig_label_fill)
+                    + pltn.scale_x_discrete(labels=[])
+                    + pltn.theme(panel_grid_major_x=pltn.element_line(alpha=0),
+                                 axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
+                                 axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
+                                 axis_text_y=pltn.element_text(size=20, color='black'),
+                                 legend_title=pltn.element_text(size=20, color='black'),
+                                 legend_text=pltn.element_text(size=18, color='black'),
+                                 subplots_adjust={'right': 0.85},
+                                 legend_position=(0.9, 0.8),
+                                 dpi=config.plot_dpi
+                                 )
+                    + pltn.geom_text(pltn.aes(y=-.7, label='MB'),  # TODO make MB label variable
+                                     color='black', size=20, va='top')
+                    + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
+            )
 
-            figure.save("Figures/{thisroi}_barplot.png".format(thisroi=thisroi), height=config.plot_scale,
+            figure.save("Figures/Barcharts/{thisroi}_barplot.png".format(thisroi=thisroi), height=config.plot_scale,
                         width=config.plot_scale * 3,
                         verbose=False, limitsize=False)
             print("Saved {thisroi}_barplot.png".format(thisroi=thisroi))
 
     @classmethod
+    def region_histogram(cls, combined_df):
+        Utils.check_and_make_dir("Figures/Histograms")
+        list_rois = list(combined_df['index'].unique())
+        chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
+                                           config_region_var=config.histogram_fig_regions)
+
+        # Compile a dataframe containing raw values and parameter values for all ROIs and save as combined_raw_df
+        if chosen_rois:
+            jsons = Utils.find_files("Raw_results", "json")
+            combined_raw_df = cls.make_raw_df(jsons, combined_df)
+
+        # Make a histogram for each chosen roi
+        for roi in chosen_rois:
+            thisroi = list_rois[roi]
+
+            if thisroi == "No ROI":
+                continue
+            elif thisroi == "Overall":
+                current_df = combined_raw_df.copy()
+            else:
+                current_df = combined_raw_df[combined_raw_df["ROI"] == thisroi].copy()
+
+            current_df = current_df.dropna()  # Drop na values using pandas function, which is faster than plotnines dropna functions
+
+            current_df['Mean'] = current_df.groupby([config.histogram_fig_x_facet, config.histogram_fig_y_facet])["voxel_value"].transform('mean')
+            current_df['Median'] = current_df.groupby([config.histogram_fig_x_facet, config.histogram_fig_y_facet])["voxel_value"].transform('median')
+
+            current_df = pd.melt(current_df, id_vars=current_df.keys()[:-2], var_name="Statistic",
+                                 value_vars=["Mean", "Median"], value_name="stat_value")  # Put df into correct format
+
+            if config.histogram_show_mean and not config.histogram_show_median:
+                current_df = current_df.loc[current_df["Statistic"] == "Mean"]
+            elif config.histogram_show_median and not config.histogram_show_mean:
+                current_df = current_df.loc[current_df["Statistic"] == "Median"]
+
+            print(f"Setting up {thisroi}_histogram.png")
+
+            figure = (
+                    pltn.ggplot(current_df, pltn.aes(x="voxel_value"))
+                    + pltn.theme_538()
+                    + pltn.geom_histogram(binwidth=config.histogram_binwidth, fill=config.histogram_fig_colour)
+                    + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
+                                      drop=True, labeller="label_both")
+                    + pltn.labs(x=config.histogram_fig_label_x, y=config.histogram_fig_label_y)
+                    + pltn.theme(
+                                 panel_grid_minor_x=pltn.themes.element_line(alpha=0),
+                                 panel_grid_major_x=pltn.themes.element_line(alpha=1),
+                                 panel_grid_major_y=pltn.element_line(alpha=0),
+                                 plot_background=pltn.element_rect(fill="white"),
+                                 panel_background=pltn.element_rect(fill="gray", alpha=0.1),
+                                 axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
+                                 axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
+                                 strip_text_x=pltn.element_text(weight='bold', size=10, color='black'),
+                                 strip_text_y=pltn.element_text(weight='bold', size=10, color='black'),
+                                 axis_text_x=pltn.element_text(size=10, color='black'),
+                                 axis_text_y=pltn.element_text(size=10, color='black'),
+                                 dpi=config.plot_dpi
+                                 )
+                    )
+
+            # Display mean or median as vertical lines on plot
+            if config.histogram_show_mean or config.histogram_show_median:
+                figure += pltn.geom_vline(pltn.aes(xintercept="stat_value", color="Statistic"),
+                                          size=config.histogram_stat_line_size)
+                figure += pltn.scale_color_manual(values=[config.colorblind_friendly_plot_colours[3],
+                                                          config.colorblind_friendly_plot_colours[1]])
+
+            # Display legend for mean and median
+            if not config.histogram_show_legend:
+                figure += pltn.theme(legend_position='none')
+
+            # Suppress Pandas warning about alignment of non-concatenation axis
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+
+            figure.save(f"Figures/Histograms/{thisroi}_histogram.png",
+                        height=config.plot_scale, width=config.plot_scale * 3,
+                        verbose=False, limitsize=False)
+
+            warnings.simplefilter(action='default', category=FutureWarning)
+
+            print(f"Saved {thisroi}_histogram.png")
+
+    @classmethod
     def brain_facet_grid(cls, df, base_extension):
+        Utils.check_and_make_dir("Figures/Brain_grids")
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         print(f"Preparing {base_ext_clean} table!")
         json_array = df['File_name'].unique()
@@ -618,9 +714,73 @@ class Figures:
 
         if config.brain_tight_layout:
             plt.tight_layout()
-        plt.savefig(f"Figures/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
+        plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
         plt.close()
         print("Saved brain table!")
+
+    @classmethod
+    def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
+        if config_region_var is None:  # If no ROI has been selected for thi plot
+            chosen_rois = []
+
+            for roi_num, roi in enumerate(all_rois):
+                print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))
+
+            while not chosen_rois:
+                print(f'\n--- {plot_name} creation ---')
+                roi_ans = input("Type a comma-separated list of the ROIs (listed above) you want to produce a figure for, "
+                                "'e.g. 2, 15, 7, 23' or 'all' for all rois. \nAlternatively press enter to skip this step: ")
+
+                if roi_ans.lower() == "all":
+                    chosen_rois = list(range(0, len(all_rois)))
+
+                elif len(roi_ans) > 0:
+                    chosen_rois = [x.strip() for x in roi_ans.split(',')]  # Split by comma and whitespace
+
+                    try:
+                        chosen_rois = list(map(int, chosen_rois))  # Convert each list item to integers
+                    except ValueError:
+                        print('Comma-separated list contains non integers.\n')
+                        chosen_rois = []
+
+                else:  # Else statement for blank input, this skips creating this plot
+                    chosen_rois = []
+                    break
+
+        else:  # Else if an ROI selection has been made, convert it into the correct format
+            if isinstance(config_region_var, str) and config_region_var.lower() == "all":
+                chosen_rois = list(range(0, len(all_rois)))
+            else:
+                chosen_rois = config_region_var
+
+                if isinstance(chosen_rois, int):
+                    chosen_rois = [chosen_rois]
+                else:
+                    chosen_rois = list(chosen_rois)
+        return chosen_rois
+
+    @staticmethod
+    def make_raw_df(jsons, combined_df):
+        combined_raw_df = pd.DataFrame()
+        for json_file in jsons:
+            current_json = pd.read_json(f"{os.getcwd()}/Raw_results/{json_file}")
+
+            json_file_name = json_file.rsplit("_raw.json")[0]
+
+            current_json["File_name"] = json_file_name
+
+            # Find parameter values for each file_name
+            combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
+            current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet].iloc[0]
+            current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet].iloc[0]
+
+            combined_raw_df = combined_raw_df.append(current_json)
+
+        combined_raw_df = combined_raw_df.melt(
+            id_vars=[config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"],
+            var_name='ROI', value_name='voxel_value')
+
+        return combined_raw_df
 
     @classmethod
     def table_setup(cls, df):
@@ -719,52 +879,51 @@ class ParamParser:
             else:
                 break
 
-        if combined_results_create:
-            # Double check if the user wants to skip parameter verification
-            if config.verify_param_method == "manual":
-                skip_verify = input(
-                    "Do you want to skip the verification of parameters and rely on file names instead? (y or n) ")
-                skip_verify = skip_verify.lower()
+        # Double check if the user wants to skip parameter verification
+        if config.verify_param_method == "manual":
+            skip_verify = input(
+                "Do you want to skip the verification of parameters and rely on file names instead? (y or n) ")
+            skip_verify = skip_verify.lower()
 
-                if skip_verify != "y":
-                    print("\nDo you want to verify the following MRI parameters during this step?")
+            if skip_verify != "y":
+                print("\nDo you want to verify the following MRI parameters during this step?")
 
-                    used_parameters = []
-                    for parameter in config.parameter_dict:
-                        answer = input(parameter + "? (y or n) ")
+                used_parameters = []
+                for parameter in config.parameter_dict:
+                    answer = input(parameter + "? (y or n) ")
 
-                        if answer.lower() in ("y", "yes"):
-                            used_parameters.append(1)
-                        else:
-                            used_parameters.append(0)
+                    if answer.lower() in ("y", "yes"):
+                        used_parameters.append(1)
+                    else:
+                        used_parameters.append(0)
 
+        else:
+            skip_verify = True
+
+        combined_dataframe = pd.DataFrame()
+
+        if config.verify_param_method == "table":
+            table = pd.read_csv(config.param_table_name)  # Load param table
+
+        for json in json_array:
+            if json == "combined_results.json":
+                continue
+
+            if config.verify_param_method in ("manual", "name"):
+                param_nums = cls.parse_params_from_file_name(json)
             else:
-                skip_verify = "y"
+                param_nums = cls.parse_params_from_table_file(json, table)
 
-            combined_dataframe = pd.DataFrame()
+            if not skip_verify:
+                param_nums = cls.manually_verify_params(json, param_nums, used_parameters)
 
-            if config.verify_param_method == "table":
-                table = pd.read_csv(config.param_table_name)  # Load param table
+            if param_nums:
+                combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
 
-            for json in json_array:
-                if json == "combined_results.json":
-                    continue
-
-                if config.verify_param_method in ("manual", "name"):
-                    param_nums = cls.parse_params_from_file_name(json)
-                else:
-                    param_nums = cls.parse_params_from_table_file(json, table)
-
-                if skip_verify != "y":
-                    param_nums = cls.manually_verify_params(json, param_nums, used_parameters)
-
-                if param_nums:
-                    combined_dataframe = cls.construct_combined_json(combined_dataframe, json, param_nums)
-
-            if combined_results_create:
-                # Save combined results
-                combined_dataframe = combined_dataframe.reset_index()
-                combined_dataframe.to_json("combined_results.json", orient='records')
+        # Save combined results
+        if combined_results_create:
+            combined_dataframe = combined_dataframe.reset_index()
+            combined_dataframe.to_json("combined_results.json", orient='records')
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
@@ -863,7 +1022,7 @@ class ParamParser:
                 print("\nRe-checking...")  # Repeat the verification process
 
     @staticmethod
-    def json_search(cmdline_arg=None):
+    def json_search():
         if config.run_steps == "all":
             json_directory = os.getcwd() + f"/{Analysis._save_location}"
 
@@ -946,12 +1105,18 @@ class Utils:
         return args
 
     @staticmethod
-    def find_brain_files(brain_directory):
-        brain_file_nifti = [os.path.basename(f) for f in glob(brain_directory + "/*.nii")]
-        brain_file_nifti_gz = [os.path.basename(f) for f in glob(brain_directory + "/*.nii.gz")]
-        brain_file_hdr = [os.path.basename(f) for f in glob(brain_directory + "/*.hdr")]
+    def find_files(directory, *extensions):
+        files = []
+        for extension in extensions:
+            if extension[0] == ".":
+                extension.lstrip(".")
 
-        return brain_file_nifti + brain_file_nifti_gz + brain_file_hdr
+            these_files = [os.path.basename(f) for f in glob(f"{directory}/*.{extension}")]
+
+            if these_files:
+                files.extend(these_files)
+
+        return files
 
     @staticmethod
     def file_browser(chdir=False):
@@ -967,6 +1132,8 @@ class Utils:
 
         if chdir:
             os.chdir(directory)
+
+        print(f"Selected directory: {directory}")
 
         return directory
 
@@ -991,7 +1158,18 @@ class Utils:
 
     @staticmethod
     def move_file(name, original_dir, new_dir):
-        os.rename(original_dir + '/' + name, new_dir + '/' + name)
+        if not original_dir.endswith('/'):
+            original_dir += '/'
+
+        if not new_dir.endswith('/'):
+            new_dir += '/'
+
+        os.rename(f"{original_dir}{name}", f"{new_dir}{name}")
+
+    @staticmethod
+    def check_and_make_dir(path):
+        if not os.path.exists(path):
+            os.mkdir(path)
 
     @classmethod
     def setup_analysis(cls):
@@ -1030,14 +1208,13 @@ class Utils:
         Analysis._save_location = Analysis._atlas_name + "_ROI_report/"
 
         # Find all nifti and analyze files
-        Analysis.brain_file_list = cls.find_brain_files(Analysis._brain_directory)
+        Analysis.brain_file_list = cls.find_files(Analysis._brain_directory, "hdr", "nii.gz", "nii")
 
         if len(Analysis.brain_file_list) == 0:
             raise NameError("No files found.")
 
         # Make folder to save ROI_report if not already created
-        if not os.path.exists(Analysis._brain_directory + "/" + Analysis._save_location):
-            os.mkdir(Analysis._brain_directory + "/" + Analysis._save_location)
+        Utils.check_and_make_dir(Analysis._brain_directory + "/" + Analysis._save_location)
 
         cls.move_file('config_log.py', Analysis._brain_directory,
                       Analysis._save_location)  # Move config file to analysis folder
@@ -1058,7 +1235,7 @@ class Utils:
         print('Select the nifti/analyse file directory.')
         brain_directory = cls.file_browser(chdir=True)
 
-        brain_file_list = cls.find_brain_files(brain_directory)
+        brain_file_list = cls.find_files(brain_directory, "hdr", "nii.gz", "nii")
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
         brain_file_list.sort()
 
