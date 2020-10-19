@@ -4,14 +4,17 @@
 '''Nipype settings'''
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
-use_freesurf_file = False  # True or false. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
+use_freesurf_file = False  # True or False. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
-make_table_only = False # True or false. If true, a csv file template containing brain file information is created and then the program is terminated. Can be set using a command line flag instead.
+verbose = True  # True or False
+make_table_only = False # True or False. If true, a csv file template containing brain file information is created and then the program is terminated. Can be set using a command line flag instead.
 run_steps = "plot"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
 save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
 stat_map_folder = 'QA_report/'  # Folder name which contains the statistical map files
 stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. Include the file extension.
 bootstrap = False
+multicore_processing = True  # True or False. Use multicore processing to use during analysis? Recommended: True
+max_core_usage = 'max'  # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'
 
 brain_file_loc = ""  # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.
 json_file_loc = ""  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
@@ -73,10 +76,10 @@ plot_scale = 10  # Recommended value 10
 # Figure colours
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']  # Hex values of colour blind friendly colour scale
 
-make_scatter_table = True  # True or False
+make_scatter_table = False  # True or False
 make_brain_table = False  # True or False
 make_one_region_fig = False  # True or False
-make_histogram = False  # True or False
+make_histogram = True  # True or False
 
 '''Brain facet grid'''
 # 'brain_fig_value_min' and 'brain_fig_value_max' can be changed to provide cutoff values. For example, set min to 50
@@ -115,7 +118,7 @@ table_row_order = 'both'  # 'roi', 'stat' or 'both'. Recommended: 'both'
 
 '''One region bar chart'''
 # Provide a comma-separated list of regions to plot e.g. 3, 5 or 'all' for all rois. Or use None to provide regions at runtime.
-single_roi_fig_regions = None
+single_roi_fig_regions = ""
 
 # Figure 'aesthetics'
 single_roi_fig_x_axis = 'MB'
@@ -128,7 +131,7 @@ single_roi_fig_label_fill = "SENSE factor"
 
 '''Region histogram'''
 # Provide a comma-separated list of regions to plot e.g. 3, 5 or 'all' for all rois. Or use None to provide regions at runtime.
-histogram_fig_regions = 4
+histogram_fig_regions = ""
 
 histogram_binwidth = 5
 
