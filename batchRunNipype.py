@@ -1,7 +1,7 @@
 import os
 
 from nipype.interfaces import fsl
-from roiAnalysis import Utils
+from roianalysis.utils import Utils
 
 
 class NipypeFunctions:
