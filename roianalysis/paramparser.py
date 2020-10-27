@@ -5,7 +5,7 @@ from glob import glob
 import numpy as np
 import pandas as pd
 
-import config
+from roianalysis import config
 from roianalysis.utils import Utils
 
 
@@ -61,7 +61,10 @@ class ParamParser:
             if os.path.isfile(f"{os.getcwd()}/{config.param_table_name}"):
                 table = pd.read_csv(config.param_table_name)  # Load param table
             else:
-                table = pd.read_csv(f"copy_{config.param_table_name}")  # Load param table
+                try:
+                    table = pd.read_csv(f"copy_{config.param_table_name}")  # Load param table
+                except FileNotFoundError:
+                    raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
 
         for json in json_array:
             if json == "combined_results.json":

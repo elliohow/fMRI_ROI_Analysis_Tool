@@ -1,8 +1,9 @@
 import itertools
+import os
 import time
 from copy import deepcopy
 
-import config
+from roianalysis import config
 from roianalysis.paramparser import ParamParser
 from roianalysis.utils import Utils
 from roianalysis.analysis import Analysis
@@ -34,6 +35,11 @@ if __name__ == '__main__':
         if config.verbose:
             print('\n--- Analysis ---')
 
+        if config.anat_align:
+            Analysis.anat_bet()  # TODO: What does paramvalues ignore column do? Save mat of how good registration was. Ignore files in analysis based on paramValues
+            for brain in brain_list:
+                brain.save_class_variables()
+
         if config.use_freesurf_file:
             csf_or_wm_voxels = Analysis.freesurfer_space_to_native_space()
         else:
@@ -52,9 +58,12 @@ if __name__ == '__main__':
             # Run analysis
             brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-        # TODO: Fix bootstrapping crashing computer. I think bootstrapping starts at 0, fix this too.
+        if config.anat_align:
+            os.remove(Analysis._anat_brain)
 
-        # TODO Make a copy of paramValues and search for that too
+        # TODO: Fix bootstrapping crashing computer. I think bootstrapping starts at 0, fix this too.
+        # TODO: Aligning to anat is done, just need to implement freesurfer now.
+        # TODO: Also need to clean up leftover matrix files and produce matrix showing how good fit was.
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison

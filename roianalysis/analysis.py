@@ -10,7 +10,7 @@ import simplejson as json
 import xmltodict
 from nipype.interfaces import fsl, freesurfer
 
-import config
+from roianalysis import config
 from roianalysis.utils import Utils
 
 
@@ -39,7 +39,9 @@ class Analysis:
     _brain_directory = ""
     _save_location = ""
     _fsl_path = ""
-    _atlas_path = ""
+    _anat_brain = ""
+    _anat_brain_to_mni = ""
+    atlas_path = ""
     _atlas_label_path = ""
     _atlas_name = ""
     _labelArray = []
@@ -52,14 +54,6 @@ class Analysis:
         self.no_ext_brain = atlas + "_" + os.path.splitext(self.brain)[0]
         self.stat_brain = config.stat_map_folder + os.path.splitext(self.brain)[0] + config.stat_map_suffix
 
-        self.mc_brain = ""
-        self.mean_brain = ""
-        self.bet_brain = ""
-        self.brain_to_mni = ""
-        self.brain_to_mni_mat = ""
-        self.invt_mni_transform = ""
-        self.mni_to_brain = ""
-        self.mni_to_brain_mat = ""
         self.roiResults = ""
         self.roi_stat_list = ""
         self.file_list = []
@@ -72,10 +66,13 @@ class Analysis:
         self._brain_directory = self._brain_directory
         self._save_location = self._save_location
         self._fsl_path = self._fsl_path
-        self._atlas_path = self._atlas_path
         self._atlas_label_path = self._atlas_label_path
         self._atlas_name = self._atlas_name
         self._labelArray = self._labelArray
+
+        # These are imported later on using the save_class_variables function
+        self._anat_brain = ""
+        self._anat_brain_to_mni = ""
 
     @staticmethod
     def setup_analysis():
@@ -134,10 +131,29 @@ class Analysis:
         brain_class_list = []
         for brain in Analysis.brain_file_list:
             # Initialise Analysis class for each file found
-            brain_class_list.append(Analysis(brain, atlas=Analysis._atlas_name, atlas_path=Analysis._atlas_path,
+            brain_class_list.append(Analysis(brain, atlas=Analysis._atlas_name, atlas_path=Analysis.atlas_path,
                                              labels=Analysis._labelArray))
 
         return brain_class_list
+
+    @classmethod
+    def anat_bet(cls):
+        if config.verbose:
+            print('Converting anatomical file to MNI space.')
+
+        anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
+
+        cls._anat_brain = cls.fsl_functions('BET', f'{os.getcwd()}/anat/{anat}', cls._save_location,
+                                            os.path.splitext(anat)[0], "", "_bet.nii.gz")
+        cls._anat_brain_to_mni = cls.fsl_functions('FLIRT', cls._anat_brain, cls._save_location, os.path.splitext(anat)[0],
+                                             "", '_to_mni.nii.gz', f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+
+    def save_class_variables(self):
+        # Due to dill errors with saving class variables of imported classes, this function is used to save the class
+        # variable as an instance variable, however it needs to be called after brain extraction of the anatomical
+        # instantiation, which is why it isn't saved during instantiation.
+        self._anat_brain = Analysis._anat_brain
+        self._anat_brain_to_mni = Analysis._anat_brain_to_mni
 
     def run_analysis(self, brain_number_current, brain_number_total, freesurfer_excluded_voxels):
         if config.verbose:
@@ -148,80 +164,83 @@ class Analysis:
         return self
 
     def roi_flirt_transform(self):
-        """Function which uses NiPype to transform the chosen atlas into the native space."""
+        """Function which uses NiPype to transform the chosen atlas into native space."""
         if config.motion_correct:
-            self.mcflirt()
-        self.mean_over_time()
-        self.brain_extraction()
-        self.convert_to_mni()
-        self.invert_transform()
-        self.apply_inverse_transform()
+            # Motion correction
+            self.fsl_functions('MCFLIRT', self.brain, self._save_location, self.no_ext_brain, "", '_mc.nii.gz', self)
 
-    def mcflirt(self):
-        mcflirt = fsl.MCFLIRT()
-        mcflirt.inputs.in_file = self.brain
-        self.mc_brain = mcflirt.inputs.out_file = self._save_location + self.no_ext_brain + '_mc.nii.gz'
-        mcflirt.run()
-
-        self.file_list.append(self.mc_brain)
-
-    def mean_over_time(self):
-        # If file is 4D, convert to 3D using "fslmaths -Tmean"
-        tMean = fsl.MeanImage()
-
-        if config.motion_correct:
-            tMean.inputs.in_file = self.mc_brain
-        else:
-            tMean.inputs.in_file = self.brain
-
-        self.mean_brain = tMean.inputs.out_file = self._save_location + self.no_ext_brain + '_mean.nii.gz'
-        tMean.run()
-
-        self.file_list.append(self.mean_brain)
-
-    def brain_extraction(self):
+        # Turn 4D scan into 3D
+        current_brain = self.fsl_functions('MeanImage', self.brain, self._save_location, self.no_ext_brain, "",
+                                           '_mean.nii.gz', self)
         # Brain extraction
-        bet = fsl.BET()
-        bet.inputs.in_file = self.mean_brain
-        bet.inputs.frac = config.frac_inten
-        self.bet_brain = bet.inputs.out_file = self._save_location + self.no_ext_brain + '_bet.nii.gz'
-        bet.run()
+        current_brain = self.fsl_functions('BET', current_brain, self._save_location, self.no_ext_brain, "",
+                                           '_bet.nii.gz', config.frac_inten, self)
+        if config.anat_align:  # TODO: Is there a better way than flirt?
+            # Align to anatomical
+            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "",
+                                                  '_anataligned.nii.gz', self._anat_brain, self)
+            # Combine fMRI-anat and anat-mni matrices
+            combined_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
+                                             'combined_mat_', '.mat', 'concat_xfm', self)
+            # Get inverse of matrix
+            inverse_mat = self.fsl_functions('ConvertXFM', combined_mat, self._save_location, self.no_ext_brain,
+                                             'mni_to_', '.mat', self)
+        else:
+            # Align to MNI
+            aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "",
+                                             '_to_mni.nii.gz', f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', self)
+            # Get inverse of matrix
+            inverse_mat = self.fsl_functions('ConvertXFM', aligned_mat, self._save_location, self.no_ext_brain,
+                                             'mni_to_', '.mat', self)
+        # Apply inverse of matrix to chosen atlas to convert it into standard space
+        self.fsl_functions('ApplyXFM', self.atlas_path, self._save_location, self.no_ext_brain,
+                           'mni_to_', '.nii.gz', inverse_mat, current_brain, self)
 
-        self.file_list.append(self.bet_brain)
+    @classmethod  # TODO: change this into static method?
+    def fsl_functions(cls, func, input, save_location, no_ext_brain, prefix, suffix, *argv):
+        """Function that runs an individual FSL function using NiPype."""
+        fslfunc = getattr(fsl, func)()
+        fslfunc.inputs.in_file = input
+        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 
-    def convert_to_mni(self):
-        # Convert to MNI space
-        flirt = fsl.FLIRT()  # TODO: Is there a better way than flirt?
-        flirt.inputs.in_file = self.bet_brain
-        flirt.inputs.reference = self._fsl_path + '/data/standard/MNI152_T1_1mm_brain.nii.gz'  # TODO: This doesnt work because it cant find the FSL path anymore
-        flirt.inputs.dof = config.dof
-        self.brain_to_mni = flirt.inputs.out_file = self._save_location + self.no_ext_brain + '_to_mni.nii.gz'
-        self.brain_to_mni_mat = flirt.inputs.out_matrix_file = self._save_location + self.no_ext_brain + '_to_mni.mat'
-        flirt.run()
+        # Arguments dependent on FSL function used
+        if func == 'MCFLIRT':
+            argv[-1].brain = current_brain
+        elif func == 'BET':
+            fslfunc.inputs.frac = config.frac_inten
+        elif func == 'FLIRT':
+            fslfunc.inputs.reference = argv[0]
+            fslfunc.inputs.dof = config.dof
+            current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{no_ext_brain}_to_mni.mat'
+        elif func == 'ConvertXFM':
+            if argv[0] == 'concat_xfm':
+                fslfunc.inputs.in_file2 = argv[-1]._anat_brain_to_mni
+                fslfunc.inputs.concat_xfm = True
+            else:
+                fslfunc.inputs.invert_xfm = True
+        elif func == 'ApplyXFM':
+            fslfunc.inputs.apply_xfm = True
+            fslfunc.inputs.interp = 'nearestneighbour'
+            fslfunc.inputs.in_matrix_file = argv[0]
+            fslfunc.inputs.reference = argv[1]
+            current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}atlas_to_{no_ext_brain}.mat"
 
-        self.file_list.extend([self.brain_to_mni, self.brain_to_mni_mat])
+        fslfunc.run()
 
-    def invert_transform(self):
-        invt = fsl.ConvertXFM()
-        invt.inputs.in_file = self.brain_to_mni_mat
-        invt.inputs.invert_xfm = True
-        self.invt_mni_transform = invt.inputs.out_file = self._save_location + 'mni_to_' + self.no_ext_brain + '.mat'
-        invt.run()
+        if func == 'FLIRT':
+            try:
+                argv[-1].file_list.extend([current_brain, current_mat])
+            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
+                pass
 
-        self.file_list.append(self.invt_mni_transform)
+            return current_mat
+        else:
+            try:
+                argv[-1].file_list.append(current_brain)
+            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
+                pass
 
-    def apply_inverse_transform(self):
-        flirt_inv = fsl.ApplyXFM()
-        flirt_inv.inputs.in_file = self.atlas_path
-        flirt_inv.inputs.reference = self.bet_brain
-        flirt_inv.inputs.in_matrix_file = self.invt_mni_transform
-        flirt_inv.inputs.apply_xfm = True
-        flirt_inv.inputs.interp = 'nearestneighbour'
-        self.mni_to_brain = flirt_inv.inputs.out_file = self._save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz'
-        self.mni_to_brain_mat = flirt_inv.inputs.out_matrix_file = self._save_location + 'atlas_to_' + self.no_ext_brain + '.mat'
-        flirt_inv.run()
-
-        self.file_list.extend([self.mni_to_brain, self.mni_to_brain_mat])
+            return current_brain
 
     def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels=None):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
@@ -362,7 +381,7 @@ class Analysis:
 
             # Save JSON files
             if config.verbose:
-                print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}.\n')
+                print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
 
             with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
                 json.dump(results.to_dict(), file, indent=2)
@@ -374,7 +393,7 @@ class Analysis:
 
         def nipype_file_cleanup():
             """Clean up unnecessary output."""
-            if config.save_stats_only:
+            if config.save_stats_only: # TODO: Have option of moving all files to separate folder instead
                 for file in self.file_list:
                     os.remove(file)
 
@@ -442,7 +461,7 @@ class Analysis:
                                                       vol_label_file='freesurfer/native_segmented_brain.mgz',
                                                       reg_header='freesurfer/aparc+aseg.mgz')
         native_segmented_brain.run()
-
+        # TODO: option to save out other freesurfer files?
         freesurf_native_segmented_brain = nib.load('freesurfer/native_segmented_brain.mgz')
         freesurf_native_segmented_brain = freesurf_native_segmented_brain.get_fdata().flatten()
         # TODO: is this method chaining valid? freesurf_native_segmented_brain = freesurf_native_segmented_brain.flatten()
@@ -497,7 +516,7 @@ class Analysis:
     @classmethod
     def roi_label_list(cls):
         """Extract labels from specified FSL atlas XML file."""
-        cls._atlas_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(config.atlas_number)][0]
+        cls.atlas_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(config.atlas_number)][0]
         cls._atlas_label_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(config.atlas_number)][1]
 
         with open(cls._atlas_label_path) as fd:

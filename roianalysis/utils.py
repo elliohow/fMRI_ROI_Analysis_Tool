@@ -8,7 +8,7 @@ import bootstrapped.stats_functions as bs_stats
 import multiprocess as mp
 from scipy.sparse import csr_matrix
 
-import config
+from roianalysis import config
 
 
 class Utils:
@@ -77,7 +77,7 @@ class Utils:
     @staticmethod
     def save_config(directory):
         with open(directory + '/config_log.py', 'w') as f:
-            with open('config.py', 'r') as r:
+            with open('roianalysis/config.py', 'r') as r:
                 for line in r:
                     f.write(line)
 

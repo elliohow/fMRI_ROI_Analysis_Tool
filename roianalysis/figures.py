@@ -9,7 +9,7 @@ import plotnine as pltn
 from matplotlib import pyplot as plt
 from nilearn import plotting
 
-import config
+from roianalysis import config
 from roianalysis.utils import Utils
 
 

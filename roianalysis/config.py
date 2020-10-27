@@ -5,6 +5,7 @@
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = False  # True or False. Note: This will inflate values such as tSNR.
+anat_align = False  # True or False. Recommended: True
 use_freesurf_file = False  # True or False. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
 verbose = True  # True or False
@@ -132,7 +133,7 @@ single_roi_fig_label_fill = "SENSE factor"
 
 '''Region histogram'''
 # Provide a comma-separated list of regions to plot e.g. 3, 5 or 'all' for all rois. Or use None to provide regions at runtime.
-histogram_fig_regions = None # TODO: Make x scale variable
+histogram_fig_regions = None  # TODO: Make x scale variable. Make sure all graphs can have the same x/y scale
 
 histogram_binwidth = 5
 
