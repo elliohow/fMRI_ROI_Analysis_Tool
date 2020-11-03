@@ -5,13 +5,14 @@
 frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = False  # True or False. Note: This will inflate values such as tSNR.
-anat_align = False  # True or False. Recommended: True
-use_freesurf_file = False  # True or False. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
+anat_align = True  # True or False. Recommended: True
+use_freesurf_file = True  # True or False. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
 
 verbose = True  # True or False
+verbose_cmdline_args = True  # True or False
 make_table_only = False # True or False. If true, a csv file template containing brain file information is created and then the program is terminated. Can be set using a command line flag instead.
-run_steps = "all"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
-save_stats_only = True  # Will save intermediate NiPype files if set to False. Recommended: True
+run_steps = "analyse"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
+file_cleanup = "move"  # Will save intermediate NiPype files if set to False. Recommended: True
 stat_map_folder = 'QA_report/'  # Folder name which contains the statistical map files
 stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. Include the file extension.
 bootstrap = False

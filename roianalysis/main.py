@@ -36,18 +36,16 @@ if __name__ == '__main__':
             print('\n--- Analysis ---')
 
         if config.anat_align:
-            Analysis.anat_bet()  # TODO: What does paramvalues ignore column do? Save mat of how good registration was. Ignore files in analysis based on paramValues
+            Analysis.anat_setup()  # TODO: What does paramvalues ignore column do? Save mat of how good registration was. Ignore files in analysis based on paramValues
             for brain in brain_list:
                 brain.save_class_variables()
 
         if config.use_freesurf_file:
-            csf_or_wm_voxels = Analysis.freesurfer_space_to_native_space()
-        else:
-            csf_or_wm_voxels = None
+            Analysis.freesurfer_to_anat()
 
         # Set arguments to pass to run_analysis function
         iterable = zip(brain_list, itertools.repeat("run_analysis"), range(len(brain_list)),
-                       itertools.repeat(len(brain_list)), itertools.repeat(csf_or_wm_voxels))
+                       itertools.repeat(len(brain_list)))
 
         if config.multicore_processing:
             pool = Utils.start_processing_pool()
@@ -59,11 +57,7 @@ if __name__ == '__main__':
             brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
         if config.anat_align:
-            os.remove(Analysis._anat_brain)
-
-        # TODO: Fix bootstrapping crashing computer. I think bootstrapping starts at 0, fix this too.
-        # TODO: Aligning to anat is done, just need to implement freesurfer now.
-        # TODO: Also need to clean up leftover matrix files and produce matrix showing how good fit was.
+            Analysis.file_cleanup(Analysis.file_list, Analysis._save_location)
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison

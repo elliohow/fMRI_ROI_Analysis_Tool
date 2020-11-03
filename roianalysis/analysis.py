@@ -15,6 +15,8 @@ from roianalysis.utils import Utils
 
 
 class Analysis:
+    file_list = []
+
     _roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
     _conf_level_list = [('80', 1.28),
                         ('85', 1.44),
@@ -137,16 +139,16 @@ class Analysis:
         return brain_class_list
 
     @classmethod
-    def anat_bet(cls):
+    def anat_setup(cls):
         if config.verbose:
             print('Converting anatomical file to MNI space.')
 
         anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
 
         cls._anat_brain = cls.fsl_functions('BET', f'{os.getcwd()}/anat/{anat}', cls._save_location,
-                                            os.path.splitext(anat)[0], "", "_bet.nii.gz")
+                                            os.path.splitext(anat)[0], "bet_", ".nii.gz", cls)
         cls._anat_brain_to_mni = cls.fsl_functions('FLIRT', cls._anat_brain, cls._save_location, os.path.splitext(anat)[0],
-                                             "", '_to_mni.nii.gz', f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+                                             "to_mni_from_", '.nii.gz', f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', cls)
 
     def save_class_variables(self):
         # Due to dill errors with saving class variables of imported classes, this function is used to save the class
@@ -155,11 +157,11 @@ class Analysis:
         self._anat_brain = Analysis._anat_brain
         self._anat_brain_to_mni = Analysis._anat_brain_to_mni
 
-    def run_analysis(self, brain_number_current, brain_number_total, freesurfer_excluded_voxels):
+    def run_analysis(self, brain_number_current, brain_number_total):
         if config.verbose:
             print(f'\nAnalysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
-        self.roi_flirt_transform()
-        self.roi_stats(brain_number_current, brain_number_total)
+        freesurfer_excluded_voxels = self.roi_flirt_transform()
+        self.roi_stats(brain_number_current, brain_number_total, freesurfer_excluded_voxels)
 
         return self
 
@@ -167,37 +169,41 @@ class Analysis:
         """Function which uses NiPype to transform the chosen atlas into native space."""
         if config.motion_correct:
             # Motion correction
-            self.fsl_functions('MCFLIRT', self.brain, self._save_location, self.no_ext_brain, "", '_mc.nii.gz', self)
+            self.fsl_functions('MCFLIRT', self.brain, self._save_location, self.no_ext_brain, "mc_", '.nii.gz', self)
 
         # Turn 4D scan into 3D
-        current_brain = self.fsl_functions('MeanImage', self.brain, self._save_location, self.no_ext_brain, "",
-                                           '_mean.nii.gz', self)
+        current_brain = self.fsl_functions('MeanImage', self.brain, self._save_location, self.no_ext_brain, "mean_",
+                                           '.nii.gz', self)
         # Brain extraction
-        current_brain = self.fsl_functions('BET', current_brain, self._save_location, self.no_ext_brain, "",
-                                           '_bet.nii.gz', config.frac_inten, self)
+        current_brain = self.fsl_functions('BET', current_brain, self._save_location, self.no_ext_brain, "bet_",
+                                           '.nii.gz', config.frac_inten, self)
         if config.anat_align:  # TODO: Is there a better way than flirt?
             # Align to anatomical
-            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "",
-                                                  '_anataligned.nii.gz', self._anat_brain, self)
+            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain,
+                                                  "to_anat_from_", '.nii.gz', self._anat_brain, self)
             # Combine fMRI-anat and anat-mni matrices
-            combined_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
+            mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
                                              'combined_mat_', '.mat', 'concat_xfm', self)
-            # Get inverse of matrix
-            inverse_mat = self.fsl_functions('ConvertXFM', combined_mat, self._save_location, self.no_ext_brain,
-                                             'mni_to_', '.mat', self)
+
         else:
             # Align to MNI
-            aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "",
-                                             '_to_mni.nii.gz', f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', self)
-            # Get inverse of matrix
-            inverse_mat = self.fsl_functions('ConvertXFM', aligned_mat, self._save_location, self.no_ext_brain,
-                                             'mni_to_', '.mat', self)
+            mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "to_mni_from_", '.nii.gz',
+                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', self)
+        # Get inverse of matrix
+        inverse_mat = self.fsl_functions('ConvertXFM', mat, self._save_location, self.no_ext_brain,
+                                         'inverse_combined_mat', '.mat', self)
+
         # Apply inverse of matrix to chosen atlas to convert it into standard space
         self.fsl_functions('ApplyXFM', self.atlas_path, self._save_location, self.no_ext_brain,
                            'mni_to_', '.nii.gz', inverse_mat, current_brain, self)
 
-    @classmethod  # TODO: change this into static method?
-    def fsl_functions(cls, func, input, save_location, no_ext_brain, prefix, suffix, *argv):
+        # Convert freesurfer file to fMRI native space
+        if config.use_freesurf_file:
+            freesurf_to_fmri = self.anat_aligned_freesurfer_to_fmri(anat_aligned_mat, current_brain)
+            return self.freesurfer_find_csf_wm(freesurf_to_fmri)
+
+    @staticmethod
+    def fsl_functions(func, input, save_location, no_ext_brain, prefix, suffix, *argv):
         """Function that runs an individual FSL function using NiPype."""
         fslfunc = getattr(fsl, func)()
         fslfunc.inputs.in_file = input
@@ -211,7 +217,7 @@ class Analysis:
         elif func == 'FLIRT':
             fslfunc.inputs.reference = argv[0]
             fslfunc.inputs.dof = config.dof
-            current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{no_ext_brain}_to_mni.mat'
+            current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
         elif func == 'ConvertXFM':
             if argv[0] == 'concat_xfm':
                 fslfunc.inputs.in_file2 = argv[-1]._anat_brain_to_mni
@@ -223,7 +229,10 @@ class Analysis:
             fslfunc.inputs.interp = 'nearestneighbour'
             fslfunc.inputs.in_matrix_file = argv[0]
             fslfunc.inputs.reference = argv[1]
-            current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}atlas_to_{no_ext_brain}.mat"
+            current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
+
+        if config.verbose_cmdline_args:
+            print(fslfunc.cmdline)
 
         fslfunc.run()
 
@@ -234,6 +243,13 @@ class Analysis:
                 pass
 
             return current_mat
+        elif func == 'ApplyXFM':
+            try:
+                argv[-1].file_list.extend([current_brain, current_mat])
+            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
+                pass
+            # TODO: Clean up this section
+            return current_brain
         else:
             try:
                 argv[-1].file_list.append(current_brain)
@@ -242,163 +258,169 @@ class Analysis:
 
             return current_brain
 
-    def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels=None):
+    def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
 
-        def calculate_stats():
-            # Load original brain (with statistical map)
-            stat_brain = nib.load(self.stat_brain)
-            # Load atlas brain (which has been converted into native space)
-            mni_brain = nib.load(self._save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz')
+        # Load original brain (with statistical map)
+        stat_brain = nib.load(self.stat_brain)
+        # Load atlas brain (which has been converted into native space)
+        mni_brain = nib.load(self._save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz')
 
-            stat_brain = stat_brain.get_fdata()
-            mni_brain = mni_brain.get_fdata()
+        stat_brain = stat_brain.get_fdata()
+        mni_brain = mni_brain.get_fdata()
 
-            if mni_brain.shape != stat_brain.shape:
-                raise Exception('The matrix dimensions of the standard space and the statistical map brain do not '
-                                'match.')
+        if mni_brain.shape != stat_brain.shape:
+            raise Exception('The matrix dimensions of the standard space and the statistical map brain do not '
+                            'match.')
 
-            # Find the number of unique ROIs in the atlas
-            roiList = list(range(0, len(self.label_list) - 1))
-            roiNum = np.size(roiList)
+        # Find the number of unique ROIs in the atlas
+        roiList = list(range(0, len(self.label_list) - 1))
+        roiNum = np.size(roiList)
 
-            idxBrain = stat_brain.flatten()
-            idxMNI = mni_brain.flatten()
+        idxBrain = stat_brain.flatten()
+        idxMNI = mni_brain.flatten()
 
-            # Create arrays to store the values before and after statistics
-            roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
-            roiResults = np.full([7, roiNum + 1], np.nan)
-            roiResults[6, 0:-1] = 0  # Change freesurfer exclude voxels measure from NaN to 0
+        # Create arrays to store the values before and after statistics
+        roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
+        roiResults = np.full([7, roiNum + 1], np.nan)
+        roiResults[6, 0:-1] = 0  # Change freesurfer exclude voxels measure from NaN to 0
 
-            # Where the magic happens
-            if config.use_freesurf_file is not False:
-                for counter, roi in enumerate(idxMNI):
-                    if excluded_voxels[counter] == 0:
-                        roiTempStore[int(roi), counter] = idxBrain[counter]
-                    else:
-                        roiResults[6, int(roi)] += 1
-            else:
-                for counter, roi in enumerate(idxMNI):
+        # Where the magic happens
+        if config.use_freesurf_file is not False:
+            for counter, roi in enumerate(idxMNI):
+                if excluded_voxels[counter] == 0:
                     roiTempStore[int(roi), counter] = idxBrain[counter]
+                else:
+                    roiResults[6, int(roi)] += 1
+        else:
+            for counter, roi in enumerate(idxMNI):
+                roiTempStore[int(roi), counter] = idxBrain[counter]
 
-            # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat
-            # calculations
-            exclude_rois = None
+        # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat
+        # calculations
+        exclude_rois = None
 
-            if config.include_rois != "all":
-                include_rois = set(config.include_rois)  # Convert to set for performance
-                exclude_rois = [number for number in roiList if number not in include_rois]
-            elif config.exclude_rois != "none":
-                exclude_rois = config.exclude_rois
+        if config.include_rois != "all":
+            include_rois = set(config.include_rois)  # Convert to set for performance
+            exclude_rois = [number for number in roiList if number not in include_rois]
+        elif config.exclude_rois != "none":
+            exclude_rois = config.exclude_rois
 
-            if exclude_rois:
-                roiTempStore[exclude_rois, :] = np.nan
+        if exclude_rois:
+            roiTempStore[exclude_rois, :] = np.nan
 
-            warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-            roiResults[0, 0:-1] = np.count_nonzero(~np.isnan(roiTempStore),
-                                                   axis=1)  # Number of non-nan voxels in each ROI
-            roiResults[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
-            roiResults[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
-            roiResults[3, 0:-1] = self._conf_level_list[int(config.conf_level_number)][1] \
-                                  * roiResults[2, 0:-1] / np.sqrt(
-                roiResults[0, 0:-1])  # 95% confidence interval calculation
-            roiResults[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
-            roiResults[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
+        roiResults[0, 0:-1] = np.count_nonzero(~np.isnan(roiTempStore),
+                                               axis=1)  # Number of non-nan voxels in each ROI
+        roiResults[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
+        roiResults[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
+        roiResults[3, 0:-1] = self._conf_level_list[int(config.conf_level_number)][1] \
+                              * roiResults[2, 0:-1] / np.sqrt(
+            roiResults[0, 0:-1])  # 95% confidence interval calculation
+        roiResults[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
+        roiResults[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
 
-            # Statistic calculations for all voxels assigned to an ROI
-            # If No ROI is part of excluded ROIs, start overall ROI calculation from 0, otherwise start from 1
-            if exclude_rois is None or 0 not in exclude_rois:
-                start_val = 1
-            else:
-                start_val = 0
+        # Statistic calculations for all voxels assigned to an ROI
+        # If No ROI is part of excluded ROIs, start overall ROI calculation from 0, otherwise start from 1
+        if exclude_rois is None or 0 not in exclude_rois:
+            start_val = 1
+        else:
+            start_val = 0
 
-            roiResults[0, -1] = np.count_nonzero(
-                ~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
-            roiResults[1, -1] = np.nanmean(roiTempStore[start_val:, :])
-            roiResults[2, -1] = np.nanstd(roiTempStore[start_val:, :])
-            roiResults[3, -1] = self._conf_level_list[int(config.conf_level_number)][1] \
-                                * roiResults[2, -1] / np.sqrt(roiResults[0, -1])  # 95% CI calculation
-            roiResults[4, -1] = np.nanmin(roiTempStore[start_val:, :])
-            roiResults[5, -1] = np.nanmax(roiTempStore[start_val:, :])
-            roiResults[6, -1] = np.sum(roiResults[6, start_val:-2])
+        roiResults[0, -1] = np.count_nonzero(
+            ~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
+        roiResults[1, -1] = np.nanmean(roiTempStore[start_val:, :])
+        roiResults[2, -1] = np.nanstd(roiTempStore[start_val:, :])
+        roiResults[3, -1] = self._conf_level_list[int(config.conf_level_number)][1] \
+                            * roiResults[2, -1] / np.sqrt(roiResults[0, -1])  # 95% CI calculation
+        roiResults[4, -1] = np.nanmin(roiTempStore[start_val:, :])
+        roiResults[5, -1] = np.nanmax(roiTempStore[start_val:, :])
+        roiResults[6, -1] = np.sum(roiResults[6, start_val:-2])
 
-            # Convert NaNs to zeros
-            for column, voxel_num in enumerate(roiResults[0]):
-                if voxel_num == 0.0:
-                    for row in list(range(1, 6)):
-                        roiResults[row][column] = 0.0
+        # Convert NaNs to zeros
+        for column, voxel_num in enumerate(roiResults[0]):
+            if voxel_num == 0.0:
+                for row in list(range(1, 6)):
+                    roiResults[row][column] = 0.0
 
-            warnings.filterwarnings('default')  # Reactivate warnings
+        warnings.filterwarnings('default')  # Reactivate warnings
 
-            # Bootstrapping
-            if config.bootstrap:
-                for counter, roi in enumerate(list(range(0, roiNum))):
-                    if counter == 0:
-                        if config.verbose:
-                            print("This may take a while...")
+        # Bootstrapping
+        if config.bootstrap:
+            for counter, roi in enumerate(list(range(0, roiNum))):
+                if counter == 0:
                     if config.verbose:
-                        print("  - Bootstrapping roi {}/{}".format(counter, roiNum))
-                    roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
-                                                                             roi=roi)  # TODO: Speed up code, multithreading?
-                # Calculate overall statistics
-                roiResults[3, -1] = Utils.calculate_confidence_interval(
-                    roiTempStore[start_val:, :])  # TODO does this work?
+                        print("This may take a while...")
+                if config.verbose:
+                    print("  - Bootstrapping roi {}/{}".format(counter, roiNum))
+                roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
+                                                                         roi=roi)  # TODO: Speed up code, multithreading?
+            # Calculate overall statistics
+            roiResults[3, -1] = Utils.calculate_confidence_interval(
+                roiTempStore[start_val:, :])  # TODO does this work?
 
-            headers = ['Voxels', 'Mean', 'Std_dev',
-                       'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
-                       'Min', 'Max', 'Freesurfer excluded voxels']
+        headers = ['Voxels', 'Mean', 'Std_dev',
+                   'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
+                   'Min', 'Max', 'Freesurfer excluded voxels']
 
-            # Reorganise matrix to later remove nan rows
-            roiTempStore = roiTempStore.transpose()
-            i = np.arange(roiTempStore.shape[1])
-            # Find indices of nans and put them at the end of each column
-            a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
-            # Reorganise matrix with nans at end
-            roiTempStore[:] = roiTempStore[a, i]
+        # Reorganise matrix to later remove nan rows
+        roiTempStore = roiTempStore.transpose()
+        i = np.arange(roiTempStore.shape[1])
+        # Find indices of nans and put them at the end of each column
+        a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
+        # Reorganise matrix with nans at end
+        roiTempStore[:] = roiTempStore[a, i]
 
-            # Save results as dataframe
-            results = pd.DataFrame(data=roiResults,
-                                   index=headers,
-                                   columns=self.label_list)
-            raw_results = pd.DataFrame(data=roiTempStore,
-                                       columns=self.label_list[:-1])
+        # Save results as dataframe
+        results = pd.DataFrame(data=roiResults,
+                               index=headers,
+                               columns=self.label_list)
+        raw_results = pd.DataFrame(data=roiTempStore,
+                                   columns=self.label_list[:-1])
 
-            # Remove the required rows from the dataframe
-            if exclude_rois:
-                results = results.drop(results.columns[exclude_rois], axis=1)
-                raw_results = raw_results.drop(raw_results.columns[exclude_rois], axis=1)
+        # Remove the required rows from the dataframe
+        if exclude_rois:
+            results = results.drop(results.columns[exclude_rois], axis=1)
+            raw_results = raw_results.drop(raw_results.columns[exclude_rois], axis=1)
 
-            if exclude_rois is None or 0 not in exclude_rois:
-                raw_results = raw_results.drop(raw_results.columns[0], axis=1)
+        if exclude_rois is None or 0 not in exclude_rois:
+            raw_results = raw_results.drop(raw_results.columns[0], axis=1)
 
-            # Remove rows where all columns have NaNs (essential to keep file size down)
-            raw_results = raw_results.dropna(axis=0, how='all')
+        # Remove rows where all columns have NaNs (essential to keep file size down)
+        raw_results = raw_results.dropna(axis=0, how='all')
 
-            raw_results_path = f"{self._brain_directory}/{self._save_location}Raw_results/"
-            Utils.check_and_make_dir(raw_results_path)
+        raw_results_path = f"{self._brain_directory}/{self._save_location}Raw_results/"
+        Utils.check_and_make_dir(raw_results_path)
 
-            # Save JSON files
-            if config.verbose:
-                print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
+        # Save JSON files
+        if config.verbose:
+            print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
 
-            with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
-                json.dump(results.to_dict(), file, indent=2)
-            with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
-                json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)
+        with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
+            json.dump(results.to_dict(), file, indent=2)
+        with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
+            json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)
 
-            # Save variable for atlas_scale function
-            self.roiResults = roiResults
+        # Save variable for atlas_scale function
+        self.roiResults = roiResults
 
-        def nipype_file_cleanup():
-            """Clean up unnecessary output."""
-            if config.save_stats_only: # TODO: Have option of moving all files to separate folder instead
-                for file in self.file_list:
-                    os.remove(file)
+        # Clean up files
+        self.file_cleanup(self.file_list, self._save_location)
 
-        calculate_stats()
-        nipype_file_cleanup()
+    @staticmethod
+    def file_cleanup(file_list, save_location):
+        """Clean up unnecessary output."""
+        if config.file_cleanup == 'delete':
+            for file in file_list:
+                os.remove(file)
+        elif config.file_cleanup == 'move':
+            Utils.check_and_make_dir(f"{save_location}Intermediate_files")
+            for file in file_list:
+                file = file.replace(save_location, "")  # Remove folder from start of file name
+                print(file)
+                Utils.move_file(file, save_location, f"{save_location}Intermediate_files")
 
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total):
         """Produces up to three scaled json files. Within brains, between brains (based on rois), between brains
@@ -453,20 +475,40 @@ class Analysis:
         scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_mixed_roi_scaled.nii.gz"
                                  % self.atlas_scale_filename[config.roi_stat_number])
 
-    @staticmethod
-    def freesurfer_space_to_native_space():
+    @classmethod
+    def freesurfer_to_anat(cls):
         """Function which removes freesurfer padding and transforms freesurfer segmentation to native space."""
-        native_segmented_brain = freesurfer.Label2Vol(seg_file='freesurfer/aparc+aseg.mgz',
-                                                      template_file='freesurfer/rawavg.mgz',
-                                                      vol_label_file='freesurfer/native_segmented_brain.mgz',
-                                                      reg_header='freesurfer/aparc+aseg.mgz')
+        if config.verbose:
+            print('Aligning freesurfer file to anatomical native space.')
+        # Rawavg is in native anatomical space, so align to this file. vol_label_file defines output file name.
+        native_segmented_brain = freesurfer.Label2Vol(seg_file='freesurfer/mri/aparc+aseg.mgz',
+                                                      template_file='freesurfer/mri/rawavg.mgz',
+                                                      vol_label_file='freesurfer/mri/native_segmented_brain.mgz',
+                                                      reg_header='freesurfer/mri/aparc+aseg.mgz',
+                                                      terminal_output='none')
         native_segmented_brain.run()
-        # TODO: option to save out other freesurfer files?
-        freesurf_native_segmented_brain = nib.load('freesurfer/native_segmented_brain.mgz')
-        freesurf_native_segmented_brain = freesurf_native_segmented_brain.get_fdata().flatten()
-        # TODO: is this method chaining valid? freesurf_native_segmented_brain = freesurf_native_segmented_brain.flatten()
 
-        # Make option of restricting to grey matter only
+        mgz_to_nii = freesurfer.MRIConvert(in_file='freesurfer/mri/native_segmented_brain.mgz',
+                                           out_file='freesurfer/mri/native_segmented_brain.nii',
+                                           out_type='nii',
+                                           terminal_output='none')
+        mgz_to_nii.run()
+
+    def anat_aligned_freesurfer_to_fmri(self, anat_aligned_mat, current_brain):
+        # Save inverse of fMRI to anat
+        inverse_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
+                                         'inverse_anat_to_', '.mat', self)  # TODO add error check to make sure freesurf and anat are both True in config
+
+        # Apply inverse of matrix to chosen atlas to convert it into standard space
+        freesurf_to_fmri = self.fsl_functions('ApplyXFM', 'freesurfer/mri/native_segmented_brain.nii', self._save_location,
+                                              self.no_ext_brain, 'freesurf_to_', '.nii.gz', inverse_mat, current_brain, self)
+
+        return freesurf_to_fmri
+
+    @staticmethod
+    def freesurfer_find_csf_wm(native_space_freesurf):
+        freesurf_brain = nib.load(native_space_freesurf)
+        freesurf_brain = freesurf_brain.get_fdata().flatten()
 
         # Using set instead of list for performance reasons
         # Refers to freesurfer lookup table of CSF and white matter
@@ -504,10 +546,11 @@ class Analysis:
                          14159, 14160, 14161, 14162, 14163, 14164, 14165, 14166, 14167, 14168, 14169, 14170,
                          14171, 14172, 14173, 14174, 14175}
 
-        idxCSF_or_WM = np.full([freesurf_native_segmented_brain.shape], 0)
+        # Make a list that will return 0 for each voxel that is not csf or wm
+        idxCSF_or_WM = np.full([freesurf_brain.shape[0]], 0)
 
-        # Get list of voxels, made duplicate of 1's, if voxel is of a value in the list above then set to 0.
-        for counter, voxel in enumerate(freesurf_native_segmented_brain):
+        # If voxel has a value found in the list above then set to 1
+        for counter, voxel in enumerate(freesurf_brain):
             if voxel in csf_wm_values:
                 idxCSF_or_WM[counter] = 1
 
