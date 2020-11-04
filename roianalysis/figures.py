@@ -325,7 +325,7 @@ class Figures:
         plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
         plt.close()
         if config.verbose:
-            print("Saved brain table!")
+            print("Saved table!")
 
     @classmethod
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):

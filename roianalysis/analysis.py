@@ -195,12 +195,13 @@ class Analysis:
 
         # Apply inverse of matrix to chosen atlas to convert it into standard space
         self.fsl_functions('ApplyXFM', self.atlas_path, self._save_location, self.no_ext_brain,
-                           'mni_to_', '.nii.gz', inverse_mat, current_brain, self)
+                           'mni_to_', '.nii.gz', inverse_mat, current_brain, 'nearestneighbour', self)
 
-        # Convert freesurfer file to fMRI native space
-        if config.use_freesurf_file:
-            freesurf_to_fmri = self.anat_aligned_freesurfer_to_fmri(anat_aligned_mat, current_brain)
-            return self.freesurfer_find_csf_wm(freesurf_to_fmri)
+        if config.grey_matter_segment is not None:
+            # Convert segmentation file to fMRI native space
+            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain)
+
+            return self.find_gm_from_segment(segmentation_to_fmri)
 
     @staticmethod
     def fsl_functions(func, input, save_location, no_ext_brain, prefix, suffix, *argv):
@@ -226,9 +227,9 @@ class Analysis:
                 fslfunc.inputs.invert_xfm = True
         elif func == 'ApplyXFM':
             fslfunc.inputs.apply_xfm = True
-            fslfunc.inputs.interp = 'nearestneighbour'
             fslfunc.inputs.in_matrix_file = argv[0]
             fslfunc.inputs.reference = argv[1]
+            fslfunc.inputs.interp = argv[2]
             current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
 
         if config.verbose_cmdline_args:
@@ -287,7 +288,7 @@ class Analysis:
         roiResults[6, 0:-1] = 0  # Change freesurfer exclude voxels measure from NaN to 0
 
         # Where the magic happens
-        if config.use_freesurf_file is not False:
+        if config.grey_matter_segment is not None:
             for counter, roi in enumerate(idxMNI):
                 if excluded_voxels[counter] == 0:
                     roiTempStore[int(roi), counter] = idxBrain[counter]
@@ -419,18 +420,16 @@ class Analysis:
             Utils.check_and_make_dir(f"{save_location}Intermediate_files")
             for file in file_list:
                 file = file.replace(save_location, "")  # Remove folder from start of file name
-                print(file)
                 Utils.move_file(file, save_location, f"{save_location}Intermediate_files")
 
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total):
-        """Produces up to three scaled json files. Within brains, between brains (based on rois), between brains
-        (based on the highest seen value of all brains and rois). Only the first json file will be created if using if
-        running the analysis with all atlases."""
+        """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
+        (based on the highest seen value of all brains and rois)."""
         if brain_number_current == 0:
             if config.verbose:
                 print('\n--- Image creation ---')
         if config.verbose:
-            print('\n Creating images for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
+            print('\n Creating NIFTI files for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
                 brain_num_cur=brain_number_current + 1,
                 brain_num_tot=brain_number_total,
                 brain=self.brain))
@@ -481,10 +480,10 @@ class Analysis:
         if config.verbose:
             print('Aligning freesurfer file to anatomical native space.')
         # Rawavg is in native anatomical space, so align to this file. vol_label_file defines output file name.
-        native_segmented_brain = freesurfer.Label2Vol(seg_file='freesurfer/mri/aparc+aseg.mgz',
+        native_segmented_brain = freesurfer.Label2Vol(seg_file='freesurfer/mri/aseg.auto_noCCseg.mgz',
                                                       template_file='freesurfer/mri/rawavg.mgz',
                                                       vol_label_file='freesurfer/mri/native_segmented_brain.mgz',
-                                                      reg_header='freesurfer/mri/aparc+aseg.mgz',
+                                                      reg_header='freesurfer/mri/aseg.auto_noCCseg.mgz',
                                                       terminal_output='none')
         native_segmented_brain.run()
 
@@ -494,65 +493,84 @@ class Analysis:
                                            terminal_output='none')
         mgz_to_nii.run()
 
-    def anat_aligned_freesurfer_to_fmri(self, anat_aligned_mat, current_brain):
+    def segmentation_to_fmri(self, anat_aligned_mat, current_brain):
+        if config.grey_matter_segment == "freesurfer":
+            source_loc = 'freesurfer/mri/native_segmented_brain.nii'  # Use anat aligned freesurfer segmentation
+            prefix = 'freesurf_to_'
+            interp = 'nearestneighbor'
+
+        elif config.grey_matter_segment == "fslfast":
+            anat_brain_no_folder = os.path.split(self._anat_brain)[-1]
+            anat_brain_base =os.path.splitext(os.path.splitext(anat_brain_no_folder)[0])[0]
+            source_loc = f'fslfast/{anat_brain_base}_pve_1.nii.gz'
+            prefix = 'fslfast_to_'
+            interp = 'trilinear'
+
         # Save inverse of fMRI to anat
         inverse_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
-                                         'inverse_anat_to_', '.mat', self)  # TODO add error check to make sure freesurf and anat are both True in config
+                                         'inverse_anat_to_', '.mat', self)
 
         # Apply inverse of matrix to chosen atlas to convert it into standard space
-        freesurf_to_fmri = self.fsl_functions('ApplyXFM', 'freesurfer/mri/native_segmented_brain.nii', self._save_location,
-                                              self.no_ext_brain, 'freesurf_to_', '.nii.gz', inverse_mat, current_brain, self)
+        segmentation_to_fmri = self.fsl_functions('ApplyXFM', source_loc, self._save_location, self.no_ext_brain,
+                                                  prefix, '.nii.gz', inverse_mat, current_brain, interp, self)
 
-        return freesurf_to_fmri
+        return segmentation_to_fmri
 
     @staticmethod
-    def freesurfer_find_csf_wm(native_space_freesurf):
-        freesurf_brain = nib.load(native_space_freesurf)
-        freesurf_brain = freesurf_brain.get_fdata().flatten()
-
-        # Using set instead of list for performance reasons
-        # Refers to freesurfer lookup table of CSF and white matter
-        csf_wm_values = {0, 2, 4, 5, 7, 14, 15, 24, 25, 41, 43, 44, 46, 72, 77, 78, 79, 98, 159, 160, 161, 162,
-                         165, 167, 168, 177, 213, 219, 221, 223, 498, 499, 690, 691, 701, 703, 3000, 3001,
-                         3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015,
-                         3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029,
-                         3030, 3031, 3032, 3033, 3034, 3035, 4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007,
-                         4008, 4009, 4010, 4011, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4019, 4020, 4021,
-                         4022, 4023, 4024, 4025, 4026, 4027, 4028, 4029, 4030, 4031, 4032, 4033, 4034, 4035,
-                         3201, 3203, 3204, 3205, 3206, 3207, 4201, 4203, 4204, 4205, 4206, 4207, 3100, 3101,
-                         3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115,
-                         3116, 3117, 3118, 3119, 3120, 3121, 3122, 3123, 3124, 3125, 3126, 3127, 3128, 3129,
-                         3130, 3131, 3132, 3133, 3134, 3135, 3136, 3137, 3138, 3139, 3140, 3141, 3142, 3143,
-                         3144, 3145, 3146, 3147, 3148, 3149, 3150, 3151, 3152, 3153, 3154, 3155, 3156, 3157,
-                         3158, 3159, 3160, 3161, 3162, 3163, 3164, 3165, 3166, 3167, 3168, 3169, 3170, 3171,
-                         3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181, 4100, 4101, 4102, 4103,
-                         4104, 4105, 4106, 4107, 4108, 4109, 4110, 4111, 4112, 4113, 4114, 4115, 4116, 4117,
-                         4118, 4119, 4120, 4121, 4122, 4123, 4124, 4125, 4126, 4127, 4128, 4129, 4130, 4131,
-                         4132, 4133, 4134, 4135, 4136, 4137, 4138, 4139, 4140, 4141, 4142, 4143, 4144, 4145,
-                         4146, 4147, 4148, 4149, 4150, 4151, 4152, 4153, 4154, 4155, 4156, 4157, 4158, 4159,
-                         4160, 4161, 4162, 4163, 4164, 4165, 4166, 4167, 4168, 4169, 4170, 4171, 4172, 4173,
-                         4174, 4175, 4176, 4177, 4178, 4179, 4180, 4181, 5001, 5002, 13100, 13101, 13102,
-                         13103, 13104, 13105, 13106, 13107, 13108, 13109, 13110, 13111, 13112, 13113, 13114,
-                         13115, 13116, 13117, 13118, 13119, 13120, 13121, 13122, 13123, 13124, 13125, 13126,
-                         13127, 13128, 13129, 13130, 13131, 13132, 13133, 13134, 13135, 13136, 13137, 13138,
-                         13139, 13140, 13141, 13142, 13143, 13144, 13145, 13146, 13147, 13148, 13149, 13150,
-                         13151, 13152, 13153, 13154, 13155, 13156, 13157, 13158, 13159, 13160, 13161, 13162,
-                         13163, 13164, 13165, 13166, 13167, 13168, 13169, 13170, 13171, 13172, 13173, 13174,
-                         13175, 14100, 14101, 14102, 14103, 14104, 14105, 14106, 14107, 14108, 14109, 14110,
-                         14111, 14112, 14113, 14114, 14115, 14116, 14117, 14118, 14119, 14120, 14121, 14122,
-                         14123, 14124, 14125, 14126, 14127, 14128, 14129, 14130, 14131, 14132, 14133, 14134,
-                         14135, 14136, 14137, 14138, 14139, 14140, 14141, 14142, 14143, 14144, 14145, 14146,
-                         14147, 14148, 14149, 14150, 14151, 14152, 14153, 14154, 14155, 14156, 14157, 14158,
-                         14159, 14160, 14161, 14162, 14163, 14164, 14165, 14166, 14167, 14168, 14169, 14170,
-                         14171, 14172, 14173, 14174, 14175}
+    def find_gm_from_segment(native_space_segment):
+        segment_brain = nib.load(native_space_segment)
+        segment_brain = segment_brain.get_fdata().flatten()
 
         # Make a list that will return 0 for each voxel that is not csf or wm
-        idxCSF_or_WM = np.full([freesurf_brain.shape[0]], 0)
+        idxCSF_or_WM = np.full([segment_brain.shape[0]], 0)
 
-        # If voxel has a value found in the list above then set to 1
-        for counter, voxel in enumerate(freesurf_brain):
-            if voxel in csf_wm_values:
-                idxCSF_or_WM[counter] = 1
+        if config.grey_matter_segment == 'freesurfer':
+            # Using set instead of list for performance reasons
+            # Refers to freesurfer lookup table of CSF and white matter
+            csf_wm_values = {0, 2, 4, 5, 7, 14, 15, 24, 25, 41, 43, 44, 46, 72, 77, 78, 79, 98, 159, 160, 161, 162,
+                             165, 167, 168, 177, 213, 219, 221, 223, 498, 499, 690, 691, 701, 703, 3000, 3001,
+                             3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015,
+                             3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029,
+                             3030, 3031, 3032, 3033, 3034, 3035, 4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007,
+                             4008, 4009, 4010, 4011, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4019, 4020, 4021,
+                             4022, 4023, 4024, 4025, 4026, 4027, 4028, 4029, 4030, 4031, 4032, 4033, 4034, 4035,
+                             3201, 3203, 3204, 3205, 3206, 3207, 4201, 4203, 4204, 4205, 4206, 4207, 3100, 3101,
+                             3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115,
+                             3116, 3117, 3118, 3119, 3120, 3121, 3122, 3123, 3124, 3125, 3126, 3127, 3128, 3129,
+                             3130, 3131, 3132, 3133, 3134, 3135, 3136, 3137, 3138, 3139, 3140, 3141, 3142, 3143,
+                             3144, 3145, 3146, 3147, 3148, 3149, 3150, 3151, 3152, 3153, 3154, 3155, 3156, 3157,
+                             3158, 3159, 3160, 3161, 3162, 3163, 3164, 3165, 3166, 3167, 3168, 3169, 3170, 3171,
+                             3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181, 4100, 4101, 4102, 4103,
+                             4104, 4105, 4106, 4107, 4108, 4109, 4110, 4111, 4112, 4113, 4114, 4115, 4116, 4117,
+                             4118, 4119, 4120, 4121, 4122, 4123, 4124, 4125, 4126, 4127, 4128, 4129, 4130, 4131,
+                             4132, 4133, 4134, 4135, 4136, 4137, 4138, 4139, 4140, 4141, 4142, 4143, 4144, 4145,
+                             4146, 4147, 4148, 4149, 4150, 4151, 4152, 4153, 4154, 4155, 4156, 4157, 4158, 4159,
+                             4160, 4161, 4162, 4163, 4164, 4165, 4166, 4167, 4168, 4169, 4170, 4171, 4172, 4173,
+                             4174, 4175, 4176, 4177, 4178, 4179, 4180, 4181, 5001, 5002, 13100, 13101, 13102,
+                             13103, 13104, 13105, 13106, 13107, 13108, 13109, 13110, 13111, 13112, 13113, 13114,
+                             13115, 13116, 13117, 13118, 13119, 13120, 13121, 13122, 13123, 13124, 13125, 13126,
+                             13127, 13128, 13129, 13130, 13131, 13132, 13133, 13134, 13135, 13136, 13137, 13138,
+                             13139, 13140, 13141, 13142, 13143, 13144, 13145, 13146, 13147, 13148, 13149, 13150,
+                             13151, 13152, 13153, 13154, 13155, 13156, 13157, 13158, 13159, 13160, 13161, 13162,
+                             13163, 13164, 13165, 13166, 13167, 13168, 13169, 13170, 13171, 13172, 13173, 13174,
+                             13175, 14100, 14101, 14102, 14103, 14104, 14105, 14106, 14107, 14108, 14109, 14110,
+                             14111, 14112, 14113, 14114, 14115, 14116, 14117, 14118, 14119, 14120, 14121, 14122,
+                             14123, 14124, 14125, 14126, 14127, 14128, 14129, 14130, 14131, 14132, 14133, 14134,
+                             14135, 14136, 14137, 14138, 14139, 14140, 14141, 14142, 14143, 14144, 14145, 14146,
+                             14147, 14148, 14149, 14150, 14151, 14152, 14153, 14154, 14155, 14156, 14157, 14158,
+                             14159, 14160, 14161, 14162, 14163, 14164, 14165, 14166, 14167, 14168, 14169, 14170,
+                             14171, 14172, 14173, 14174, 14175}
+
+            # If voxel has a value found in the list above then set to 1
+            for counter, voxel in enumerate(segment_brain):
+                if voxel in csf_wm_values:
+                    idxCSF_or_WM[counter] = 1
+
+        elif config.grey_matter_segment == 'fslfast':
+            # If voxel has a value below the threshold then set to 1
+            for counter, voxel in enumerate(segment_brain):
+                if voxel < config.fslfast_min_prob:
+                    idxCSF_or_WM[counter] = 1
 
         return idxCSF_or_WM
 

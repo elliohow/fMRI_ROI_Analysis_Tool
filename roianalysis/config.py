@@ -6,12 +6,13 @@ frac_inten = 0.4  # Fractional intensity threshold for BET. Default: 0.5
 dof = 12  # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = False  # True or False. Note: This will inflate values such as tSNR.
 anat_align = True  # True or False. Recommended: True
-use_freesurf_file = True  # True or False. Select True to use freesurfer segmentation to only calculate statistics for grey matter voxels.
+grey_matter_segment = "fslfast"  # "freesurfer", "fslfast" or None.
+fslfast_min_prob = 0.1  # Recommended: 0.1
 
 verbose = True  # True or False
 verbose_cmdline_args = True  # True or False
 make_table_only = False # True or False. If true, a csv file template containing brain file information is created and then the program is terminated. Can be set using a command line flag instead.
-run_steps = "analyse"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
+run_steps = "all"  # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.
 file_cleanup = "move"  # Will save intermediate NiPype files if set to False. Recommended: True
 stat_map_folder = 'QA_report/'  # Folder name which contains the statistical map files
 stat_map_suffix = '_tSNR.img'  # File name suffix of the statistical map files. Include the file extension.
@@ -62,9 +63,9 @@ include_rois = "all"
 exclude_rois = "none"
 
 '''Parsing settings'''
-# MRI parameters to parse in the format of a dict. Key indicates parameter name and value indicates how it would be represented in the file name (if using name parameter searching) If using table parameter searching, values can be blank.
+# MRI parameters to parse in the format of a dict. Key indicates parameter name and value indicates how it would be represented in the file name (if using name parameter searching). If using table parameter searching, values can be blank.
 parameter_dict = {"MB": "mb",
-                  "SENSE": "s"}
+                  "SENS3E": "s"}
 binary_params = []  # Add parameters here which will either be off or on.
 # Set verify_param_method to true if you are confident the file names reflect the MRI parameters. Recommended: False
 verify_param_method = "table"  # "table", "name" or "manual". How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime.

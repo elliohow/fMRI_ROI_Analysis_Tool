@@ -36,11 +36,12 @@ if __name__ == '__main__':
             print('\n--- Analysis ---')
 
         if config.anat_align:
-            Analysis.anat_setup()  # TODO: What does paramvalues ignore column do? Save mat of how good registration was. Ignore files in analysis based on paramValues
+            Analysis.anat_setup()
+
             for brain in brain_list:
                 brain.save_class_variables()
 
-        if config.use_freesurf_file:
+        if config.grey_matter_segment == 'freesurfer':
             Analysis.freesurfer_to_anat()
 
         # Set arguments to pass to run_analysis function
