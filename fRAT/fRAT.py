@@ -1,16 +1,18 @@
 import itertools
-import os
+import sys
 import time
+import os
 from copy import deepcopy
+from pathlib import Path
 
-from roianalysis import config
-from roianalysis.paramparser import ParamParser
-from roianalysis.utils import Utils
-from roianalysis.analysis import Analysis
-from roianalysis.figures import Figures
+from utils import *
 
-if __name__ == '__main__':
+
+def fRAT():
     start_time = time.time()
+
+    orig_path = Path(os.path.abspath(__file__)).parents[0]
+    config = Utils.load_config(orig_path, 'config.toml')  # Reload config file incase GUI has changed it
 
     args = Utils.argparser()
 
@@ -18,8 +20,9 @@ if __name__ == '__main__':
     if args.print_info:
         Analysis.print_info()
 
-    if config.make_table_only or args.make_table:
+    if args.make_table:
         ParamParser.make_table()
+        sys.exit()
 
     if args.brain_loc is not None:
         config.brain_file_loc = args.brain_loc
@@ -30,7 +33,7 @@ if __name__ == '__main__':
     # Run the analysis
     if config.run_steps in ("analyse", "all"):
         # Run class setup
-        brain_list = Analysis.setup_analysis()
+        brain_list = Analysis.setup_analysis(config)
 
         if config.verbose:
             print('\n--- Analysis ---')
@@ -46,7 +49,7 @@ if __name__ == '__main__':
 
         # Set arguments to pass to run_analysis function
         iterable = zip(brain_list, itertools.repeat("run_analysis"), range(len(brain_list)),
-                       itertools.repeat(len(brain_list)))
+                       itertools.repeat(len(brain_list)), itertools.repeat(config))
 
         if config.multicore_processing:
             pool = Utils.start_processing_pool()
@@ -85,10 +88,16 @@ if __name__ == '__main__':
     # Plot the results
     if config.run_steps in ("plot", "all"):
         # Parameter Parsing
-        ParamParser.run_parse()
+        ParamParser.run_parse(config)
 
         # Plotting
-        Figures.construct_plots()
+        Figures.Make_figures(config)
+
+    os.chdir(orig_path)  # Reset path
 
     if config.verbose:
-        print(f"--- Completed in {round((time.time() - start_time), 2)} seconds ---")
+        print(f"--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")
+
+
+if __name__ == '__main__':
+    fRAT()

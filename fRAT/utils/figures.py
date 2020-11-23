@@ -9,17 +9,17 @@ import plotnine as pltn
 from matplotlib import pyplot as plt
 from nilearn import plotting
 
-from roianalysis import config
-from roianalysis.utils import Utils
+from .utils import Utils
+
+config = None
 
 
 class Figures:
-    _brain_plot_file_extension = ["_Mean.nii.gz", "_Mean_within_roi_scaled.nii.gz",
-                                  "_Mean_mixed_roi_scaled.nii.gz", "all"]
-    base_extension = _brain_plot_file_extension[config.brain_fig_file]
-
     @classmethod
-    def construct_plots(cls):
+    def Make_figures(cls, cfg):
+        global config
+        config = cfg
+
         if config.verbose:
             print('\n--- Figure creation ---')
 
@@ -36,11 +36,15 @@ class Figures:
             pool = None
 
         if config.make_brain_table:
-            if Figures.base_extension == "all":
-                for base_extension in Figures._brain_plot_file_extension[0:-1]:
+            brain_plot_opts_exts = ["_Mean.nii.gz", "_Mean_within_roi_scaled.nii.gz", "_Mean_mixed_roi_scaled.nii.gz",
+                                    "all"]
+            brain_plot_base_ext = brain_plot_opts_exts[config.brain_fig_file]
+
+            if brain_plot_base_ext == "all":
+                for base_extension in brain_plot_opts_exts[0:-1]:
                     cls.brain_facet_grid(combined_results_df, base_extension)
             else:
-                cls.brain_facet_grid(combined_results_df, Figures.base_extension)
+                cls.brain_facet_grid(combined_results_df, brain_plot_base_ext)
 
         if config.make_scatter_table:
             cls.scatter_plot(combined_results_df)
@@ -110,7 +114,7 @@ class Figures:
                                            config_region_var=config.single_roi_fig_regions)
 
         iterable = zip(itertools.repeat(Figures.one_region_bar_chart_make), chosen_rois,
-                       itertools.repeat(df), itertools.repeat(list_rois))
+                       itertools.repeat(df), itertools.repeat(list_rois), itertools.repeat(config))
 
         if pool:
             pool.starmap(Utils.class_method_handler, iterable)
@@ -118,7 +122,7 @@ class Figures:
             list(itertools.starmap(Utils.class_method_handler, iterable))
 
     @staticmethod
-    def one_region_bar_chart_make(roi, df, list_rois):
+    def one_region_bar_chart_make(roi, df, list_rois, config):
         thisroi = list_rois[roi]
 
         current_df = df.loc[df['index'] == thisroi]
@@ -158,6 +162,7 @@ class Figures:
         figure.save("Figures/Barcharts/{thisroi}_barplot.png".format(thisroi=thisroi), height=config.plot_scale,
                     width=config.plot_scale * 3,
                     verbose=False, limitsize=False)
+
         if config.verbose:
             print("Saved {thisroi}_barplot.png".format(thisroi=thisroi))
 
@@ -177,13 +182,12 @@ class Figures:
                 print(f"STAGE 1 -- Dataframe setup")
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.region_histogram_df_make(roi, combined_raw_df, list_rois))
-
-            iterable = zip(itertools.repeat(Figures.region_histogram_make), chosen_rois,
-                           combined_raw_dfs, itertools.repeat(list_rois))
+                combined_raw_dfs.append(cls.region_histogram_df_make(roi, combined_raw_df, list_rois, config))
 
             if config.verbose:
                 print(f"STAGE 2 -- Histogram creation")
+            iterable = zip(itertools.repeat(Figures.region_histogram_make), chosen_rois,
+                           combined_raw_dfs, itertools.repeat(list_rois), itertools.repeat(config))
 
             if pool:
                 pool.starmap(Utils.class_method_handler, iterable)
@@ -191,7 +195,7 @@ class Figures:
                 list(itertools.starmap(Utils.class_method_handler, iterable))
 
     @staticmethod
-    def region_histogram_df_make(roi, combined_raw_df, list_rois):
+    def region_histogram_df_make(roi, combined_raw_df, list_rois, config):
         # Set up the df for each chosen roi
         thisroi = list_rois[roi]
 
@@ -220,7 +224,7 @@ class Figures:
         return current_df
 
     @staticmethod
-    def region_histogram_make(roi, combined_raw_df, list_rois):
+    def region_histogram_make(roi, combined_raw_df, list_rois, config):
         if combined_raw_df.empty:
             return
         else:
@@ -246,7 +250,7 @@ class Figures:
                 axis_text_x=pltn.element_text(size=10, color='black'),
                 axis_text_y=pltn.element_text(size=10, color='black'),
                 dpi=config.plot_dpi
-            )
+                )
             )
 
             # Display mean or median as vertical lines on plot
@@ -329,7 +333,7 @@ class Figures:
 
     @classmethod
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
-        if config_region_var is None:  # If no ROI has been selected for thi plot
+        if config_region_var == 'Runtime':  # If no ROI has been selected for this plot
             chosen_rois = []
 
             for roi_num, roi in enumerate(all_rois):

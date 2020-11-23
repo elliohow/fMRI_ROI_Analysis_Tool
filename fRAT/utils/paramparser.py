@@ -5,34 +5,21 @@ from glob import glob
 import numpy as np
 import pandas as pd
 
-from roianalysis import config
-from roianalysis.utils import Utils
+from .utils import Utils
+from .analysis import Analysis
+
+
+config = None
 
 
 class ParamParser:
     @classmethod
-    def run_parse(cls):
+    def run_parse(cls, cfg):
+        global config
+        config = cfg
+
         json_array = cls.json_search()
         combined_results_create = True
-
-        while True and not config.always_replace_combined_json:
-            if "combined_results.json" in json_array:
-                answer = input("\nCombined results file already found in folder, "
-                               "do you want to continue with this file or replace it? (continue or replace) ")
-
-                if answer.lower() not in ('replace', 'continue'):
-                    print("Not an appropriate choice.")
-                else:
-                    if answer.lower() == "replace":
-                        os.remove("combined_results.json")
-                        json_array.remove("combined_results.json")
-                        print("File removed!")
-                        combined_results_create = True
-                    else:
-                        combined_results_create = False
-                    break
-            else:
-                break
 
         # Double check if the user wants to skip parameter verification
         if config.verify_param_method == "manual":
@@ -58,11 +45,11 @@ class ParamParser:
         combined_dataframe = pd.DataFrame()
 
         if config.verify_param_method == "table":
-            if os.path.isfile(f"{os.getcwd()}/{config.param_table_name}"):
-                table = pd.read_csv(config.param_table_name)  # Load param table
+            if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
+                table = pd.read_csv("paramValues.csv")  # Load param table
             else:
                 try:
-                    table = pd.read_csv(f"copy_{config.param_table_name}")  # Load param table
+                    table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
                 except FileNotFoundError:
                     raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
 
@@ -89,16 +76,9 @@ class ParamParser:
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
         # Find atlas used to remove text from the start of the json file name
-        with open('config_log.py', 'r') as config_log:
-            for line in config_log:
-                line = line.rstrip()  # remove '\n' at end of line
+        config_log = Utils.load_config(os.getcwd(), 'config_log.toml', save=False)
 
-                atlas_number = re.match("atlas_number = [0-9]", line)  # Search for atlas used from config_log
-                if atlas_number:
-                    from roianalysis.analysis import Analysis
-                    atlas_name = os.path.splitext(Analysis._atlas_label_list[int(atlas_number[0][-1])][1])[0] + "_"
-
-                    break
+        atlas_name = os.path.splitext(Analysis._atlas_label_list[config_log.atlas_number][1])[0] + "_"
 
         json_file_name = json_file_name[len(atlas_name):]  # Remove atlas name prefix from file name
         json_file_name = os.path.splitext(json_file_name)[0]  # Remove file extension
@@ -186,11 +166,11 @@ class ParamParser:
     @staticmethod
     def json_search():
         if config.run_steps == "all":
-            from roianalysis.analysis import Analysis
+            from utils.analysis import Analysis
             json_directory = os.getcwd() + f"/{Analysis._save_location}"
 
             if config.verify_param_method == "table":  # Move excel file containing parameter file info
-                Utils.move_file(config.param_table_name, os.getcwd(), json_directory, copy=True)
+                Utils.move_file("paramValues.csv", os.getcwd(), json_directory, copy=True)
 
             os.chdir(json_directory)
 
@@ -204,7 +184,7 @@ class ParamParser:
             try:
                 os.chdir(json_directory)
             except FileNotFoundError:
-                raise FileNotFoundError('json_file_loc in config.py is not a valid directory.')
+                raise FileNotFoundError('json_file_loc in config_test.py is not a valid directory.')
 
             if config.verbose:
                 print(f'Gathering json files from {config.json_file_loc}.')
@@ -240,7 +220,8 @@ class ParamParser:
 
     @classmethod
     def make_table(cls):
-        print('Select the nifti/analyse file directory.')
+        print('--- Creating paramValues.csv ---')
+        print('Select the NIFTI/ANALYZE file directory.')
         brain_directory = Utils.file_browser(chdir=True)
 
         brain_file_list = Utils.find_files(brain_directory, "hdr", "nii.gz", "nii")
@@ -268,6 +249,4 @@ class ParamParser:
         print(f"\nparamValues.csv saved in {brain_directory}.\n\nInput parameter values in paramValues.csv and change "
               f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
               f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
-              f"parameters, update config.parameter_dict.")
-
-        sys.exit()
+              f"parameters, update config.parameter_dict2.")

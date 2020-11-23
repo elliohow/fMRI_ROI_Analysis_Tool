@@ -1,14 +1,16 @@
 import argparse
 import os
 import shutil
+import toml
 from glob import glob
 from tkinter import Tk, filedialog
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
 import multiprocess as mp
 from scipy.sparse import csr_matrix
+from types import SimpleNamespace
 
-from roianalysis import config
+config = None
 
 
 class Utils:
@@ -21,16 +23,16 @@ class Utils:
         # Add the arguments
         parser.add_argument('--brain_loc', dest='brain_loc', action='store', type=str,
                             help='Directory location of brain files for analysis. '
-                                 'Can be set in config.py to use a GUI to find folder instead).')
+                                 'Can be set in config_test.py to use a GUI to find folder instead).')
 
         parser.add_argument('--json_loc', dest='json_loc', action='store', type=str,
                             help='Directory location of json files produced by the roi_analysis_tool '
-                                 '(can be set in config.py to use a GUI to find folder instead).')
+                                 '(can be set in config_test.py to use a GUI to find folder instead).')
 
         parser.add_argument('--make_table', dest='make_table', action='store_true',
                             help='Use this flag to create a csv file to store parameter information about files.'
                                  'Recommended that this file is created and filled in before tool execution'
-                                 ' (this setting can alternatively be set to True or False in config.py).')
+                                 ' (this setting can alternatively be set to True or False in config_test.py).')
 
         parser.add_argument('--print_info', dest='print_info', action='store_true',
                             help='Use this flag to print a list of possible atlases and other information.')
@@ -76,10 +78,9 @@ class Utils:
 
     @staticmethod
     def save_config(directory):
-        with open(directory + '/config_log.py', 'w') as f:
-            with open('roianalysis/config.py', 'r') as r:
-                for line in r:
-                    f.write(line)
+        with open(directory + '/config_log.toml', 'w') as f, open('config.toml', 'r') as r:
+            for line in r:
+                f.write(line)
 
     @staticmethod
     def calculate_confidence_interval(data, roi=None):
@@ -132,3 +133,45 @@ class Utils:
             if config.verbose:
                 print(f"Starting processing pool using {workers} cores.")
             return ctx.Pool(processes=workers)
+
+    @classmethod
+    def load_config(cls, config_path, filename, save=True):
+        with open(f'{config_path}/{filename}', 'r') as tomlfile:
+            try:
+                parse = tomlfile.readlines()
+                parse = toml.loads(''.join(parse))
+
+                for key in parse:
+                    if parse[key] == 'None':
+                        parse[key] = None
+
+                if save:
+                    global config
+
+                config = SimpleNamespace(**parse)
+
+                # Cleans config output
+                atlas_options = ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort',
+                                 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
+                                 'SMATT-labels', 'STN',
+                                 'striatum-structural', 'Talairach-labels', 'Thalamus']
+                config.atlas_number = atlas_options.index(config.atlas_number)
+
+                roi_stat_options = ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval',
+                                    'Minimum value', 'Maximum value']
+                config.roi_stat_number = roi_stat_options.index(config.roi_stat_number)
+
+                conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
+                config.conf_level_number = conf_level_options.index(config.conf_level_number)
+
+                brain_plot_opts = ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)',
+                                   'Produce all three figures']
+                config.brain_fig_file = brain_plot_opts.index(config.brain_fig_file)
+
+                config.parameter_dict = {config.parameter_dict1[i]:
+                                             config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
+
+                return config
+
+            except (toml.decoder.TomlDecodeError, AttributeError):
+                raise Exception('Config file not in correct format or missing entries.')

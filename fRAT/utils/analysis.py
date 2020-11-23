@@ -10,8 +10,9 @@ import simplejson as json
 import xmltodict
 from nipype.interfaces import fsl, freesurfer
 
-from roianalysis import config
-from roianalysis.utils import Utils
+from .utils import Utils
+
+config = None
 
 
 class Analysis:
@@ -77,8 +78,12 @@ class Analysis:
         self._anat_brain_to_mni = ""
 
     @staticmethod
-    def setup_analysis():
+    def setup_analysis(cfg):
         """Set up environment and find files before running analysis."""
+
+        global config
+        config = cfg
+
         try:
             Analysis._fsl_path = os.environ['FSLDIR']
         except OSError:
@@ -87,27 +92,25 @@ class Analysis:
         if config.verbose:
             print('\n--- Environment Setup ---')
 
-        if Analysis._brain_directory == "":
+        if config.brain_file_loc in ("", " "):
+            print('Select the directory of the raw MRI/fMRI brains.')
 
-            if config.brain_file_loc in ("", " "):
-                print('Select the directory of the raw MRI/fMRI brains.')
+            Analysis._brain_directory = Utils.file_browser()
 
-                Analysis._brain_directory = Utils.file_browser()
+        else:
+            Analysis._brain_directory = config.brain_file_loc
 
-            else:
-                Analysis._brain_directory = config.brain_file_loc
+            if config.verbose:
+                print(f'Gathering brain files from {config.brain_file_loc}.')
 
-                if config.verbose:
-                    print(f'Gathering brain files from {config.brain_file_loc}.')
+        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it
+        # will be harder to find
+        Utils.save_config(Analysis._brain_directory)
 
-            # Save copy of config.py to retain settings. It is saved here as after changing directory it will be harder
-            # to find
-            Utils.save_config(Analysis._brain_directory)
-
-            try:
-                os.chdir(Analysis._brain_directory)
-            except FileNotFoundError:
-                raise FileNotFoundError('brain_file_loc in config.py is not a valid directory.')
+        try:
+            os.chdir(Analysis._brain_directory)
+        except FileNotFoundError:
+            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
 
         Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]
         if config.verbose:
@@ -124,8 +127,8 @@ class Analysis:
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(Analysis._brain_directory + "/" + Analysis._save_location)
 
-        Utils.move_file('config_log.py', Analysis._brain_directory,
-                      Analysis._save_location)  # Move config file to analysis folder
+        Utils.move_file('config_log.toml', Analysis._brain_directory,
+                        Analysis._save_location)  # Move config file to analysis folder
 
         # Extract labels from selected FSL atlas
         Analysis.roi_label_list()
@@ -157,9 +160,13 @@ class Analysis:
         self._anat_brain = Analysis._anat_brain
         self._anat_brain_to_mni = Analysis._anat_brain_to_mni
 
-    def run_analysis(self, brain_number_current, brain_number_total):
+    def run_analysis(self, brain_number_current, brain_number_total, cfg):
+        global config
+        config = cfg
+
         if config.verbose:
             print(f'\nAnalysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
+
         freesurfer_excluded_voxels = self.roi_flirt_transform()
         self.roi_stats(brain_number_current, brain_number_total, freesurfer_excluded_voxels)
 
@@ -232,7 +239,7 @@ class Analysis:
             fslfunc.inputs.interp = argv[2]
             current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
 
-        if config.verbose_cmdline_args:
+        if config.verbose_cmd_line_args:
             print(fslfunc.cmdline)
 
         fslfunc.run()
@@ -607,6 +614,6 @@ class Analysis:
         for counter, stat in enumerate(cls._roi_stat_list):
             print(("Statistic number " + str(counter) + ": " + stat))
 
-        print("\nEdit the config.py file to change tool parameters.")
+        print("\nEdit the config.toml file to change tool parameters.")
 
         sys.exit()

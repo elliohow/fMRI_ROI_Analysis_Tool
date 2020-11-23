@@ -1,7 +1,34 @@
 import re
 import simplejson as json
 
-from roianalysis.utils import Utils
+from utils import *
+
+def printResults():
+    print('--- Printing results ---')
+    print('Select the location of the ROI_report folder.')
+    result_loc = Utils.file_browser()
+
+    with open(f"{result_loc}/combined_results.json", "r") as results, \
+            open(f"{result_loc}/config_log.py", "r") as config:
+        config = config.read()
+        results = json.load(results)
+
+    params = parse_config(config)
+    blacklist = ['index', 'File_name', *params]
+    rois = sorted({result['index'] for result in results})  # Using set returns only unique values
+
+    chosen_rois = user_input(rois)
+
+    for roi in chosen_rois:  # For each chosen roi
+        print(f"\n----------------------Chosen ROI {roi}: {rois[roi]}----------------------------")
+        for result in results:  # For each entry_create in the combined_df
+            if result['index'] == rois[roi]:  # If the entry_create is the correct roi, print the result
+                print(f"\n -- File name: {result['File_name']}")
+                for param in params:
+                    print(f" -- {param}: {result[param]}")
+
+                [print(f"{key}: {value}") for key, value in result.items() if key not in blacklist]
+        print(f"----------------------Chosen ROI {roi}: {rois[roi]} end--------------------------")
 
 
 def user_input(rois):
@@ -48,6 +75,7 @@ def user_input(rois):
 
 
 def parse_config(config):
+    # TODO: need to change this function as wont work with new version of config file, implement config_load function?
     param_dict_start = config.find('{', config.find('parameter_dict')) + 1
     param_dict_end = config.find('}', config.find('parameter_dict'))
 
@@ -58,27 +86,4 @@ def parse_config(config):
 
 
 if __name__ == '__main__':
-    print('Select the location of the ROI_report folder.')
-    result_loc = Utils.file_browser()
-
-    with open(f"{result_loc}/combined_results.json", "r") as results, \
-            open(f"{result_loc}/config_log.py", "r") as config:
-        config = config.read()
-        results = json.load(results)
-
-    params = parse_config(config)
-    blacklist = ['index', 'File_name', *params]
-    rois = sorted({result['index'] for result in results})  # Using set returns only unique values
-
-    chosen_rois = user_input(rois)
-
-    for roi in chosen_rois:  # For each chosen roi
-        print(f"\n----------------------Chosen ROI {roi}: {rois[roi]}----------------------------")
-        for result in results:  # For each entry in the combined_df
-            if result['index'] == rois[roi]:  # If the entry is the correct roi, print the result
-                print(f"\n -- File name: {result['File_name']}")
-                for param in params:
-                    print(f" -- {param}: {result[param]}")
-
-                [print(f"{key}: {value}") for key, value in result.items() if key not in blacklist]
-        print(f"----------------------Chosen ROI {roi}: {rois[roi]} end--------------------------")
+    printResults()
