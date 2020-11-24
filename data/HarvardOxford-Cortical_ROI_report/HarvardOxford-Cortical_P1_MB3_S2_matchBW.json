@@ -1,0 +1,452 @@
+{
+  "No ROI": {
+    "Voxels": 6084.0,
+    "Mean": 66.55449324572872,
+    "Std_dev": 32.185565143059335,
+    "Conf_Int_95": 0.8087654830820038,
+    "Min": 1.003910843282938,
+    "Max": 215.73515648022294,
+    "Freesurfer excluded voxels": 171046.0
+  },
+  "Frontal Pole": {
+    "Voxels": 4404.0,
+    "Mean": 93.99883476308683,
+    "Std_dev": 44.29593078214224,
+    "Conf_Int_95": 1.3082665821077093,
+    "Min": 1.363205250352621,
+    "Max": 266.8395021446049,
+    "Freesurfer excluded voxels": 1851.0
+  },
+  "Insular Cortex": {
+    "Voxels": 905.0,
+    "Mean": 85.40355660033242,
+    "Std_dev": 21.911648480032326,
+    "Conf_Int_95": 1.4276009682570998,
+    "Min": 24.601099401712418,
+    "Max": 173.99360036477447,
+    "Freesurfer excluded voxels": 118.0
+  },
+  "Superior Frontal Gyrus": {
+    "Voxels": 1634.0,
+    "Mean": 104.33563971592426,
+    "Std_dev": 47.85037800875534,
+    "Conf_Int_95": 2.320146553440917,
+    "Min": 0.25361958146095276,
+    "Max": 265.45516192913055,
+    "Freesurfer excluded voxels": 455.0
+  },
+  "Middle Frontal Gyrus": {
+    "Voxels": 1707.0,
+    "Mean": 112.15461152785647,
+    "Std_dev": 48.33377193906809,
+    "Conf_Int_95": 2.2929257911957848,
+    "Min": 2.345981128513813,
+    "Max": 267.9807902611792,
+    "Freesurfer excluded voxels": 448.0
+  },
+  "Inferior Frontal Gyrus, pars triangularis": {
+    "Voxels": 452.0,
+    "Mean": 114.34172772752137,
+    "Std_dev": 36.14534217840846,
+    "Conf_Int_95": 3.332262412845278,
+    "Min": 7.122483246028423,
+    "Max": 240.10377126559615,
+    "Freesurfer excluded voxels": 129.0
+  },
+  "Inferior Frontal Gyrus, pars opercularis": {
+    "Voxels": 446.0,
+    "Mean": 115.57413998974546,
+    "Std_dev": 34.47882690445547,
+    "Conf_Int_95": 3.1999347531478652,
+    "Min": 17.108754266053438,
+    "Max": 236.288910061121,
+    "Freesurfer excluded voxels": 132.0
+  },
+  "Precentral Gyrus": {
+    "Voxels": 2707.0,
+    "Mean": 127.50441825611976,
+    "Std_dev": 46.18759083163612,
+    "Conf_Int_95": 1.7399519427339036,
+    "Min": 1.8070395179092884,
+    "Max": 308.4648159518838,
+    "Freesurfer excluded voxels": 692.0
+  },
+  "Temporal Pole": {
+    "Voxels": 1597.0,
+    "Mean": 57.18007245060796,
+    "Std_dev": 36.05908738919982,
+    "Conf_Int_95": 1.768554079446366,
+    "Min": 1.2998003549873829,
+    "Max": 194.13522212579846,
+    "Freesurfer excluded voxels": 377.0
+  },
+  "Superior Temporal Gyrus, anterior division": {
+    "Voxels": 231.0,
+    "Mean": 81.34418056589185,
+    "Std_dev": 36.05143162226273,
+    "Conf_Int_95": 4.64913970615242,
+    "Min": 12.871193759143353,
+    "Max": 207.74613966420293,
+    "Freesurfer excluded voxels": 22.0
+  },
+  "Superior Temporal Gyrus, posterior division": {
+    "Voxels": 471.0,
+    "Mean": 88.82682565758657,
+    "Std_dev": 45.20068728085693,
+    "Conf_Int_95": 4.082165952584281,
+    "Min": 2.345981128513813,
+    "Max": 242.4708873592317,
+    "Freesurfer excluded voxels": 73.0
+  },
+  "Middle Temporal Gyrus, anterior division": {
+    "Voxels": 317.0,
+    "Mean": 88.09266812549404,
+    "Std_dev": 34.630076849612514,
+    "Conf_Int_95": 3.81223703023522,
+    "Min": 9.965136054903269,
+    "Max": 198.65810466185212,
+    "Freesurfer excluded voxels": 48.0
+  },
+  "Middle Temporal Gyrus, posterior division": {
+    "Voxels": 809.0,
+    "Mean": 101.50793269224584,
+    "Std_dev": 40.90308867353976,
+    "Conf_Int_95": 2.818628988959084,
+    "Min": 8.686470665037632,
+    "Max": 246.05326394736767,
+    "Freesurfer excluded voxels": 271.0
+  },
+  "Middle Temporal Gyrus, temporooccipital part": {
+    "Voxels": 595.0,
+    "Mean": 128.05417840380002,
+    "Std_dev": 43.87593859391005,
+    "Conf_Int_95": 3.5255267033086746,
+    "Min": 6.784323804080486,
+    "Max": 279.0026745721698,
+    "Freesurfer excluded voxels": 195.0
+  },
+  "Inferior Temporal Gyrus, anterior division": {
+    "Voxels": 216.0,
+    "Mean": 58.685389160609766,
+    "Std_dev": 26.757291192887315,
+    "Conf_Int_95": 3.568382006400408,
+    "Min": 5.410551071166992,
+    "Max": 150.4703841842711,
+    "Freesurfer excluded voxels": 106.0
+  },
+  "Inferior Temporal Gyrus, posterior division": {
+    "Voxels": 616.0,
+    "Mean": 75.14958862139082,
+    "Std_dev": 38.6253671444591,
+    "Conf_Int_95": 3.0502703682138237,
+    "Min": 4.406640227884054,
+    "Max": 223.30147399380803,
+    "Freesurfer excluded voxels": 392.0
+  },
+  "Inferior Temporal Gyrus, temporooccipital part": {
+    "Voxels": 518.0,
+    "Mean": 121.36557875926027,
+    "Std_dev": 42.097968284074724,
+    "Conf_Int_95": 3.6253699285345116,
+    "Min": 10.334997944533825,
+    "Max": 225.7425624653697,
+    "Freesurfer excluded voxels": 127.0
+  },
+  "Postcentral Gyrus": {
+    "Voxels": 2083.0,
+    "Mean": 132.00859644056524,
+    "Std_dev": 44.54608503697865,
+    "Conf_Int_95": 1.9130264651058333,
+    "Min": 6.742053873836994,
+    "Max": 346.2647010721266,
+    "Freesurfer excluded voxels": 505.0
+  },
+  "Superior Parietal Lobule": {
+    "Voxels": 813.0,
+    "Mean": 135.41189051076293,
+    "Std_dev": 44.34453592452285,
+    "Conf_Int_95": 3.048252318713244,
+    "Min": -0.7502912618219852,
+    "Max": 274.0148228034377,
+    "Freesurfer excluded voxels": 280.0
+  },
+  "Supramarginal Gyrus, anterior division": {
+    "Voxels": 530.0,
+    "Mean": 132.7196653219678,
+    "Std_dev": 52.686919346445755,
+    "Conf_Int_95": 4.4856041228753485,
+    "Min": 4.723664704710245,
+    "Max": 287.43552565574646,
+    "Freesurfer excluded voxels": 167.0
+  },
+  "Supramarginal Gyrus, posterior division": {
+    "Voxels": 811.0,
+    "Mean": 124.30549281637118,
+    "Std_dev": 49.51882043658617,
+    "Conf_Int_95": 3.408128297837878,
+    "Min": 8.686470665037632,
+    "Max": 291.4934389591217,
+    "Freesurfer excluded voxels": 221.0
+  },
+  "Angular Gyrus": {
+    "Voxels": 726.0,
+    "Mean": 117.76565590361261,
+    "Std_dev": 38.89879473476231,
+    "Conf_Int_95": 2.8295925677345455,
+    "Min": 13.547512643039227,
+    "Max": 297.4534991234541,
+    "Freesurfer excluded voxels": 202.0
+  },
+  "Lateral Occipital Cortex, superior division": {
+    "Voxels": 2643.0,
+    "Mean": 118.80411303672986,
+    "Std_dev": 44.06595440722335,
+    "Conf_Int_95": 1.6800053725126407,
+    "Min": 1.1729905642569065,
+    "Max": 287.4566606208682,
+    "Freesurfer excluded voxels": 936.0
+  },
+  "Lateral Occipital Cortex, inferior division": {
+    "Voxels": 1388.0,
+    "Mean": 125.7628181571039,
+    "Std_dev": 44.46494253691923,
+    "Conf_Int_95": 2.3392631187012354,
+    "Min": 8.527958426624537,
+    "Max": 272.22891825065017,
+    "Freesurfer excluded voxels": 465.0
+  },
+  "Intracalcarine Cortex": {
+    "Voxels": 433.0,
+    "Mean": 118.30103925252484,
+    "Std_dev": 37.332605375256755,
+    "Conf_Int_95": 3.516417419606996,
+    "Min": 33.66799943894148,
+    "Max": 264.71543814986944,
+    "Freesurfer excluded voxels": 131.0
+  },
+  "Frontal Medial Cortex": {
+    "Voxels": 318.0,
+    "Mean": 63.40981356466904,
+    "Std_dev": 34.26916596579197,
+    "Conf_Int_95": 3.766570027444687,
+    "Min": 5.590198274701834,
+    "Max": 215.5555092766881,
+    "Freesurfer excluded voxels": 55.0
+  },
+  "Juxtapositional Lobule Cortex (formerly Supplementary Motor Cortex)": {
+    "Voxels": 485.0,
+    "Mean": 119.95251861379012,
+    "Std_dev": 35.505264780986785,
+    "Conf_Int_95": 3.1599336070437896,
+    "Min": 19.983109522610903,
+    "Max": 287.7631176151335,
+    "Freesurfer excluded voxels": 53.0
+  },
+  "Subcallosal Cortex": {
+    "Voxels": 479.0,
+    "Mean": 56.513573042535086,
+    "Std_dev": 22.815549381537913,
+    "Conf_Int_95": 2.0432393568443206,
+    "Min": 3.1808122508227825,
+    "Max": 112.04701759293675,
+    "Freesurfer excluded voxels": 49.0
+  },
+  "Paracingulate Gyrus": {
+    "Voxels": 909.0,
+    "Mean": 114.24162447455824,
+    "Std_dev": 33.27307184726836,
+    "Conf_Int_95": 2.163052336143319,
+    "Min": 21.811284005641937,
+    "Max": 228.26819079741836,
+    "Freesurfer excluded voxels": 78.0
+  },
+  "Cingulate Gyrus, anterior division": {
+    "Voxels": 736.0,
+    "Mean": 97.94765550393672,
+    "Std_dev": 34.59840747171889,
+    "Conf_Int_95": 2.4996158699624766,
+    "Min": 10.546347595751286,
+    "Max": 226.35547645390034,
+    "Freesurfer excluded voxels": 262.0
+  },
+  "Cingulate Gyrus, posterior division": {
+    "Voxels": 762.0,
+    "Mean": 87.0775817912023,
+    "Std_dev": 36.55485400113538,
+    "Conf_Int_95": 2.595515575384364,
+    "Min": 4.681394774466753,
+    "Max": 197.7704361267388,
+    "Freesurfer excluded voxels": 389.0
+  },
+  "Precuneous Cortex": {
+    "Voxels": 1569.0,
+    "Mean": 109.66084770187308,
+    "Std_dev": 41.27560068937438,
+    "Conf_Int_95": 2.042386832643705,
+    "Min": 1.1941255293786526,
+    "Max": 250.22741955891252,
+    "Freesurfer excluded voxels": 384.0
+  },
+  "Cuneal Cortex": {
+    "Voxels": 365.0,
+    "Mean": 96.2918565109066,
+    "Std_dev": 41.79352103162457,
+    "Conf_Int_95": 4.287642828576988,
+    "Min": 1.98668672144413,
+    "Max": 216.27409809082747,
+    "Freesurfer excluded voxels": 68.0
+  },
+  "Frontal Orbital Cortex": {
+    "Voxels": 1071.0,
+    "Mean": 78.86135318434609,
+    "Std_dev": 30.97019104985792,
+    "Conf_Int_95": 1.854834735754646,
+    "Min": 4.882176943123341,
+    "Max": 187.7313276939094,
+    "Freesurfer excluded voxels": 143.0
+  },
+  "Parahippocampal Gyrus, anterior division": {
+    "Voxels": 649.0,
+    "Mean": 61.38688069857508,
+    "Std_dev": 28.716475262756227,
+    "Conf_Int_95": 2.209351699647689,
+    "Min": 3.5189716927707195,
+    "Max": 153.77800622582436,
+    "Freesurfer excluded voxels": 141.0
+  },
+  "Parahippocampal Gyrus, posterior division": {
+    "Voxels": 390.0,
+    "Mean": 71.92147342602794,
+    "Std_dev": 30.488697177403868,
+    "Conf_Int_95": 3.0259561804996578,
+    "Min": 5.030121698975563,
+    "Max": 149.2551236897707,
+    "Freesurfer excluded voxels": 66.0
+  },
+  "Lingual Gyrus": {
+    "Voxels": 1204.0,
+    "Mean": 89.15641971852978,
+    "Std_dev": 35.291153901147474,
+    "Conf_Int_95": 1.9934653279579897,
+    "Min": 7.893909472972155,
+    "Max": 210.56765750795603,
+    "Freesurfer excluded voxels": 133.0
+  },
+  "Temporal Fusiform Cortex, anterior division": {
+    "Voxels": 243.0,
+    "Mean": 40.02501425683621,
+    "Std_dev": 28.381307453296465,
+    "Conf_Int_95": 3.56849697514488,
+    "Min": 1.7542021051049232,
+    "Max": 119.7084424495697,
+    "Freesurfer excluded voxels": 70.0
+  },
+  "Temporal Fusiform Cortex, posterior division": {
+    "Voxels": 534.0,
+    "Mean": 92.27025103036746,
+    "Std_dev": 32.39660439124846,
+    "Conf_Int_95": 2.7477988371902686,
+    "Min": 7.830504577606916,
+    "Max": 185.98769307136536,
+    "Freesurfer excluded voxels": 161.0
+  },
+  "Temporal Occipital Fusiform Cortex": {
+    "Voxels": 548.0,
+    "Mean": 109.05561011166304,
+    "Std_dev": 28.321356242971767,
+    "Conf_Int_95": 2.3712636231445177,
+    "Min": 43.39008339494467,
+    "Max": 210.90581694990396,
+    "Freesurfer excluded voxels": 56.0
+  },
+  "Occipital Fusiform Gyrus": {
+    "Voxels": 788.0,
+    "Mean": 115.32686646649056,
+    "Std_dev": 33.943770943886044,
+    "Conf_Int_95": 2.37002567431286,
+    "Min": 4.797637082636356,
+    "Max": 256.13464231044054,
+    "Freesurfer excluded voxels": 92.0
+  },
+  "Frontal Operculum Cortex": {
+    "Voxels": 210.0,
+    "Mean": 99.5633988370498,
+    "Std_dev": 25.2449618067048,
+    "Conf_Int_95": 3.414453023185143,
+    "Min": 38.7932284809649,
+    "Max": 163.2781730480492,
+    "Freesurfer excluded voxels": 39.0
+  },
+  "Central Opercular Cortex": {
+    "Voxels": 619.0,
+    "Mean": 99.7706245767714,
+    "Std_dev": 25.838203153710413,
+    "Conf_Int_95": 2.035509133391811,
+    "Min": 20.70169833675027,
+    "Max": 206.71052637323737,
+    "Freesurfer excluded voxels": 18.0
+  },
+  "Parietal Operculum Cortex": {
+    "Voxels": 399.0,
+    "Mean": 109.35185929629625,
+    "Std_dev": 31.618698156377626,
+    "Conf_Int_95": 3.1025129874321093,
+    "Min": 27.739641722291708,
+    "Max": 277.8508189730346,
+    "Freesurfer excluded voxels": 21.0
+  },
+  "Planum Polare": {
+    "Voxels": 206.0,
+    "Mean": 69.8596265700293,
+    "Std_dev": 30.497077416997637,
+    "Conf_Int_95": 4.164670852462598,
+    "Min": 17.235564056783915,
+    "Max": 182.78574585542083,
+    "Freesurfer excluded voxels": 67.0
+  },
+  "Heschl's Gyrus (includes H1 and H2)": {
+    "Voxels": 166.0,
+    "Mean": 77.95415442742139,
+    "Std_dev": 28.8939823699999,
+    "Conf_Int_95": 4.395511602820087,
+    "Min": 18.482526998966932,
+    "Max": 170.36895384639502,
+    "Freesurfer excluded voxels": 16.0
+  },
+  "Planum Temporale": {
+    "Voxels": 309.0,
+    "Mean": 102.48173592671222,
+    "Std_dev": 40.647140186514974,
+    "Conf_Int_95": 4.532176629220777,
+    "Min": 18.662174202501774,
+    "Max": 237.40906321257353,
+    "Freesurfer excluded voxels": 66.0
+  },
+  "Supracalcarine Cortex": {
+    "Voxels": 85.0,
+    "Mean": 95.04518138573451,
+    "Std_dev": 30.39995029120309,
+    "Conf_Int_95": 6.462781631648375,
+    "Min": 39.93451659753919,
+    "Max": 157.39208526164293,
+    "Freesurfer excluded voxels": 18.0
+  },
+  "Occipital Pole": {
+    "Voxels": 1618.0,
+    "Mean": 75.90836946854577,
+    "Std_dev": 45.85092648436007,
+    "Conf_Int_95": 2.2341633764742395,
+    "Min": 1.2575304247438908,
+    "Max": 261.15419652685523,
+    "Freesurfer excluded voxels": 768.0
+  },
+  "Overall": {
+    "Voxels": 41714.0,
+    "Mean": 102.68788792846786,
+    "Std_dev": 46.13199218447047,
+    "Conf_Int_95": 0.4427079925802472,
+    "Min": -0.7502912618219852,
+    "Max": 346.2647010721266,
+    "Freesurfer excluded voxels": 10788.0
+  }
+}

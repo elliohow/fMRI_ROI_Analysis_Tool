@@ -1,0 +1,82 @@
+# General
+run_steps = 'all'                                                                 # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps. Options: ['all', 'analyse', 'plot'].
+verbose = true                                                                    # true or false.
+verbose_cmd_line_args = false                                                     # true or false.
+multicore_processing = true                                                       # true or false. Use multicore processing to use during analysis? Recommended: true
+max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
+
+# Analysis
+brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.
+atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
+roi_stat_number = 'Mean'                                                          # Set the statistic to scale_create the brain figures by. Recommended: Mean. Options: ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'].
+file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
+frac_inten = 0.4                                                                  # Fractional intensity threshold for BET. Default: 0.4
+dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
+motion_correct = false                                                            # true or false. Note: This will inflate values such as tSNR.
+anat_align = true                                                                 # true or false. Recommended: true.
+grey_matter_segment = 'fslfast'                                                   # "freesurfer", "fslfast" or None. Options: ['fslfast', 'freesurfer', 'None'].
+fslfast_min_prob = 0.1                                                            # Recommended: 0.1
+stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files
+stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension.
+bootstrap = false                                                                 # true or false.
+include_rois = 'all'                                                              # Provide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Recommended: all
+exclude_rois = 'none'                                                             # Provide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none
+conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
+binary_params = ['']                                                              # Add parameters here which will either be on or off.
+
+# Parsing
+verify_param_method = 'table'                                                     # "table", "name" or "manual".  How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime. Options: ['table', 'name', 'manual'].
+parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted
+parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to an entry above.
+
+# Plotting
+json_file_loc = ''                                                                # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+plot_dpi = 200                                                                    # Recommended value 600
+plot_font_size = 40                                                               # Recommended value 30
+plot_scale = 10                                                                   # Recommended value 10
+make_scatter_table = true                                                         # true or false.
+make_brain_table = true                                                           # true or false.
+make_one_region_fig = true                                                        # true or false.
+make_histogram = true                                                             # true or false.
+colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colour blind friendly colour scale_create
+
+# Scatter_plot
+table_x_label = 'tSNR mean'                                                       # 
+table_y_label = 'ROI'                                                             # 
+table_row_order = 'both'                                                          # roi, stat or both. Recommended: both Options: ['roi', 'stat', 'both'].
+table_cols = 'MB'                                                                 # 
+table_rows = 'SENSE'                                                              # 
+
+# Brain_table
+brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
+brain_fig_value_min = 0                                                           # Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black. Recommended value: 0
+brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
+brain_fig_file = 'Produce all three figures'                                      #  Options: ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'].
+brain_table_x_size = 40                                                           # Change the size of the x-axis. Recommended: 40
+brain_table_y_size = 10                                                           # Change the size of the y-axis. Recommended: 10
+brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
+brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
+brain_table_cols = 'MB'                                                           # 
+brain_table_rows = 'SENSE'                                                        # 
+
+# Region_barchart
+single_roi_fig_regions = 'Runtime'                                                # Provide a comma-separated tuple of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+single_roi_fig_label_x = 'Multiband factor'                                       # 
+single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
+single_roi_fig_label_fill = 'SENSE factor'                                        # 
+single_roi_fig_x_axis = 'MB'                                                      # 
+single_roi_fig_colour = 'SENSE'                                                   # 
+
+# Region_histogram
+histogram_fig_regions = 'Runtime'                                                 # Provide a comma-separated tuple of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+histogram_binwidth = 5                                                            # 
+histogram_fig_label_x = 'temporal Signal to Noise Ratio'                          # 
+histogram_fig_label_y = 'Frequency'                                               # 
+histogram_stat_line_size = 1.5                                                    # 
+histogram_show_mean = true                                                        # true or false.
+histogram_show_median = true                                                      # true or false.
+histogram_show_legend = true                                                      # true or false.
+histogram_fig_x_facet = 'MB'                                                      # 
+histogram_fig_y_facet = 'SENSE'                                                   # 
+histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
+
