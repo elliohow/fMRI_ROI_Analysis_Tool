@@ -215,6 +215,7 @@ class Analysis:
         """Function that runs an individual FSL function using NiPype."""
         fslfunc = getattr(fsl, func)()
         fslfunc.inputs.in_file = input
+        fslfunc.inputs.output_type = 'NIFTI_GZ'
         current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 
         # Arguments dependent on FSL function used
