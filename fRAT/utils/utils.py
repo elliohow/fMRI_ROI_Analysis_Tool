@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import toml
+import numpy as np
 from glob import glob
 from tkinter import Tk, filedialog
 import bootstrapped.bootstrap as bs
@@ -71,7 +72,7 @@ class Utils:
         if chdir:
             os.chdir(directory)
 
-        if config.verbose:
+        if config is None or config.verbose:
             print(f"Selected directory: {directory}")
 
         return directory
@@ -89,10 +90,11 @@ class Utils:
         else:
             data = data.flatten()
             values = csr_matrix([x for x in data if str(x) != 'nan'])
-        results = bs.bootstrap(values, stat_func=bs_stats.mean)  # TODO how does this work with excluded voxels
-        conf_int = results.value - results.lower_bound  # TODO what does this return
 
-        return conf_int
+        results = bs.bootstrap(values, stat_func=bs_stats.mean, iteration_batch_size=10)  # TODO how does this work with excluded voxels, make batch size variable
+        conf_int = results.value - results.lower_bound  # TODO what does this return, is it saving the mean and CI correctly?
+
+        return conf_int  # TODO: also return mean
 
     @staticmethod
     def move_file(name, original_dir, new_dir, copy=False):

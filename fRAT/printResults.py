@@ -9,7 +9,7 @@ def printResults():
     result_loc = Utils.file_browser()
 
     with open(f"{result_loc}/combined_results.json", "r") as results, \
-            open(f"{result_loc}/config_log.py", "r") as config:
+            open(f"{result_loc}/config_log.toml", "r") as config:
         config = config.read()
         results = json.load(results)
 

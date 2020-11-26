@@ -363,12 +363,10 @@ class Analysis:
                     if config.verbose:
                         print("This may take a while...")
                 if config.verbose:
-                    print("  - Bootstrapping roi {}/{}".format(counter, roiNum))
-                roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
-                                                                         roi=roi)  # TODO: Speed up code, multithreading?
+                    print("  - Bootstrapping roi {}/{}".format(counter + 1, roiNum + 1)) # TODO: have a print statement for overall too below
+                roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)
             # Calculate overall statistics
-            roiResults[3, -1] = Utils.calculate_confidence_interval(
-                roiTempStore[start_val:, :])  # TODO does this work?
+            roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])  # TODO does this work?
 
         headers = ['Voxels', 'Mean', 'Std_dev',
                    'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
@@ -430,12 +428,12 @@ class Analysis:
                 file = file.replace(save_location, "")  # Remove folder from start of file name
                 Utils.move_file(file, save_location, f"{save_location}Intermediate_files")
 
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total):
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
         if brain_number_current == 0:
             if config.verbose:
-                print('\n--- Image creation ---')
+                print('\n--- Atlas scaling ---')
         if config.verbose:
             print('\n Creating NIFTI files for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
                 brain_num_cur=brain_number_current + 1,

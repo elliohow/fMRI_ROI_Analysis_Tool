@@ -30,6 +30,9 @@ def fRAT():
     if args.json_loc is not None:
         config.json_file_loc = args.json_loc
 
+    if config.verbose and config.run_steps == 'all':
+        print(f"\n--- Running all steps ---")
+
     # Run the analysis
     if config.run_steps in ("analyse", "all"):
         # Run class setup
@@ -74,7 +77,7 @@ def fRAT():
 
         # Set arguments to pass to atlas_scale function
         iterable = zip(brain_list, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
-                       range(len(brain_list)), itertools.repeat(len(brain_list)))
+                       range(len(brain_list)), itertools.repeat(len(brain_list)), itertools.repeat(config))
 
         # Run atlas_scale function and pass in max roi stats for between brain scaling
         if config.multicore_processing:
