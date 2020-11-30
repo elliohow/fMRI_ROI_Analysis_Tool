@@ -326,8 +326,7 @@ class Analysis:
         roiResults[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
         roiResults[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
         roiResults[3, 0:-1] = self._conf_level_list[int(config.conf_level_number)][1] \
-                              * roiResults[2, 0:-1] / np.sqrt(
-            roiResults[0, 0:-1])  # 95% confidence interval calculation
+                              * roiResults[2, 0:-1] / np.sqrt(roiResults[0, 0:-1])  # 95% confidence interval calculation
         roiResults[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
         roiResults[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
 
@@ -359,14 +358,14 @@ class Analysis:
         # Bootstrapping
         if config.bootstrap:
             for counter, roi in enumerate(list(range(0, roiNum))):
-                if counter == 0:
-                    if config.verbose:
-                        print("This may take a while...")
                 if config.verbose:
-                    print("  - Bootstrapping roi {}/{}".format(counter + 1, roiNum + 1)) # TODO: have a print statement for overall too below
-                roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)
+                    print(f"  - Bootstrapping roi {counter + 1}/{roiNum + 1}")
+                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)
+
             # Calculate overall statistics
-            roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])  # TODO does this work?
+            if config.verbose:
+                print(f"  - Bootstrapping roi {roiNum + 1}/{roiNum + 1}")
+            roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])
 
         headers = ['Voxels', 'Mean', 'Std_dev',
                    'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],

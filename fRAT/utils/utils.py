@@ -8,7 +8,7 @@ from tkinter import Tk, filedialog
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
 import multiprocess as mp
-from scipy.sparse import csr_matrix
+import warnings
 from types import SimpleNamespace
 
 config = None
@@ -69,6 +69,9 @@ class Utils:
         root.update()
         root.destroy()  # Destroy tkinter window
 
+        if not directory:
+            raise FileNotFoundError('No folder selected.')
+
         if chdir:
             os.chdir(directory)
 
@@ -85,16 +88,17 @@ class Utils:
 
     @staticmethod
     def calculate_confidence_interval(data, roi=None):
-        if roi is not None:
-            values = csr_matrix([x for x in data[roi, :] if str(x) != 'nan'])
-        else:
+        warnings.filterwarnings('ignore', category=PendingDeprecationWarning)  # TODO: Change this
+
+        if roi is None:
             data = data.flatten()
-            values = csr_matrix([x for x in data if str(x) != 'nan'])
 
-        results = bs.bootstrap(values, stat_func=bs_stats.mean, iteration_batch_size=10)  # TODO how does this work with excluded voxels, make batch size variable
-        conf_int = results.value - results.lower_bound  # TODO what does this return, is it saving the mean and CI correctly?
+        values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
-        return conf_int  # TODO: also return mean
+        results = bs.bootstrap(values, stat_func=bs_stats.mean, iteration_batch_size=10, num_threads=-1)  # TODO how does this work with excluded voxels
+        conf_int = (results.upper_bound - results.lower_bound) / 2
+        # TODO: Make alpha variable for bootstrap function?
+        return results.value, conf_int
 
     @staticmethod
     def move_file(name, original_dir, new_dir, copy=False):

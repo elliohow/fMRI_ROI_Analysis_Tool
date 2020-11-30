@@ -13,6 +13,8 @@ except ImportError:
 import ast
 import re
 import os
+import sys
+import logging
 from pathlib import Path
 
 from fRAT import fRAT
@@ -157,13 +159,13 @@ class Config_GUI:
 
         self.Print_button = ttk.Button(self.Run_frame)
         self.Print_button.place(x=156, y=12, height=42, width=150)
-        self.Print_button.configure(command=printResults)
+        self.Print_button.configure(command=lambda:Button_handler('Print_results'))
         self.Print_button.configure(text='''Print results''')
         Tooltip.CreateToolTip(self.Print_button, 'Print results of fRAT to the terminal.')
 
         self.Run_button = ttk.Button(self.Run_frame)
         self.Run_button.place(x=309, y=12, height=42, width=150)
-        self.Run_button.configure(command=Run_fRAT)
+        self.Run_button.configure(command=lambda:Button_handler('Run_fRAT'))
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings.')
 
@@ -518,10 +520,23 @@ class Tooltip(object):
         widget.bind('<Leave>', leave)
 
 
-def Run_fRAT():
-    print('--- Running fRAT ---')
-    Save_settings()
-    fRAT()
+def Button_handler(command):
+    try:
+        if command == 'Run_fRAT':
+            Save_settings()
+            print('----- Running fRAT -----')
+            fRAT()
+
+        elif command == 'Print_results':
+            printResults()
+
+    except Exception as err:
+        if err.args[0] == 'No folder selected.':
+            print('----- Exiting -----\n')
+        else:
+            log = logging.getLogger(__name__)
+            log.exception(err)
+            sys.exit()
 
 
 def Save_settings():
@@ -587,7 +602,7 @@ def Save_settings():
         f.flush()
         f.close()
 
-    print('--- Saved settings ---')
+    print('----- Saved settings -----')
 
 
 def Reset_settings():
@@ -598,8 +613,9 @@ def Reset_settings():
         for key in eval(page).keys():
             eval(page)[key]['Current'] = eval(page)[key]['Recommended']
 
-    print('--- Reset settings to recommended values, save them to retain these settings ---')
+    print('----- Reset settings to recommended values, save them to retain these settings -----')
 
 
 if __name__ == '__main__':
+    print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------\n')
     vp_start_gui()
