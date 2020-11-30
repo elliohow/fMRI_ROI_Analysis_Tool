@@ -19,13 +19,18 @@ General = {
     'max_core_usage': {'type': 'OptionMenu', 'Recommended': 'max', 'Options': ['max', 6, 5, 4, 3, 2, 1],  'save_as': 'string',
                        'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
 
+    'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
+                       'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.'},
+
+    'json_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
+                      'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
+
+    'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'],  'save_as': 'string',
+                     'Description': 'Move or delete intermediate files.'},
 }
 
 '''Analysis settings'''
 Analysis = {
-    'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                       'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.'},
-
     'atlas_number': {'type': 'OptionMenu', 'Recommended': 'HarvardOxford-cort',  'save_as': 'string',
                      'Options': [
                                  'Cerebellum-MNIflirt',
@@ -47,9 +52,6 @@ Analysis = {
     'roi_stat_number': {'type': 'OptionMenu', 'Recommended': 'Mean',  'save_as': 'string',
                         'Options': ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'],
                         'Description': 'Set the statistic to scale_create the brain figures by. Recommended: Mean.'},
-
-    'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'],  'save_as': 'string',
-                     'Description': 'Move or delete intermediate files.'},
 
     'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.4,
                    'Description': 'Fractional intensity threshold for BET. Default: 0.4'},
@@ -75,12 +77,13 @@ Analysis = {
     'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.img', 'save_as': 'string',
                         'Description': 'File name suffix of the statistical map files. Include the file extension.'},
 
-    'bootstrap': {'type': 'CheckButton', 'Recommended': 'false', 'Description': 'true or false.'},
+    'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
+                  'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
     'include_rois': {'type': 'Entry', 'Recommended': "all", 'save_as': 'string_or_list',
                      'Description': "Provide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Recommended: all"},
 
-    'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list',
+    'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list', # TODO: converts a list into a string currently, change this
                      'Description': "Provide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none"},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
@@ -112,9 +115,6 @@ Parsing = {
 
 '''General plot settings'''
 Plotting = {
-    'json_file_loc': {'type': 'Entry', 'Recommended': "",  'save_as': 'string',
-                      'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
-
     'plot_dpi': {'type': 'Entry', 'Recommended': 200,
                  'Description': 'Recommended value 600'},
 

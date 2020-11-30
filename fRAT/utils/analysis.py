@@ -360,12 +360,14 @@ class Analysis:
             for counter, roi in enumerate(list(range(0, roiNum))):
                 if config.verbose:
                     print(f"  - Bootstrapping roi {counter + 1}/{roiNum + 1}")
-                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore, roi=roi)
+                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
+                                                                                             config.bootstrap_alpha, roi=roi)
 
             # Calculate overall statistics
             if config.verbose:
                 print(f"  - Bootstrapping roi {roiNum + 1}/{roiNum + 1}")
-            roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :])
+            roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :],
+                                                                                       config.bootstrap_alpha)
 
         headers = ['Voxels', 'Mean', 'Std_dev',
                    'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],

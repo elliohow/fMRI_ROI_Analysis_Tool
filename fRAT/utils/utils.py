@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import toml
+import re
 import numpy as np
 from glob import glob
 from tkinter import Tk, filedialog
@@ -87,17 +88,19 @@ class Utils:
                 f.write(line)
 
     @staticmethod
-    def calculate_confidence_interval(data, roi=None):
+    def calculate_confidence_interval(data, alpha, roi=None):
         warnings.filterwarnings('ignore', category=PendingDeprecationWarning)  # TODO: Change this
 
         if roi is None:
             data = data.flatten()
+            values = np.array([x for x in data if str(x) != 'nan'])
+        else:
+            values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
-        values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
-
-        results = bs.bootstrap(values, stat_func=bs_stats.mean, iteration_batch_size=10, num_threads=-1)  # TODO how does this work with excluded voxels
+        results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha,
+                               iteration_batch_size=10, num_threads=-1)  # TODO how does this work with excluded voxels
         conf_int = (results.upper_bound - results.lower_bound) / 2
-        # TODO: Make alpha variable for bootstrap function?
+
         return results.value, conf_int
 
     @staticmethod
@@ -168,6 +171,7 @@ class Utils:
                 config.roi_stat_number = roi_stat_options.index(config.roi_stat_number)
 
                 conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
+                config.bootstrap_alpha = float(f"0.{re.split('%', config.conf_level_number)[0]}")
                 config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
                 brain_plot_opts = ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)',

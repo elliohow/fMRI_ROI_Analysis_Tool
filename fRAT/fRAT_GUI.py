@@ -67,7 +67,7 @@ class Config_GUI:
             _compcolor = '#d9d9d9'  # X11 color: 'gray85'
             _ana1color = '#d9d9d9'  # X11 color: 'gray85'
             _ana2color = '#ececec'  # Closest X11 color: 'gray92'
-            window.geometry("512x840+100+100")
+            window.geometry("512x780+50+50")
             window.minsize(72, 15)
             window.maxsize(2048, 1028)
             window.resizable(1, 1)
@@ -127,7 +127,7 @@ class Config_GUI:
 
     def Options_frame_draw(self, window):
         self.Options_frame = tk.LabelFrame(window)
-        self.Options_frame.place(relx=0.5, rely=0.06, relheight=0.175, relwidth=0.333)
+        self.Options_frame.place(relx=0.5, rely=0.06, height=150, relwidth=0.333)
         self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
         self.frame_setup(self.Options_frame)
         self.frames.append(self.Options_frame)
@@ -146,7 +146,7 @@ class Config_GUI:
 
     def Run_frame_draw(self, window):
         self.Run_frame = tk.LabelFrame(window)
-        self.Run_frame.place(relx=0.056, rely=0.4, relheight=0.11, relwidth=0.91)
+        self.Run_frame.place(relx=0.056, rely=0.42, height=90, relwidth=0.91)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
         self.frame_setup(self.Run_frame)
         self.frames.append(self.Run_frame)
@@ -180,7 +180,7 @@ class Config_GUI:
 
             self.General_settings_frame = tk.LabelFrame(window)
             self.frames.append(self.General_settings_frame)
-            self.General_settings_frame.place(relx=0.056, rely=0.06, relheight=0.32, relwidth=0.4)
+            self.General_settings_frame.place(relx=0.056, rely=0.06, height=280, relwidth=0.4)
             self.General_settings_frame.configure(text=f'''Preferences''', font='Helvetica 18 bold')
             self.frame_setup(self.General_settings_frame)
             current_frame = self.General_settings_frame
@@ -203,7 +203,7 @@ class Config_GUI:
 
             self.Plot_settings_frame = tk.LabelFrame(window)
             self.frames.append(self.Plot_settings_frame)
-            self.Plot_settings_frame.place(relx=0.31, y=y_loc + 70, relheight=0.32, relwidth=0.394)
+            self.Plot_settings_frame.place(relx=0.31, y=y_loc + 70, height=270, relwidth=0.394)
             self.Plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
             self.frame_setup(self.Plot_settings_frame)
 
@@ -252,6 +252,7 @@ class Config_GUI:
             elif self.current_info[setting]['type'] == 'Dynamic':
                 y_loc, widget = self.dynamic_widget(setting, self.current_info[setting], y_loc)
                 self.dynamic_widgets = {**self.dynamic_widgets, **widget}
+                y_loc -= 40
 
             y_loc += 40
 
