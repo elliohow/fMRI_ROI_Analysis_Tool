@@ -20,9 +20,6 @@ class Figures:
         global config
         config = cfg
 
-        if config.verbose:
-            print('\n--- Figure creation ---')
-
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
 

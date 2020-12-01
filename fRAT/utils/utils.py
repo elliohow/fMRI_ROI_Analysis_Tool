@@ -89,7 +89,7 @@ class Utils:
 
     @staticmethod
     def calculate_confidence_interval(data, alpha, roi=None):
-        warnings.filterwarnings('ignore', category=PendingDeprecationWarning)  # TODO: Change this
+        warnings.filterwarnings('ignore', category=PendingDeprecationWarning)  # Silences a deprecation warning from bootstrapping library using outdated numpy matrix instead of numpy array
 
         if roi is None:
             data = data.flatten()
@@ -97,8 +97,7 @@ class Utils:
         else:
             values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
-        results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha,
-                               iteration_batch_size=10, num_threads=-1)  # TODO how does this work with excluded voxels
+        results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
         conf_int = (results.upper_bound - results.lower_bound) / 2
 
         return results.value, conf_int

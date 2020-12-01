@@ -66,7 +66,7 @@ Analysis = {
                    'Description': 'true or false. Recommended: true.'},
 
     'grey_matter_segment': {'type': 'OptionMenu', 'Recommended': 'fslfast', 'Options': ['fslfast', 'freesurfer', 'None'], 'save_as': 'string',
-                            'Description': '"freesurfer", "fslfast" or None.'},
+                            'Description': '"freesurfer", "fslfast" or "None". \nNote: Requires anatomical align be true to function.'},
 
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'Description': 'Recommended: 0.1'},
@@ -81,10 +81,10 @@ Analysis = {
                   'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
     'include_rois': {'type': 'Entry', 'Recommended': "all", 'save_as': 'string_or_list',
-                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED \n Provide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Recommended: all"},
+                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Note: Takes priority over exclude ROI setting. Recommended: all"},
 
     'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list',
-                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED \n Provide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none"},
+                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none"},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                             'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],

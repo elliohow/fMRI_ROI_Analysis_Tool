@@ -144,14 +144,16 @@ class Analysis:
     @classmethod
     def anat_setup(cls):
         if config.verbose:
-            print('Converting anatomical file to MNI space.')
+            print('\nConverting anatomical file to MNI space.')
 
         anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
 
         cls._anat_brain = cls.fsl_functions('BET', f'{os.getcwd()}/anat/{anat}', cls._save_location,
-                                            os.path.splitext(anat)[0], "bet_", ".nii.gz", cls)
-        cls._anat_brain_to_mni = cls.fsl_functions('FLIRT', cls._anat_brain, cls._save_location, os.path.splitext(anat)[0],
-                                             "to_mni_from_", '.nii.gz', f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', cls)
+                                            os.path.splitext(anat)[0], "bet_", cls)
+
+        cls._anat_brain_to_mni = cls.fsl_functions('FLIRT', cls._anat_brain, cls._save_location,
+                                                   os.path.splitext(anat)[0], 'to_mni_from_',
+                                                   f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', cls)
 
     def save_class_variables(self):
         # Due to dill errors with saving class variables of imported classes, this function is used to save the class
@@ -167,72 +169,79 @@ class Analysis:
         if config.verbose:
             print(f'\nAnalysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
 
-        freesurfer_excluded_voxels = self.roi_flirt_transform()
-        self.roi_stats(brain_number_current, brain_number_total, freesurfer_excluded_voxels)
+        excluded_voxels = self.roi_flirt_transform()
+        self.roi_stats(brain_number_current, brain_number_total, excluded_voxels)
 
         return self
 
     def roi_flirt_transform(self):
         """Function which uses NiPype to transform the chosen atlas into native space."""
+        pack_vars = [self._save_location, self.no_ext_brain]
+
         if config.motion_correct:
             # Motion correction
-            self.fsl_functions('MCFLIRT', self.brain, self._save_location, self.no_ext_brain, "mc_", '.nii.gz', self)
+            self.fsl_functions('MCFLIRT', self.brain, *pack_vars, "mc_", self)
 
         # Turn 4D scan into 3D
-        current_brain = self.fsl_functions('MeanImage', self.brain, self._save_location, self.no_ext_brain, "mean_",
-                                           '.nii.gz', self)
+        current_brain = self.fsl_functions('MeanImage', self.brain, *pack_vars, "mean_", self)
         # Brain extraction
-        current_brain = self.fsl_functions('BET', current_brain, self._save_location, self.no_ext_brain, "bet_",
-                                           '.nii.gz', config.frac_inten, self)
+        current_brain = self.fsl_functions('BET', current_brain, *pack_vars, "bet_", config.frac_inten, self)
         if config.anat_align:  # TODO: Is there a better way than flirt?
             # Align to anatomical
-            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain,
-                                                  "to_anat_from_", '.nii.gz', self._anat_brain, self)
+            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, *pack_vars, "to_anat_from_", self._anat_brain, self)
+
             # Combine fMRI-anat and anat-mni matrices
-            mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
-                                             'combined_mat_', '.mat', 'concat_xfm', self)
+            mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, *pack_vars, 'combined_mat_', 'concat_xfm', self)
 
         else:
             # Align to MNI
-            mat = self.fsl_functions('FLIRT', current_brain, self._save_location, self.no_ext_brain, "to_mni_from_", '.nii.gz',
+            mat = self.fsl_functions('FLIRT', current_brain, *pack_vars, "to_mni_from_",
                                      f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', self)
         # Get inverse of matrix
-        inverse_mat = self.fsl_functions('ConvertXFM', mat, self._save_location, self.no_ext_brain,
-                                         'inverse_combined_mat', '.mat', self)
+        inverse_mat = self.fsl_functions('ConvertXFM', mat, *pack_vars, 'inverse_combined_mat', self)
 
         # Apply inverse of matrix to chosen atlas to convert it into standard space
-        self.fsl_functions('ApplyXFM', self.atlas_path, self._save_location, self.no_ext_brain,
-                           'mni_to_', '.nii.gz', inverse_mat, current_brain, 'nearestneighbour', self)
+        self.fsl_functions('ApplyXFM', self.atlas_path, *pack_vars, 'mni_to_', inverse_mat, current_brain, 'nearestneighbour', self)
 
         if config.grey_matter_segment is not None:
-            # Convert segmentation file to fMRI native space
+            # Convert segmentation to fMRI native space
             segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain)
 
             return self.find_gm_from_segment(segmentation_to_fmri)
 
     @staticmethod
-    def fsl_functions(func, input, save_location, no_ext_brain, prefix, suffix, *argv):
-        """Function that runs an individual FSL function using NiPype."""
+    def fsl_functions(func, input, save_location, no_ext_brain, prefix, *argv):
+        """Run an FSL function using NiPype."""
         fslfunc = getattr(fsl, func)()
         fslfunc.inputs.in_file = input
         fslfunc.inputs.output_type = 'NIFTI_GZ'
+
+        if func == 'ConvertXFM':
+            suffix = '.mat'
+        else:
+            suffix = '.nii.gz'
+
         current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 
         # Arguments dependent on FSL function used
         if func == 'MCFLIRT':
             argv[-1].brain = current_brain
+
         elif func == 'BET':
             fslfunc.inputs.frac = config.frac_inten
+
         elif func == 'FLIRT':
             fslfunc.inputs.reference = argv[0]
             fslfunc.inputs.dof = config.dof
             current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
+
         elif func == 'ConvertXFM':
             if argv[0] == 'concat_xfm':
                 fslfunc.inputs.in_file2 = argv[-1]._anat_brain_to_mni
                 fslfunc.inputs.concat_xfm = True
             else:
                 fslfunc.inputs.invert_xfm = True
+
         elif func == 'ApplyXFM':
             fslfunc.inputs.apply_xfm = True
             fslfunc.inputs.in_matrix_file = argv[0]
@@ -246,25 +255,15 @@ class Analysis:
         fslfunc.run()
 
         if func == 'FLIRT':
-            try:
-                argv[-1].file_list.extend([current_brain, current_mat])
-            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
-                pass
-
+            argv[-1].file_list.extend([current_brain, current_mat])
             return current_mat
-        elif func == 'ApplyXFM':
-            try:
-                argv[-1].file_list.extend([current_brain, current_mat])
-            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
-                pass
-            # TODO: Clean up this section
-            return current_brain
-        else:
-            try:
-                argv[-1].file_list.append(current_brain)
-            except Exception:  # Error occurs when called outside of instance, however this is tidied later anyway
-                pass
 
+        elif func == 'ApplyXFM':
+            argv[-1].file_list.extend([current_brain, current_mat])
+            return current_brain
+
+        else:
+            argv[-1].file_list.append(current_brain)
             return current_brain
 
     def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels):
@@ -293,7 +292,7 @@ class Analysis:
         # Create arrays to store the values before and after statistics
         roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
         roiResults = np.full([7, roiNum + 1], np.nan)
-        roiResults[6, 0:-1] = 0  # Change freesurfer exclude voxels measure from NaN to 0
+        roiResults[6, 0:-1] = 0  # Change excluded voxels measure from NaN to 0
 
         # Where the magic happens
         if config.grey_matter_segment is not None:
@@ -301,15 +300,14 @@ class Analysis:
                 if excluded_voxels[counter] == 0:
                     roiTempStore[int(roi), counter] = idxBrain[counter]
                 else:
+                    roiTempStore[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
                     roiResults[6, int(roi)] += 1
         else:
             for counter, roi in enumerate(idxMNI):
                 roiTempStore[int(roi), counter] = idxBrain[counter]
 
-        # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat
-        # calculations
+        # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat calculations
         exclude_rois = None
-
         if config.include_rois != "all":
             include_rois = set(config.include_rois)  # Convert to set for performance
             exclude_rois = [number for number in roiList if number not in include_rois]
@@ -424,8 +422,10 @@ class Analysis:
         if config.file_cleanup == 'delete':
             for file in file_list:
                 os.remove(file)
+
         elif config.file_cleanup == 'move':
             Utils.check_and_make_dir(f"{save_location}Intermediate_files")
+
             for file in file_list:
                 file = file.replace(save_location, "")  # Remove folder from start of file name
                 Utils.move_file(file, save_location, f"{save_location}Intermediate_files")
@@ -503,6 +503,9 @@ class Analysis:
         mgz_to_nii.run()
 
     def segmentation_to_fmri(self, anat_aligned_mat, current_brain):
+        if config.verbose:
+            print(f'- Aligning {config.grey_matter_segment} segmentation to fMRI volume: {self.brain}')
+
         if config.grey_matter_segment == "freesurfer":
             source_loc = 'freesurfer/mri/native_segmented_brain.nii'  # Use anat aligned freesurfer segmentation
             prefix = 'freesurf_to_'
@@ -510,18 +513,18 @@ class Analysis:
 
         elif config.grey_matter_segment == "fslfast":
             anat_brain_no_folder = os.path.split(self._anat_brain)[-1]
-            anat_brain_base =os.path.splitext(os.path.splitext(anat_brain_no_folder)[0])[0]
+            anat_brain_base = os.path.splitext(os.path.splitext(anat_brain_no_folder)[0])[0]
             source_loc = f'fslfast/{anat_brain_base}_pve_1.nii.gz'
             prefix = 'fslfast_to_'
             interp = 'trilinear'
 
         # Save inverse of fMRI to anat
         inverse_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
-                                         'inverse_anat_to_', '.mat', self)
+                                         'inverse_anat_to_', self)
 
-        # Apply inverse of matrix to chosen atlas to convert it into standard space
+        # Apply inverse of matrix to chosen segmentation to convert it into native space
         segmentation_to_fmri = self.fsl_functions('ApplyXFM', source_loc, self._save_location, self.no_ext_brain,
-                                                  prefix, '.nii.gz', inverse_mat, current_brain, interp, self)
+                                                  prefix, inverse_mat, current_brain, interp, self)
 
         return segmentation_to_fmri
 

@@ -13,6 +13,7 @@ def fRAT():
 
     orig_path = Path(os.path.abspath(__file__)).parents[0]
     config = Utils.load_config(orig_path, 'config.toml')  # Reload config file incase GUI has changed it
+    config_check(config)
 
     args = Utils.argparser()
 
@@ -35,11 +36,11 @@ def fRAT():
 
     # Run the analysis
     if config.run_steps in ("analyse", "all"):
+        if config.verbose:
+            print('\n----------------\n--- Analysis ---\n----------------')
+
         # Run class setup
         brain_list = Analysis.setup_analysis(config)
-
-        if config.verbose:
-            print('\n--- Analysis ---')
 
         if config.anat_align:
             Analysis.anat_setup()
@@ -90,6 +91,9 @@ def fRAT():
 
     # Plot the results
     if config.run_steps in ("plot", "all"):
+        if config.verbose:
+            print('\n----------------\n--- Plotting ---\n----------------')
+
         # Parameter Parsing
         ParamParser.run_parse(config)
 
@@ -100,6 +104,12 @@ def fRAT():
 
     if config.verbose:
         print(f"--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")
+
+
+def config_check(config):
+    if config.grey_matter_segment is not None and not config.anat_align:
+        raise ImportError(f'grey_matter_segment is not None but anat_align is set to False. '
+                          f'grey_matter_segment requires anat_align to be true to function.')
 
 
 if __name__ == '__main__':
