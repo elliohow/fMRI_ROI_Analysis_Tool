@@ -357,17 +357,18 @@ class Analysis:
 
         # Bootstrapping
         if config.bootstrap:
-            for counter, roi in enumerate(list(range(0, roiNum))):
+            for counter, roi in enumerate(list(range(0, roiNum + 1))):
                 if config.verbose:
-                    print(f"  - Bootstrapping roi {counter + 1}/{roiNum + 1}")
-                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
-                                                                                             config.bootstrap_alpha, roi=roi)
+                    print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1}: {self.brain}.")
 
-            # Calculate overall statistics
-            if config.verbose:
-                print(f"  - Bootstrapping roi {roiNum + 1}/{roiNum + 1}")
-            roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :],
-                                                                                       config.bootstrap_alpha)
+                if counter < roiNum:
+                    roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
+                                                                                                 config.bootstrap_alpha,
+                                                                                                 roi=roi)
+                else:
+                    # Calculate overall statistics
+                    roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :],
+                                                                                               config.bootstrap_alpha)
 
         headers = ['Voxels', 'Mean', 'Std_dev',
                    'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
@@ -447,6 +448,7 @@ class Analysis:
         within_roi_stat = deepcopy(brain_stat)
         mixed_roi_stat = deepcopy(brain_stat)
 
+        np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
         roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.roiResults[config.roi_stat_number, :])]
         global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiResults[config.roi_stat_number, :]]
 

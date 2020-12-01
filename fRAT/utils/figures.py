@@ -335,6 +335,7 @@ class Figures:
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
         if config_region_var == 'Runtime':  # If no ROI has been selected for this plot
             chosen_rois = []
+            print("\n")
 
             for roi_num, roi in enumerate(all_rois):
                 print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))

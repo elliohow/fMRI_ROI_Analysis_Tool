@@ -427,6 +427,10 @@ class Config_GUI:
         if info['Current'] is None:
             info['Current'] = str(info['Current'])
 
+        if isinstance(info['Current'], (list, tuple)):
+            info['Current'] = [str(x) for x in info['Current']]
+            info['Current'] = ", ".join(info['Current'])
+
         widget.insert(0, info['Current'])
 
         return {name: widget}

@@ -1,4 +1,3 @@
-import re
 import simplejson as json
 
 from utils import *
@@ -8,14 +7,12 @@ def printResults():
     print('Select the location of the ROI_report folder.')
     result_loc = Utils.file_browser()
 
-    with open(f"{result_loc}/combined_results.json", "r") as results, \
-            open(f"{result_loc}/config_log.toml", "r") as config:
-        config = config.read()
+    with open(f"{result_loc}/combined_results.json", "r") as results:
         results = json.load(results)
+        rois = sorted({result['index'] for result in results})  # Using set returns only unique values
 
-    params = parse_config(config)
-    blacklist = ['index', 'File_name', *params]
-    rois = sorted({result['index'] for result in results})  # Using set returns only unique values
+    config = Utils.load_config(result_loc, 'config_log.toml')
+    blacklist = ['index', 'File_name', *config.parameter_dict1]
 
     chosen_rois = user_input(rois)
 
@@ -24,7 +21,7 @@ def printResults():
         for result in results:  # For each entry_create in the combined_df
             if result['index'] == rois[roi]:  # If the entry_create is the correct roi, print the result
                 print(f"\n -- File name: {result['File_name']}")
-                for param in params:
+                for param in config.parameter_dict1:
                     print(f" -- {param}: {result[param]}")
 
                 [print(f"{key}: {value}") for key, value in result.items() if key not in blacklist]
@@ -72,17 +69,6 @@ def user_input(rois):
             chosen_rois = [chosen_rois]
 
         return chosen_rois
-
-
-def parse_config(config):
-    # TODO: need to change this function as wont work with new version of config file, implement config_load function?
-    param_dict_start = config.find('{', config.find('parameter_dict')) + 1
-    param_dict_end = config.find('}', config.find('parameter_dict'))
-
-    params = re.findall('["\'][A-Za-z0-9]*["\']:', config[param_dict_start: param_dict_end])
-    params = [re.sub(r'[^A-Za-z0-9]', '', param) for param in params]
-
-    return params
 
 
 if __name__ == '__main__':
