@@ -369,6 +369,7 @@ class Figures:
                     chosen_rois = [chosen_rois]
                 else:
                     chosen_rois = list(chosen_rois)
+
         return chosen_rois
 
     @staticmethod

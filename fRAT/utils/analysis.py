@@ -148,12 +148,12 @@ class Analysis:
 
         anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
 
-        cls._anat_brain = cls.fsl_functions('BET', f'{os.getcwd()}/anat/{anat}', cls._save_location,
-                                            os.path.splitext(anat)[0], "bet_", cls)
+        cls._anat_brain = cls.fsl_functions(cls, cls._save_location, os.path.splitext(anat)[0],
+                                            'BET', f'{os.getcwd()}/anat/{anat}', "bet_")
 
-        cls._anat_brain_to_mni = cls.fsl_functions('FLIRT', cls._anat_brain, cls._save_location,
-                                                   os.path.splitext(anat)[0], 'to_mni_from_',
-                                                   f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', cls)
+        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, os.path.splitext(anat)[0],
+                                                   'FLIRT', cls._anat_brain, 'to_mni_from_',
+                                                   f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
     def save_class_variables(self):
         # Due to dill errors with saving class variables of imported classes, this function is used to save the class
@@ -176,32 +176,34 @@ class Analysis:
 
     def roi_flirt_transform(self):
         """Function which uses NiPype to transform the chosen atlas into native space."""
-        pack_vars = [self._save_location, self.no_ext_brain]
+        pack_vars = [self, self._save_location, self.no_ext_brain]
 
         if config.motion_correct:
             # Motion correction
-            self.fsl_functions('MCFLIRT', self.brain, *pack_vars, "mc_", self)
+            self.fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
 
         # Turn 4D scan into 3D
-        current_brain = self.fsl_functions('MeanImage', self.brain, *pack_vars, "mean_", self)
+        current_brain = self.fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
+
         # Brain extraction
-        current_brain = self.fsl_functions('BET', current_brain, *pack_vars, "bet_", config.frac_inten, self)
+        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_", config.frac_inten)
+
         if config.anat_align:  # TODO: Is there a better way than flirt?
             # Align to anatomical
-            anat_aligned_mat = self.fsl_functions('FLIRT', current_brain, *pack_vars, "to_anat_from_", self._anat_brain, self)
+            anat_aligned_mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain,  "to_anat_from_", self._anat_brain)
 
             # Combine fMRI-anat and anat-mni matrices
-            mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, *pack_vars, 'combined_mat_', 'concat_xfm', self)
+            mat = self.fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
 
         else:
             # Align to MNI
-            mat = self.fsl_functions('FLIRT', current_brain, *pack_vars, "to_mni_from_",
-                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz', self)
+            mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
+                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
         # Get inverse of matrix
-        inverse_mat = self.fsl_functions('ConvertXFM', mat, *pack_vars, 'inverse_combined_mat', self)
+        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat')
 
         # Apply inverse of matrix to chosen atlas to convert it into standard space
-        self.fsl_functions('ApplyXFM', self.atlas_path, *pack_vars, 'mni_to_', inverse_mat, current_brain, 'nearestneighbour', self)
+        self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain, 'nearestneighbour')
 
         if config.grey_matter_segment is not None:
             # Convert segmentation to fMRI native space
@@ -210,7 +212,7 @@ class Analysis:
             return self.find_gm_from_segment(segmentation_to_fmri)
 
     @staticmethod
-    def fsl_functions(func, input, save_location, no_ext_brain, prefix, *argv):
+    def fsl_functions(object, save_location, no_ext_brain, func, input, prefix, *argv):
         """Run an FSL function using NiPype."""
         fslfunc = getattr(fsl, func)()
         fslfunc.inputs.in_file = input
@@ -236,8 +238,8 @@ class Analysis:
             current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
 
         elif func == 'ConvertXFM':
-            if argv[0] == 'concat_xfm':
-                fslfunc.inputs.in_file2 = argv[-1]._anat_brain_to_mni
+            if len(argv) > 1 and argv[0] == 'concat_xfm':
+                fslfunc.inputs.in_file2 = object._anat_brain_to_mni
                 fslfunc.inputs.concat_xfm = True
             else:
                 fslfunc.inputs.invert_xfm = True
@@ -255,15 +257,15 @@ class Analysis:
         fslfunc.run()
 
         if func == 'FLIRT':
-            argv[-1].file_list.extend([current_brain, current_mat])
+            object.file_list.extend([current_brain, current_mat])
             return current_mat
 
         elif func == 'ApplyXFM':
-            argv[-1].file_list.extend([current_brain, current_mat])
+            object.file_list.extend([current_brain, current_mat])
             return current_brain
 
         else:
-            argv[-1].file_list.append(current_brain)
+            object.file_list.append(current_brain)
             return current_brain
 
     def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels):
@@ -519,12 +521,12 @@ class Analysis:
             interp = 'trilinear'
 
         # Save inverse of fMRI to anat
-        inverse_mat = self.fsl_functions('ConvertXFM', anat_aligned_mat, self._save_location, self.no_ext_brain,
-                                         'inverse_anat_to_', self)
+        inverse_mat = self.fsl_functions(self, self._save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
+                                         'inverse_anat_to_')
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = self.fsl_functions('ApplyXFM', source_loc, self._save_location, self.no_ext_brain,
-                                                  prefix, inverse_mat, current_brain, interp, self)
+        segmentation_to_fmri = self.fsl_functions(self, self._save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
+                                                  prefix, inverse_mat, current_brain, interp)
 
         return segmentation_to_fmri
 
