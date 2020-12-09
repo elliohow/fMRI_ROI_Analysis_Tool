@@ -135,6 +135,9 @@ Plotting = {
     'colorblind_friendly_plot_colours': {'type': 'Entry', 'Recommended': '#ffeda0, #feb24c, #fc4e2a, #bd0026',  'save_as': 'list',
                                          'Description': 'Hex values of colour blind friendly colour scale_create'},
 
+    'regional_fig_rois': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list',
+                          'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
+
 }
 
 '''Brain table settings'''
@@ -195,8 +198,6 @@ Scatter_plot = {
 
 '''One region bar chart'''
 Region_barchart = {
-    'single_roi_fig_regions': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list',
-                     'Description': "Provide a comma-separated tuple of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 
     'single_roi_fig_label_x': {'type': 'Entry', 'Recommended': 'Multiband factor', 'save_as': 'string',
                                'Description': ""},
@@ -218,9 +219,6 @@ Region_barchart = {
 
 '''Region histogram'''
 Region_histogram = {
-
-    'histogram_fig_regions': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list',
-                               'Description': "Provide a comma-separated tuple of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 
     'histogram_binwidth': {'type': 'Entry', 'Recommended': 5, 'Description': ""},
 

@@ -57,7 +57,7 @@ class Config_GUI:
         self.background = '#d9d9d9'
 
         if load_initial_values:
-            self.load_initial_widget_values()
+            self.load_initial_values()
 
             self.style = ttk.Style()
             self.style.theme_use('clam')
@@ -67,9 +67,9 @@ class Config_GUI:
             _compcolor = '#d9d9d9'  # X11 color: 'gray85'
             _ana1color = '#d9d9d9'  # X11 color: 'gray85'
             _ana2color = '#ececec'  # Closest X11 color: 'gray92'
-            window.geometry("512x780+50+50")
-            window.minsize(72, 15)
-            window.maxsize(2048, 1028)
+            window.geometry("512x780+100+100")
+            window.minsize(512, 780)
+            window.maxsize(512, 780)
             window.resizable(1, 1)
             window.title("fRAT GUI")
             window.configure(background=self.background)
@@ -87,7 +87,7 @@ class Config_GUI:
             self.Options_frame_draw(window)
             self.Run_frame_draw(window)
 
-    def load_initial_widget_values(self):
+    def load_initial_values(self):
         with open('config.toml', 'r') as f:
             for page in pages:
                 if page == 'Settings':
@@ -105,6 +105,9 @@ class Config_GUI:
                                 setting[1] = setting[1].title()
 
                             setting[1] = ast.literal_eval(setting[1])
+
+                            if isinstance(setting[1], tuple):
+                                setting[1] = list(setting[1])
 
                         except (ValueError, SyntaxError):
                             pass
@@ -564,14 +567,16 @@ def Save_settings():
                         convert = 'string'
 
                     elif eval(page)[key]['save_as'] == 'list':
-                        try:
-                            if eval(page)[key]['Current'] == 'Runtime':
-                                convert = 'string'
-                            else:
-                                [val.strip() for val in eval(page)[key]['Current'].split(',')]
+                        if eval(page)[key]['Current'] == 'Runtime':
+                            convert = 'string'
+
+                        else:
+                            try:
+                                eval(page)[key]['Current'] = [int(x) for x in eval(page)[key]['Current'].split(',')]
+                            except AttributeError:  # Handle exception if already a list so cannot split
+                                pass
+                            except ValueError:  # Handle exception if list items cannot be converted into ints
                                 convert = 'split_list'
-                        except AttributeError:
-                            pass
 
                     elif eval(page)[key]['save_as'] == 'string_or_list':
                         try:
@@ -580,7 +585,7 @@ def Save_settings():
                         except (ValueError, TypeError):  # Handles error if input is None or is string
                             convert = 'string'
 
-                except KeyError:  # Handle exception for if save_as does not exist as key
+                except KeyError:  # Handle exception if save_as does not exist as key
                     eval(page)[key]['Current'] = str(eval(page)[key]['Current']).lower() \
                         if type(eval(page)[key]['Current']) is bool else eval(page)[key]['Current']
 

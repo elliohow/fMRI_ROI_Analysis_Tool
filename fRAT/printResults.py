@@ -4,8 +4,8 @@ from utils import *
 
 def printResults():
     print('--- Printing results ---')
-    print('Select the location of the ROI_report folder.')
-    result_loc = Utils.file_browser()
+    print('Select the directory of the ROI analysis folder.')
+    result_loc = Utils.file_browser(title='Select the directory of the ROI analysis folder')
 
     with open(f"{result_loc}/combined_results.json", "r") as results:
         results = json.load(results)

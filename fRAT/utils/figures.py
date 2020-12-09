@@ -108,7 +108,7 @@ class Figures:
         list_rois = list(df['index'].unique())
 
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="One region bar chart",
-                                           config_region_var=config.single_roi_fig_regions)
+                                           config_region_var=config.regional_fig_rois)
 
         iterable = zip(itertools.repeat(Figures.one_region_bar_chart_make), chosen_rois,
                        itertools.repeat(df), itertools.repeat(list_rois), itertools.repeat(config))
@@ -168,7 +168,7 @@ class Figures:
         Utils.check_and_make_dir("Figures/Histograms")
         list_rois = list(combined_df['index'].unique())
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
-                                           config_region_var=config.histogram_fig_regions)
+                                           config_region_var=config.regional_fig_rois)
 
         # Compile a dataframe containing raw values and parameter values for all ROIs and save as combined_raw_df
         if chosen_rois:

@@ -176,7 +176,7 @@ class ParamParser:
 
         elif config.json_file_loc in ("", " "):
             print('Select the directory of json files.')
-            json_directory = Utils.file_browser(chdir=True)
+            json_directory = Utils.file_browser(title='Select the directory of json files', chdir=True)
 
         else:
             json_directory = config.json_file_loc
@@ -222,7 +222,7 @@ class ParamParser:
     def make_table(cls):
         print('--- Creating paramValues.csv ---')
         print('Select the NIFTI/ANALYZE file directory.')
-        brain_directory = Utils.file_browser(chdir=True)
+        brain_directory = Utils.file_browser(title='Select the NIFTI/ANALYZE file directory', chdir=True)
 
         brain_file_list = Utils.find_files(brain_directory, "hdr", "nii.gz", "nii")
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]

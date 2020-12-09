@@ -95,7 +95,7 @@ class Analysis:
         if config.brain_file_loc in ("", " "):
             print('Select the directory of the raw MRI/fMRI brains.')
 
-            Analysis._brain_directory = Utils.file_browser()
+            Analysis._brain_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
 
         else:
             Analysis._brain_directory = config.brain_file_loc
