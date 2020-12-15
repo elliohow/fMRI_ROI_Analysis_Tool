@@ -238,7 +238,7 @@ class Analysis:
             current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
 
         elif func == 'ConvertXFM':
-            if len(argv) > 1 and argv[0] == 'concat_xfm':
+            if len(argv) > 0 and argv[0] == 'concat_xfm':
                 fslfunc.inputs.in_file2 = object._anat_brain_to_mni
                 fslfunc.inputs.concat_xfm = True
             else:

@@ -162,7 +162,7 @@ class Utils:
                 config.roi_stat_number = roi_stat_options.index(config.roi_stat_number)
 
                 conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
-                config.bootstrap_alpha = float(f"0.{re.split('%', config.conf_level_number)[0]}")
+                config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
                 config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
                 brain_plot_opts = ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)',
