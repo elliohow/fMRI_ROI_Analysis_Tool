@@ -131,7 +131,7 @@ class Utils:
 
             ctx = mp.get_context('forkserver')  # This stops segmentation fault for MacOS
             if config.verbose:
-                print(f"Starting processing pool using {workers} cores.")
+                print(f"\nStarting processing pool using {workers} cores.")
             return ctx.Pool(processes=workers)
 
     @classmethod

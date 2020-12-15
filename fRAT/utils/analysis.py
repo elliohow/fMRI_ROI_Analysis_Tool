@@ -582,7 +582,7 @@ class Analysis:
 
         elif config.grey_matter_segment == 'fslfast':
             # If voxel has a value below the threshold then set to 1
-            for counter, voxel in enumerate(segment_brain):
+            for counter, voxel in enumerate(segment_brain):  # TODO change this to be more efficient
                 if voxel < config.fslfast_min_prob:
                     idxCSF_or_WM[counter] = 1
 
