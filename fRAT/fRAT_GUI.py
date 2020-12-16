@@ -331,10 +331,16 @@ class Config_GUI:
     def label_create(self, name, y_loc, info=None, relx=0.08, font=None):
         self.__setattr__(name, tk.Label(self.Setting_frame))
         label_name = getattr(self, name)
+
+        try:
+            name = info['label']
+        except KeyError:
+            name = name.capitalize()
+
         label_name.place(relx=relx, y=y_loc, height=22, bordermode='ignore')
         label_name.configure(background=self.background)
         label_name.configure(foreground="#000000")
-        label_name.configure(text=f'''{name.replace("_", " ")}''', font=font)
+        label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
 
         if info is not None:
             Tooltip.CreateToolTip(label_name, info['Description'])

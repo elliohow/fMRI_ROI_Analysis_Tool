@@ -360,7 +360,8 @@ class Figures:
                     break
 
         else:  # Else if an ROI selection has been made, convert it into the correct format
-            if isinstance(config_region_var[0], str) and config_region_var[0].lower() == "all":
+            if isinstance(config_region_var, list) and isinstance(config_region_var[0], str) \
+                    and config_region_var[0].lower() == "all":
                 chosen_rois = list(range(0, len(all_rois)))
             else:
                 chosen_rois = config_region_var

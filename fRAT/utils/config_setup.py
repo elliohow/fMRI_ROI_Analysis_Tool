@@ -5,13 +5,14 @@ pages = ['Settings', 'General', 'Analysis', 'Parsing', 'Plotting', 'Scatter_plot
 '''General settings'''
 General = {
     'run_steps': {'type': 'OptionMenu', 'Recommended': 'all', 'Options': ['all', 'analyse', 'plot'], 'save_as': 'string',
-                  'Description': '"all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.'},
+                  'Description': '"all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.',
+                  'label': 'Stage(s)'},
 
     'verbose': {'type': 'CheckButton', 'Recommended': 'true',
-                'Description': 'true or false.'},
+                'Description': 'true or false.', 'label': 'Verbose fRAT stages'},
 
     'verbose_cmd_line_args': {'type': 'CheckButton', 'Recommended': 'false',
-                              'Description': 'true or false.'},
+                              'Description': 'true or false.', 'label': 'Verbose command line arguments'},
 
     'multicore_processing': {'type': 'CheckButton', 'Recommended': 'true',
                              'Description': 'true or false. Use multicore processing to use during analysis? Recommended: true'},
@@ -19,19 +20,19 @@ General = {
     'max_core_usage': {'type': 'OptionMenu', 'Recommended': 'max', 'Options': ['max', 6, 5, 4, 3, 2, 1],  'save_as': 'string',
                        'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
 
-    'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                       'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime.If passing in this information as a command line flag, this will be ignored.'},
+    'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',  'label': 'NIFTI/ANALYZE folder location',
+                       'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
-    'json_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
+    'json_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string', 'label': 'JSON folder location',
                       'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'],  'save_as': 'string',
-                     'Description': 'Move or delete intermediate files.'},
+                     'Description': 'Move or delete intermediate files.', 'label': 'File cleanup method'},
 }
 
 '''Analysis settings'''
 Analysis = {
-    'atlas_number': {'type': 'OptionMenu', 'Recommended': 'HarvardOxford-cort',  'save_as': 'string',
+    'atlas_number': {'type': 'OptionMenu', 'Recommended': 'HarvardOxford-cort',  'save_as': 'string', 'label': 'Atlas',
                      'Options': [
                                  'Cerebellum-MNIflirt',
                                  'Cerebellum-MNIfnirt',
@@ -49,65 +50,67 @@ Analysis = {
                                  ],
                      'Description': ''},
 
-    'roi_stat_number': {'type': 'OptionMenu', 'Recommended': 'Mean',  'save_as': 'string',
+    'roi_stat_number': {'type': 'OptionMenu', 'Recommended': 'Mean',  'save_as': 'string',  'label': 'ROI statistic',
                         'Options': ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'],
-                        'Description': 'Set the statistic to scale_create the brain figures by. Recommended: Mean.'},
+                        'Description': 'Set the statistic to scale the brain figures by. Recommended: Mean.'},
 
-    'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.4,
+    'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.4, 'label': 'Fractional intensity',
                    'Description': 'Fractional intensity threshold for BET. Default: 0.4'},
 
-    'dof': {'type': 'Entry', 'Recommended': 12,
+    'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
 
     'motion_correct': {'type': 'CheckButton', 'Recommended': 'false',
                        'Description': 'true or false. Note: This will inflate values such as tSNR.'},
 
-    'anat_align': {'type': 'CheckButton', 'Recommended': 'true',
+    'anat_align': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Align to anatomical volume',
                    'Description': 'true or false. Recommended: true.'},
 
-    'grey_matter_segment': {'type': 'OptionMenu', 'Recommended': 'fslfast', 'Options': ['fslfast', 'freesurfer', 'None'], 'save_as': 'string',
+    'grey_matter_segment': {'type': 'OptionMenu', 'Recommended': 'fslfast', 'label': 'Grey matter segmentation method',
+                            'Options': ['fslfast', 'freesurfer', 'None'], 'save_as': 'string',
                             'Description': '"freesurfer", "fslfast" or "None". \nNote: Requires anatomical align be true to function.'},
 
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
-                         'Description': 'Recommended: 0.1'},
+                         'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
-    'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string',
-                        'Description': 'Folder name which contains the statistical map files'},
+    'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string', 'label': 'Statistical map folder',
+                        'Description': 'Folder name which contains the statistical map files. Example: QA_report/'},
 
-    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.img', 'save_as': 'string',
-                        'Description': 'File name suffix of the statistical map files. Include the file extension.'},
+    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.img', 'save_as': 'string', 'label': 'Statistical map suffix',
+                        'Description': 'File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img'},
 
     'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
                   'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
-    'include_rois': {'type': 'Entry', 'Recommended': "all", 'save_as': 'string_or_list',
+    'include_rois': {'type': 'Entry', 'Recommended': "all", 'save_as': 'string_or_list', 'label': 'Included ROIs',
                      'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Note: Takes priority over exclude ROI setting. Recommended: all"},
 
-    'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list',
+    'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list', 'label': 'Excluded ROIs',
                      'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none"},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                             'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
-                            'save_as': 'string',
+                            'save_as': 'string', 'label': 'Confidence level',
                             'Description': 'Set the confidence level for confidence interval calculations.\n'
                                            'Numbers represent the confidence level and the corresponding critical z value.\n'
                                            'Recommended: 95%, 1.96.'},
 
     'binary_params': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
-                      'subtype': 'Checkbutton',
+                      'subtype': 'Checkbutton', 'label': 'Binary parameters',
                       'save_as': 'list', 'Description': 'Add parameters here which will either be on or off.'},
 }
 
 '''Parsing settings'''
 Parsing = {
     'verify_param_method': {'type': 'OptionMenu', 'Recommended': 'table', 'Options': ["table", "name", "manual"], 'save_as': 'string',
+                            'label': 'Parameter verification method',
                             'Description': '"table", "name" or "manual". '
                             '\nHow to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime.'},
 
-    'parameter_dict1': {'type': 'Entry', 'Recommended': 'MB, SENSE', 'save_as': 'list',
+    'parameter_dict1': {'type': 'Entry', 'Recommended': 'MB, SENSE', 'save_as': 'list',  'label': 'Critical parameters',
                         'Description': 'Comma-separated list of parameter names to be parsed for and plotted'},
 
-    'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list',
+    'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list', 'label': 'Critical parameter file name appearance',
                         'Description': 'Comma-separated list of terms to parse the file name for. Each entry corresponds to an entry above.'},
 # MRI parameters to parse in the format of a dict. Key indicates parameter name and value indicates how it would be represented in the file name (if using name parameter searching). If using table parameter searching, values can be blank.
 
@@ -115,27 +118,31 @@ Parsing = {
 
 '''General plot settings'''
 Plotting = {
-    'plot_dpi': {'type': 'Entry', 'Recommended': 200,
+    'plot_dpi': {'type': 'Entry', 'Recommended': 200, 'label': 'Figure DPI',
                  'Description': 'Recommended value 600'},
 
-    'plot_font_size': {'type': 'Entry', 'Recommended': 40,
+    'plot_font_size': {'type': 'Entry', 'Recommended': 40, 'label': 'Figure font size',
                        'Description': 'Recommended value 30'},
 
-    'plot_scale': {'type': 'Entry', 'Recommended': 10,
-                       'Description': 'Recommended value 10'},
+    'plot_scale': {'type': 'Entry', 'Recommended': 10, 'label': 'Figure scale',
+                   'Description': 'Recommended value 10'},
 
-    'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true', 'Description': 'true or false.'},
+    'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true',
+                           'Description': 'true or false.'},
 
-    'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true', 'Description': 'true or false.'},
+    'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true',
+                         'Description': 'true or false.'},
 
-    'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true', 'Description': 'true or false.'},
+    'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true',
+                            'Description': 'true or false.'},
 
-    'make_histogram': {'type': 'CheckButton', 'Recommended': 'true', 'Description': 'true or false.'},
+    'make_histogram': {'type': 'CheckButton', 'Recommended': 'true',
+                       'Description': 'true or false.'},
 
     'colorblind_friendly_plot_colours': {'type': 'Entry', 'Recommended': '#ffeda0, #feb24c, #fc4e2a, #bd0026',  'save_as': 'list',
-                                         'Description': 'Hex values of colour blind friendly colour scale_create'},
+                                         'Description': 'Hex values of colourblind friendly colour scale.'},
 
-    'regional_fig_rois': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list',
+    'regional_fig_rois': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list', 'label': 'ROIs to plot',
                           'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 
 }
