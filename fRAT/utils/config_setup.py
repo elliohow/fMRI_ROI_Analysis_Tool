@@ -82,12 +82,6 @@ Analysis = {
     'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
                   'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
-    'include_rois': {'type': 'Entry', 'Recommended': "all", 'save_as': 'string_or_list', 'label': 'Included ROIs',
-                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Note: Takes priority over exclude ROI setting. Recommended: all"},
-
-    'exclude_rois': {'type': 'Entry', 'Recommended': "none", 'save_as': 'string_or_list', 'label': 'Excluded ROIs',
-                     'Description': "NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE \nProvide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none"},
-
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                             'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
                             'save_as': 'string', 'label': 'Confidence level',

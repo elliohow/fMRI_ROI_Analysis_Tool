@@ -20,8 +20,6 @@ fslfast_min_prob = 0.1                                                          
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 bootstrap = false                                                                 # true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
-include_rois = 'all'                                                              # NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE  Provide a list of rois to include in analysis e.g. [3, 5] or all for all rois. Note: Takes priority over exclude ROI setting. Recommended: all
-exclude_rois = 'none'                                                             # NOT CURRENTLY FULLY IMPLEMENTED DO NOT CHANGE  Provide a list of rois to exclude from analysis e.g. [3, 5] or all for all rois. Recommended: none
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 

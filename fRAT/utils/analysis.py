@@ -272,6 +272,28 @@ class Analysis:
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
 
+        # Load brains and pre-initialise arrays
+        roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
+
+        # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
+        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, excluded_voxels)
+
+        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+
+        roiResults = self.calculate_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
+
+        warnings.filterwarnings('default')  # Reactivate warnings
+
+        if config.bootstrap:
+            self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum)  # Bootstrapping
+
+        self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
+
+        self.roiResults = roiResults # Retain variable for atlas_scale function
+
+        self.file_cleanup(self.file_list, self._save_location) # Clean up files
+
+    def roi_stats_setup(self):
         # Load original brain (with statistical map)
         stat_brain = nib.load(self.stat_brain)
         # Load atlas brain (which has been converted into native space)
@@ -296,83 +318,69 @@ class Analysis:
         roiResults = np.full([7, roiNum + 1], np.nan)
         roiResults[6, 0:-1] = 0  # Change excluded voxels measure from NaN to 0
 
-        # Where the magic happens
-        if config.grey_matter_segment is not None:
-            for counter, roi in enumerate(idxMNI):
-                if excluded_voxels[counter] == 0:
-                    roiTempStore[int(roi), counter] = idxBrain[counter]
-                else:
-                    roiTempStore[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
-                    roiResults[6, int(roi)] += 1
-        else:
-            for counter, roi in enumerate(idxMNI):
+        return roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum
+
+    @staticmethod
+    def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, excluded_voxels):
+        for counter, roi in enumerate(idxMNI):
+            if config.grey_matter_segment is None or excluded_voxels[counter] == 0:
                 roiTempStore[int(roi), counter] = idxBrain[counter]
 
-        # Extract the roi parameters inputs and turn the necessary rows to nans to eliminate them from overall stat calculations
-        exclude_rois = None
-        if config.include_rois != "all":
-            include_rois = set(config.include_rois)  # Convert to set for performance
-            exclude_rois = [number for number in roiList if number not in include_rois]
-        elif config.exclude_rois != "none":
-            exclude_rois = config.exclude_rois
+            else:
+                roiTempStore[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
+                roiResults[6, int(roi)] += 1
 
-        if exclude_rois:
-            roiTempStore[exclude_rois, :] = np.nan
+        return roiTempStore, roiResults
 
-        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+    def calculate_roi_stats(self, roiTempStore, roiResults):
+        axis = 1
+        write_start = 0
+        write_end = -1
+        read_start = 0
 
-        roiResults[0, 0:-1] = np.count_nonzero(~np.isnan(roiTempStore),
-                                               axis=1)  # Number of non-nan voxels in each ROI
-        roiResults[1, 0:-1] = np.nanmean(roiTempStore, axis=1)
-        roiResults[2, 0:-1] = np.nanstd(roiTempStore, axis=1)
-        roiResults[3, 0:-1] = self._conf_level_list[int(config.conf_level_number)][1] \
-                              * roiResults[2, 0:-1] / np.sqrt(roiResults[0, 0:-1])  # 95% confidence interval calculation
-        roiResults[4, 0:-1] = np.nanmin(roiTempStore, axis=1)
-        roiResults[5, 0:-1] = np.nanmax(roiTempStore, axis=1)
+        for i in range(2):
+            roiResults[0, write_start:write_end] = np.count_nonzero(~np.isnan(roiTempStore[read_start:, :]), axis=axis)  # Count number of non-nan voxels
+            roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
+            roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
+            roiResults[3, write_start:write_end] = self._conf_level_list[int(config.conf_level_number)][1] \
+                                                   * roiResults[2, write_start:write_end] \
+                                                   / np.sqrt(roiResults[0, write_start:write_end])  # 95% confidence interval calculation
+            roiResults[4, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
+            roiResults[5, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
 
-        # Statistic calculations for all voxels assigned to an ROI
-        # If No ROI is part of excluded ROIs, start overall ROI calculation from 0, otherwise start from 1
-        if exclude_rois is None or 0 not in exclude_rois:
-            start_val = 1
-        else:
-            start_val = 0
+            axis = None
+            read_start = 1
+            write_start = -1
+            write_end = None
 
-        roiResults[0, -1] = np.count_nonzero(
-            ~np.isnan(roiTempStore[start_val:, :]))  # Number of non-nan voxels in total
-        roiResults[1, -1] = np.nanmean(roiTempStore[start_val:, :])
-        roiResults[2, -1] = np.nanstd(roiTempStore[start_val:, :])
-        roiResults[3, -1] = self._conf_level_list[int(config.conf_level_number)][1] \
-                            * roiResults[2, -1] / np.sqrt(roiResults[0, -1])  # 95% CI calculation
-        roiResults[4, -1] = np.nanmin(roiTempStore[start_val:, :])
-        roiResults[5, -1] = np.nanmax(roiTempStore[start_val:, :])
-        roiResults[6, -1] = np.sum(roiResults[6, start_val:-2])
+        roiResults[6, -1] = np.sum(roiResults[6, 1:-1])  # Calculate excluded voxels
 
-        # Convert NaNs to zeros
+        # Convert ROIs with no voxels from columns with NaNs to zeros
         for column, voxel_num in enumerate(roiResults[0]):
             if voxel_num == 0.0:
                 for row in list(range(1, 6)):
                     roiResults[row][column] = 0.0
 
-        warnings.filterwarnings('default')  # Reactivate warnings
+        return roiResults
 
-        # Bootstrapping
-        if config.bootstrap:
-            for counter, roi in enumerate(list(range(0, roiNum + 1))):
-                if config.verbose:
-                    print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1}: {self.brain}.")
+    def roi_stats_bootstrap(self, roiTempStore, roiResults, roiNum):
+        for counter, roi in enumerate(list(range(0, roiNum + 1))):
+            if config.verbose:
+                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1}: {self.brain}.")
 
-                if counter < roiNum:
-                    roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
-                                                                                                 config.bootstrap_alpha,
-                                                                                                 roi=roi)
-                else:
-                    # Calculate overall statistics
-                    roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[start_val:, :],
-                                                                                               config.bootstrap_alpha)
+            if counter < roiNum:
+                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
+                                                                                             config.bootstrap_alpha,
+                                                                                             roi=roi)
+            else:
+                # Calculate overall statistics
+                roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[1:, :],
+                                                                                           config.bootstrap_alpha)
 
+    def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
         headers = ['Voxels', 'Mean', 'Std_dev',
-                   'Conf_Int_%s' % self._conf_level_list[int(config.conf_level_number)][0],
-                   'Min', 'Max', 'Freesurfer excluded voxels']
+                   f'Conf_Int_{self._conf_level_list[int(config.conf_level_number)][0]}',
+                   'Min', 'Max', 'Excluded_Voxels']
 
         # Reorganise matrix to later remove nan rows
         roiTempStore = roiTempStore.transpose()
@@ -390,12 +398,7 @@ class Analysis:
                                    columns=self.label_list[:-1])
 
         # Remove the required rows from the dataframe
-        if exclude_rois:
-            results = results.drop(results.columns[exclude_rois], axis=1)
-            raw_results = raw_results.drop(raw_results.columns[exclude_rois], axis=1)
-
-        if exclude_rois is None or 0 not in exclude_rois:
-            raw_results = raw_results.drop(raw_results.columns[0], axis=1)
+        raw_results = raw_results.drop(raw_results.columns[0], axis=1)
 
         # Remove rows where all columns have NaNs (essential to keep file size down)
         raw_results = raw_results.dropna(axis=0, how='all')
@@ -411,12 +414,6 @@ class Analysis:
             json.dump(results.to_dict(), file, indent=2)
         with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
             json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)
-
-        # Save variable for atlas_scale function
-        self.roiResults = roiResults
-
-        # Clean up files
-        self.file_cleanup(self.file_list, self._save_location)
 
     @staticmethod
     def file_cleanup(file_list, save_location):
