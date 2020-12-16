@@ -151,7 +151,7 @@ class Analysis:
         cls._anat_brain = cls.fsl_functions(cls, cls._save_location, os.path.splitext(anat)[0],
                                             'BET', f'{os.getcwd()}/anat/{anat}', "bet_")
 
-        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, os.path.splitext(anat)[0],
+        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, f"bet_{os.path.splitext(anat)[0]}",
                                                    'FLIRT', cls._anat_brain, 'to_mni_from_',
                                                    f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
@@ -227,7 +227,7 @@ class Analysis:
 
         # Arguments dependent on FSL function used
         if func == 'MCFLIRT':
-            argv[-1].brain = current_brain
+            object.brain = current_brain
 
         elif func == 'BET':
             fslfunc.inputs.frac = config.frac_inten
