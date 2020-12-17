@@ -44,7 +44,7 @@ class Figures:
                 cls.brain_grid(combined_results_df, brain_plot_base_ext)
 
         if config.make_scatter_table:
-            cls.scatter_plot(combined_results_df)
+            cls.scatterplot(combined_results_df)
 
         if config.make_one_region_fig:
             cls.barchart_setup(combined_results_df, pool)
@@ -57,7 +57,7 @@ class Figures:
             pool.join()
 
     @classmethod
-    def scatter_plot(cls, df):
+    def scatterplot(cls, df):
         Utils.check_and_make_dir("Figures/Scatterplots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
@@ -85,6 +85,7 @@ class Figures:
                             + pltn.geom_point(na_rm=True, size=1)
                             + pltn.geom_errorbarh(pltn.aes(xmin="Mean-Conf_Int_95", xmax="Mean+Conf_Int_95"),
                                                   na_rm=True, height=None)
+                            + pltn.xlim(0, None)
                             + pltn.scale_y_discrete(labels=[])
                             + pltn.ylab(config.table_y_label)
                             + pltn.xlab(config.table_x_label)
@@ -175,14 +176,10 @@ class Figures:
             jsons = Utils.find_files("Raw_results", "json")
             combined_raw_df = cls.make_raw_df(jsons, combined_df)
 
-            if config.verbose:
-                print(f"STAGE 1 -- Dataframe setup")
             combined_raw_dfs = []
             for roi in chosen_rois:
                 combined_raw_dfs.append(cls.histogram_df_make(roi, combined_raw_df, list_rois, config))
 
-            if config.verbose:
-                print(f"STAGE 2 -- Histogram creation")
             iterable = zip(itertools.repeat(Figures.histogram_make), chosen_rois,
                            combined_raw_dfs, itertools.repeat(list_rois), itertools.repeat(config))
 
@@ -230,9 +227,11 @@ class Figures:
             figure = (
                     pltn.ggplot(combined_raw_df, pltn.aes(x="voxel_value"))
                     + pltn.theme_538()
-                    + pltn.geom_histogram(binwidth=config.histogram_binwidth, fill=config.histogram_fig_colour)
+                    + pltn.geom_histogram(binwidth=config.histogram_binwidth, fill=config.histogram_fig_colour,
+                                          boundary=0, na_rm=True)  # Boundary centers the bars, na_rm cancels error from setting an xlimit
                     + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
                                       drop=True, labeller="label_both")
+                    + pltn.xlim(-1, None)
                     + pltn.labs(x=config.histogram_fig_label_x, y=config.histogram_fig_label_y)
                     + pltn.theme(
                 panel_grid_minor_x=pltn.themes.element_line(alpha=0),
