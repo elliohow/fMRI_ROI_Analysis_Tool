@@ -39,18 +39,18 @@ class Figures:
 
             if brain_plot_base_ext == "all":
                 for base_extension in brain_plot_opts_exts[0:-1]:
-                    cls.brain_facet_grid(combined_results_df, base_extension)
+                    cls.brain_grid(combined_results_df, base_extension)
             else:
-                cls.brain_facet_grid(combined_results_df, brain_plot_base_ext)
+                cls.brain_grid(combined_results_df, brain_plot_base_ext)
 
         if config.make_scatter_table:
             cls.scatter_plot(combined_results_df)
 
         if config.make_one_region_fig:
-            cls.one_region_bar_chart_setup(combined_results_df, pool)
+            cls.barchart_setup(combined_results_df, pool)
 
         if config.make_histogram:
-            cls.region_histogram_setup(combined_results_df, pool)
+            cls.histogram_setup(combined_results_df, pool)
 
         if pool:
             pool.close()
@@ -103,14 +103,14 @@ class Figures:
                 print("Saved scatterplot!")
 
     @classmethod
-    def one_region_bar_chart_setup(cls, df, pool):
+    def barchart_setup(cls, df, pool):
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="One region bar chart",
                                            config_region_var=config.regional_fig_rois)
 
-        iterable = zip(itertools.repeat(Figures.one_region_bar_chart_make), chosen_rois,
+        iterable = zip(itertools.repeat(Figures.barchart_make), chosen_rois,
                        itertools.repeat(df), itertools.repeat(list_rois), itertools.repeat(config))
 
         if pool:
@@ -119,7 +119,7 @@ class Figures:
             list(itertools.starmap(Utils.class_method_handler, iterable))
 
     @staticmethod
-    def one_region_bar_chart_make(roi, df, list_rois, config):
+    def barchart_make(roi, df, list_rois, config):
         thisroi = list_rois[roi]
 
         current_df = df.loc[df['index'] == thisroi]
@@ -151,7 +151,7 @@ class Figures:
                              legend_position=(0.9, 0.8),
                              dpi=config.plot_dpi
                              )
-                + pltn.geom_text(pltn.aes(y=-.7, label='MB'),  # TODO make MB label variable
+                + pltn.geom_text(pltn.aes(y=-.7, label=config.single_roi_fig_x_axis),
                                  color='black', size=20, va='top')
                 + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
         )
@@ -164,7 +164,7 @@ class Figures:
             print("Saved {thisroi}_barplot.png".format(thisroi=thisroi))
 
     @classmethod
-    def region_histogram_setup(cls, combined_df, pool):
+    def histogram_setup(cls, combined_df, pool):
         Utils.check_and_make_dir("Figures/Histograms")
         list_rois = list(combined_df['index'].unique())
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
@@ -179,11 +179,11 @@ class Figures:
                 print(f"STAGE 1 -- Dataframe setup")
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.region_histogram_df_make(roi, combined_raw_df, list_rois, config))
+                combined_raw_dfs.append(cls.histogram_df_make(roi, combined_raw_df, list_rois, config))
 
             if config.verbose:
                 print(f"STAGE 2 -- Histogram creation")
-            iterable = zip(itertools.repeat(Figures.region_histogram_make), chosen_rois,
+            iterable = zip(itertools.repeat(Figures.histogram_make), chosen_rois,
                            combined_raw_dfs, itertools.repeat(list_rois), itertools.repeat(config))
 
             if pool:
@@ -192,7 +192,7 @@ class Figures:
                 list(itertools.starmap(Utils.class_method_handler, iterable))
 
     @staticmethod
-    def region_histogram_df_make(roi, combined_raw_df, list_rois, config):
+    def histogram_df_make(roi, combined_raw_df, list_rois, config):
         # Set up the df for each chosen roi
         thisroi = list_rois[roi]
 
@@ -221,7 +221,7 @@ class Figures:
         return current_df
 
     @staticmethod
-    def region_histogram_make(roi, combined_raw_df, list_rois, config):
+    def histogram_make(roi, combined_raw_df, list_rois, config):
         if combined_raw_df.empty:
             return
         else:
@@ -274,7 +274,7 @@ class Figures:
                 print(f"Saved {thisroi}_histogram.png")
 
     @classmethod
-    def brain_facet_grid(cls, df, base_extension):
+    def brain_grid(cls, df, base_extension):
         Utils.check_and_make_dir("Figures/Brain_grids")
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         if config.verbose:

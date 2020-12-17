@@ -18,9 +18,6 @@ def fRAT():
     args = Utils.argparser()
 
     # Check arguments passed over command line
-    if args.print_info:
-        Analysis.print_info()
-
     if args.make_table:
         ParamParser.make_table()
         sys.exit()

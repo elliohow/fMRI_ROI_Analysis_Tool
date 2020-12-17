@@ -306,7 +306,7 @@ class Config_GUI:
 
             if info['Current'] not in info['DynamOptions']:
                 try:
-                    info['Current'] = info['DynamOptions'][info['DynamNumber']]
+                    info['Current'] = info['DynamOptions'][info['DefaultNumber']]
                 except IndexError:
                     info['Current'] = ''
 
@@ -316,6 +316,8 @@ class Config_GUI:
             widget = self.optionmenu_create(name, info, y_loc)
 
             dynamic_widgets = {**dynamic_widgets, **widget}
+
+            y_loc += 40
 
         elif info['subtype'] == 'Checkbutton':
 

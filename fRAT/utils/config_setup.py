@@ -121,16 +121,16 @@ Plotting = {
     'plot_scale': {'type': 'Entry', 'Recommended': 10, 'label': 'Figure scale',
                    'Description': 'Recommended value 10'},
 
-    'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true',
+    'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make scatterplots',
                            'Description': 'true or false.'},
 
-    'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true',
+    'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make brain visualisations',
                          'Description': 'true or false.'},
 
-    'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true',
+    'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make regional barcharts',
                             'Description': 'true or false.'},
 
-    'make_histogram': {'type': 'CheckButton', 'Recommended': 'true',
+    'make_histogram': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make regional histograms',
                        'Description': 'true or false.'},
 
     'colorblind_friendly_plot_colours': {'type': 'Entry', 'Recommended': '#ffeda0, #feb24c, #fc4e2a, #bd0026',  'save_as': 'list',
@@ -170,10 +170,10 @@ Brain_table = {
                            'Description': 'Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58'},
 
     'brain_table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]', 'subtype': 'OptionMenu', 'save_as': 'string',
-                         'DynamNumber': 0, 'Description': ''},
+                         'DefaultNumber': 0, 'Description': ''},
 
     'brain_table_rows': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]', 'subtype': 'OptionMenu', 'save_as': 'string',
-                         'DynamNumber': 1, 'Description': ''}
+                         'DefaultNumber': 1, 'Description': ''}
 }
 
 '''Scatter plot settings'''
@@ -189,11 +189,11 @@ Scatter_plot = {
                         'Description': 'roi, stat or both. Recommended: both'},
 
     'table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
-                         'subtype': 'OptionMenu', 'save_as': 'string', 'DynamNumber': 0,
+                         'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                          'Description': ''},
 
     'table_rows': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]',
-                         'subtype': 'OptionMenu', 'save_as': 'string', 'DynamNumber': 1,
+                         'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
                          'Description': ''}
 }
 
@@ -210,12 +210,13 @@ Region_barchart = {
                                'Description': ""},
 
     'single_roi_fig_x_axis': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
-                         'subtype': 'OptionMenu', 'save_as': 'string', 'DynamNumber': 0,
+                         'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                          'Description': ''},
 
     'single_roi_fig_colour': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]',
-                         'subtype': 'OptionMenu', 'save_as': 'string', 'DynamNumber': 1,
-                         'Description': ''}
+                         'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
+                         'Description': ''},
+
 }
 
 '''Region histogram'''
@@ -242,13 +243,13 @@ Region_histogram = {
                             'Description': 'true or false.'},
 
     'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
-                              'subtype': 'OptionMenu', 'save_as': 'string', 'DynamNumber': 0,
+                              'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                               'Description': ''},
 
     'histogram_fig_y_facet': {'type': 'Dynamic', 'Recommended': 'SENSE',
                               'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string',
-                              'DynamNumber': 1, 'Description': ''},
+                              'DefaultNumber': 1, 'Description': ''},
 
     'histogram_fig_colour': {'type': 'Dynamic', 'Recommended': '#fc4e2a',
                               'Options': 'Plotting["colorblind_friendly_plot_colours"]',
