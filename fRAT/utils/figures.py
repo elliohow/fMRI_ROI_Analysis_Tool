@@ -37,11 +37,20 @@ class Figures:
                                     "all"]
             brain_plot_base_ext = brain_plot_opts_exts[config.brain_fig_file]
 
+            indiv_brains_dir = f"{os.getcwd()}/Figures/Brain_images"
+            Utils.check_and_make_dir(indiv_brains_dir)
+
             if brain_plot_base_ext == "all":
                 for base_extension in brain_plot_opts_exts[0:-1]:
-                    cls.brain_grid(combined_results_df, base_extension)
+                    indiv_brain_imgs = cls.brain_grid(combined_results_df, base_extension)
+
+                    for img in indiv_brain_imgs:
+                        Utils.move_file(img, os.getcwd(), indiv_brains_dir)
             else:
-                cls.brain_grid(combined_results_df, brain_plot_base_ext)
+                indiv_brain_imgs = cls.brain_grid(combined_results_df, brain_plot_base_ext)
+
+                for img in indiv_brain_imgs:
+                    Utils.move_file(img, os.getcwd(), indiv_brains_dir)
 
         if config.make_scatter_table:
             cls.scatterplot(combined_results_df)
@@ -276,8 +285,11 @@ class Figures:
     def brain_grid(cls, df, base_extension):
         Utils.check_and_make_dir("Figures/Brain_grids")
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
+        indiv_brain_imgs = []
+
         if config.verbose:
             print(f"Preparing {base_ext_clean} table!")
+
         json_array = df['File_name'].unique()
 
         plot_values, axis_titles, current_params, col_nums, \
@@ -287,9 +299,8 @@ class Figures:
             config.brain_fig_value_max = 100
 
         for file_num, json in enumerate(json_array):
-
             # Save brain image using nilearn
-            image_name = json + ".png"
+            image_name = f"{json}_{base_ext_clean}.png"
             plot = plotting.plot_anat(json + base_extension,
                                       draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                       vmin=config.brain_fig_value_min, vmax=config.brain_fig_value_max,
@@ -299,8 +310,10 @@ class Figures:
             plot.savefig(image_name)
             plot.close()
 
+            indiv_brain_imgs.append(image_name)
+
             # Import saved image into subplot
-            img = mpimg.imread(json + ".png")
+            img = mpimg.imread(image_name)
             plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
             plt.imshow(img)
 
@@ -322,10 +335,14 @@ class Figures:
 
         if config.brain_tight_layout:
             plt.tight_layout()
+
         plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
         plt.close()
+
         if config.verbose:
             print("Saved table!")
+
+        return indiv_brain_imgs
 
     @classmethod
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
