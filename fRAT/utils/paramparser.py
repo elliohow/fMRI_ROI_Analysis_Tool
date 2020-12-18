@@ -169,9 +169,6 @@ class ParamParser:
             from utils.analysis import Analysis
             json_directory = os.getcwd() + f"/{Analysis._save_location}"
 
-            if config.verify_param_method == "table":  # Move excel file containing parameter file info
-                Utils.move_file("paramValues.csv", os.getcwd(), json_directory, copy=True)
-
             os.chdir(json_directory)
 
         elif config.json_file_loc in ("", " "):
@@ -184,7 +181,7 @@ class ParamParser:
             try:
                 os.chdir(json_directory)
             except FileNotFoundError:
-                raise FileNotFoundError('json_file_loc in config_test.py is not a valid directory.')
+                raise FileNotFoundError('JSON folder location (json_file_loc) in config.toml is not a valid directory.')
 
             if config.verbose:
                 print(f'Gathering json files from {config.json_file_loc}.')
