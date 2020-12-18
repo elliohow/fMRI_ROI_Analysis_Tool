@@ -25,7 +25,7 @@ from utils.config_setup import *
 w = None
 
 
-def vp_start_gui():
+def start_gui():
     '''Starting point when module is the main routine.'''
     global val, w, root
     root = tk.Tk()
@@ -636,4 +636,4 @@ def Reset_settings():
 
 if __name__ == '__main__':
     print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------\n')
-    vp_start_gui()
+    start_gui()

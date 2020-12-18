@@ -75,8 +75,11 @@ class ParamParser:
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
-        # Find atlas used to remove text from the start of the json file name
-        config_log = Utils.load_config(os.getcwd(), 'config_log.toml', save=False)
+        # Find atlas used during analysis to remove text from the start of the json file name
+        try:
+            config_log = Utils.load_config(os.getcwd(), 'config_log.toml', save=False)
+        except FileNotFoundError:
+            raise FileNotFoundError('fRAT analysis folder not selected, could not find config_log.toml')
 
         atlas_name = os.path.splitext(Analysis._atlas_label_list[config_log.atlas_number][1])[0] + "_"
 

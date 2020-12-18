@@ -301,7 +301,7 @@ class Figures:
         for file_num, json in enumerate(json_array):
             # Save brain image using nilearn
             image_name = f"{json}_{base_ext_clean}.png"
-            plot = plotting.plot_anat(json + base_extension,
+            plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
                                       draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                       vmin=config.brain_fig_value_min, vmax=config.brain_fig_value_max,
                                       cut_coords=(config.brain_x_coord, config.brain_z_coord),

@@ -84,6 +84,9 @@ def fRAT():
         iterable = zip(brain_list, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
                        range(len(brain_list)), itertools.repeat(len(brain_list)), itertools.repeat(config))
 
+        # Make directory to store scaled brains
+        Utils.check_and_make_dir(f"{os.getcwd()}/{Analysis._save_location}NIFTI_ROI")
+
         # Run atlas_scale function and pass in max roi stats for between brain scaling
         if config.multicore_processing:
             pool.starmap(Utils.instance_method_handler, iterable)

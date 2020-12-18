@@ -552,17 +552,26 @@ class Analysis:
 
         # Convert atlas to NIFTI and save it
         affine = np.eye(4)
-        scaled_atlas = nib.Nifti1Image(brain_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s.nii.gz"
-                                 % self.atlas_scale_filename[config.roi_stat_number])
+        scale_stat = [
+                (brain_stat,
+                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}.nii.gz"),
+                (within_roi_stat,
+                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}_within_roi_scaled.nii.gz"),
+                (mixed_roi_stat,
+                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}_mixed_roi_scaled.nii.gz")
+                    ]
 
-        scaled_atlas = nib.Nifti1Image(within_roi_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_within_roi_scaled.nii.gz"
-                                 % self.atlas_scale_filename[config.roi_stat_number])
+        scaled_brains = []
 
-        scaled_atlas = nib.Nifti1Image(mixed_roi_stat, affine)
-        scaled_atlas.to_filename(self._save_location + self.no_ext_brain + "_%s_mixed_roi_scaled.nii.gz"
-                                 % self.atlas_scale_filename[config.roi_stat_number])
+        for i in scale_stat:
+            scaled_brain = nib.Nifti1Image(i[0], affine)
+            scaled_brain.to_filename(f"{self._save_location}{i[1]}")
+
+            scaled_brains.append(i[1])
+
+        for brain in scaled_brains:
+            Utils.move_file(brain, f"{os.getcwd()}/{self._save_location}",
+                            f"{os.getcwd()}/{self._save_location}NIFTI_ROI")
 
     @classmethod
     def roi_label_list(cls):
