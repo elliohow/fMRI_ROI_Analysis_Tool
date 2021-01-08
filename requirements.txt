@@ -19,7 +19,7 @@ idna==2.9
 isodate==0.6.0
 joblib==0.14.1
 kiwisolver==1.1.0
-lxml==4.5.0
+lxml==4.6.2
 matplotlib==3.1.2
 mizani==0.7.1
 multiprocess==0.70.10
