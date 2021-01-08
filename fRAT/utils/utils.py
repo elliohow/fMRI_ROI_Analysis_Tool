@@ -19,25 +19,20 @@ class Utils:
     @staticmethod
     def argparser():
         # Create the parser
-        parser = argparse.ArgumentParser(prog='roi_analysis_tool',
-                                         description='Convert voxelwise statistics to regionwise statistics for MRI data.')
+        parser = argparse.ArgumentParser(prog='fRAT.py',
+                                         description='Convert voxelwise statistics to regionwise statistics for fMRI data.')
 
         # Add the arguments
         parser.add_argument('--brain_loc', dest='brain_loc', action='store', type=str,
-                            help='Directory location of brain files for analysis. '
-                                 'Can be set in config_test.py to use a GUI to find folder instead).')
+                            help='Directory location of brain files for analysis.')
 
         parser.add_argument('--json_loc', dest='json_loc', action='store', type=str,
-                            help='Directory location of json files produced by the roi_analysis_tool '
-                                 '(can be set in config_test.py to use a GUI to find folder instead).')
+                            help='Directory location of json files produced by the fRAT.')
 
         parser.add_argument('--make_table', dest='make_table', action='store_true',
                             help='Use this flag to create a csv file to store parameter information about files.'
-                                 'Recommended that this file is created and filled in before tool execution'
-                                 ' (this setting can alternatively be set to True or False in config_test.py).')
-
-        parser.add_argument('--print_info', dest='print_info', action='store_true',
-                            help='Use this flag to print a list of possible atlases and other information.')
+                                 'Recommended that this file is created and filled in before fRAT execution'
+                                 ' (this setting can alternatively be set to True or False in config.TOML).')
 
         # Execute the parse_args() method
         args = parser.parse_args()
