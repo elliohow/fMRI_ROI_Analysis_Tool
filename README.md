@@ -1,4 +1,4 @@
-# fMRI ROI Analysis Tool (fRAT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/your/your-project/blob/master/LICENSE)
+# fMRI ROI Analysis Tool (fRAT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/master/LICENSE)
 > A GUI-based pipeline to analyse and plot ROI-level analyses
 
 Tested and developed using Python version 3.7.5.
