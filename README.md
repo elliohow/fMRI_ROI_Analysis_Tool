@@ -1,7 +1,23 @@
 # fMRI ROI Analysis Tool (fRAT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
 > A GUI-based pipeline to analyse and plot ROI-level analyses
 
-Tested and developed using Python version 3.7.5.
+Tested and developed using Python version 3.7.5. For MacOS and Linux
+
+## Table of Contents
+<!--ts-->
+* [Installing / Getting started](#installing---getting-started)
+* [Running](#running)
+  * [Folder structure](#folder-structure-)
+  * [paramValues.csv](#paramvaluescsv-)
+  * [If aligning to anatomical (recommended)](#if-aligning-to-anatomical--recommended--)
+  * [If aligning to FSL FAST segmentation (recommended)](#if-aligning-to-fsl-fast-segmentation--recommended--)
+  * [Shell scripts](#shell-scripts)
+* [Potential errors](#potential-errors)
+  * [Multicore processing](#multicore-processing)
+* [Versioning](#versioning)
+* [Licensing](#licensing)
+<!--te-->
+
 
 ## Installing / Getting started
 To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
@@ -13,7 +29,7 @@ the 'data' folder to test whether the project dependencies are correctly install
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
 settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
 The recommended critical parameter validation method requires the creation of a paramValues.csv file containing 
-information about critical parameters ([further information here](#paramvaluescsv:)). If the paramValues.csv file is 
+information about critical parameters ([further information here](#paramvaluescsv)). If the paramValues.csv file is 
 created before running the fRAT analysis, it should be placed in the 'base folder' (a copy of this file will then be 
 placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
 the output folder (whose name changes depending on the atlas used for analysis).
@@ -25,6 +41,10 @@ Once the plot step has been run, combined_results.json contains the results of a
 `combined_results.json` has been created. 
 During analysis, a `config_log.py` file will be created in the output folder to record which config settings were used 
 for analysis.
+
+NOTE: For plotting, as scaling of figures is calculated during the analysis step, scaled figures should only be used if 
+all files analysed together are also displayed together, otherwise the scaling will be based on files which are not 
+present in the figures.
 
 ### Folder structure:
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by 
@@ -97,7 +117,7 @@ Output folder
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 ```
 
-#### paramValues.csv:
+### paramValues.csv:
 * A `paramValues.csv` file containing the MRI parameter values of each scan should be in the base folder. To create this
   file, select the 'Setup parameters' option in the GUI. Alternatively, when running `fRAT.py`, the "make_table_only"
   variable in config.toml can be set to "True", or pass the --make_table flag when running `fRAT.py`, e.g.
@@ -113,10 +133,10 @@ Output folder
   the user will be prompted at runtime to enter the correct values, or 'name' if the user is certain the parameters can
   be successfully parsed from the file names.
 
-#### If aligning to anatomical (recommended):
+### If aligning to anatomical (recommended):
 * A single (non-brain extracted) anatomical volume should be placed in a folder called "anat".
 
-#### If aligning to FSL FAST segmentation (recommended):
+### If aligning to FSL FAST segmentation (recommended):
 * FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be
   completed before running fRAT analysis.
 * Output of FAST should be placed in a folder called "fslfast", only the file with the suffix "pve_1" needs to be used.
