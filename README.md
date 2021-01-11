@@ -4,23 +4,26 @@
 Tested and developed using Python version 3.7.5.
 
 ## Installing / Getting started
+To install all required modules use the following command in the project directory: `pip install -r requirements.txt`
+To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
+the 'data' folder to test whether the project dependencies are correctly installed.
 
 ## Running
-The fRAT.py or fRAT_GUI.py files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
+The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
 settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
 The recommended critical parameter validation method requires the creation of a paramValues.csv file containing 
-information about critical parameters [further information here](####paramValues.csv:). If the paramValues.csv file is 
+information about critical parameters [further information here](####-paramValues.csv:). If the paramValues.csv file is 
 created before running the fRAT analysis, it should be placed in the 'base folder' (a copy of this file will then be 
 placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
 the output folder (whose name changes depending on the atlas used for analysis).
 
 After the analysis has been conducted, the output folder will contain the results for each individual fMRI volume in 
 separate JSON files. 
-Once the plot step has been run, combined_results.json contains the results of all fMRI volumes combined into one file. 
-printResults.py (or the print results GUI option) can be used to print the desired results to the terminal once
-combined_results.json has been created. 
-During analysis, a config_log.py file will be created in the output folder to record which config settings were used for
-analysis.
+Once the plot step has been run, combined_results.json contains the results of all fMRI volumes combined into one file.
+`printResults.py` (or the print results GUI option) can be used to print the desired results to the terminal once
+`combined_results.json` has been created. 
+During analysis, a `config_log.py` file will be created in the output folder to record which config settings were used 
+for analysis.
 
 ### Folder structure:
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by 
@@ -73,37 +76,37 @@ Output folder
 │   │   └── ...
 │   ├── Brain_grids
 │   │   └── ...
-│   ├── Brain_images (individual images of brains used for the brain grid images)
-│   │   └── ...
+│   ├── Brain_images
+│   │   └── (Individual images of brains used for the brain grid images)
 │   ├── Histograms
 │   │   └── ...
 │   └── Scatterplots
 │       └── ...
+
+├── Intermediate files
+│   └── (All intermediate files created during analysis)
+├── NIFTI_ROI
+│   └── (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
+├── Raw_results
+│   └── (JSON files containing non-summarised results for every ROI. Used to create the histogram figures and can be used for further statistical tests)
 │
-├── Intermediate files (All intermediate files created during analysis)
-│   └── ...
-├── NIFTI_ROI (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
-│   └── ...
-├── Raw_results (JSON files containing non-summarised results for every ROI. Used to create the histograms and can be used for further statistical tests)
-│   └── ...
-│
-├── JSON files (contains summarised results for each ROI)
+├── (JSON files containing summarised results for each ROI)
 ├── combined_results.json (created after plot step has been ran)
 ├── config_log.toml (log of settings used for analysis)
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 ```
 
-####paramValues.csv:
-* A paramValues.csv file containing the MRI parameter values of each scan should be in the base folder. To create this
-  file, select the 'Setup parameters' option in the GUI. Alternatively, when running fRAT.py, the "make_table_only"
-  variable in config.toml can be set to "True", or pass the --make_table flag when running fRAT.py, e.g.
+#### paramValues.csv:
+* A `paramValues.csv` file containing the MRI parameter values of each scan should be in the base folder. To create this
+  file, select the 'Setup parameters' option in the GUI. Alternatively, when running `fRAT.py`, the "make_table_only"
+  variable in config.toml can be set to "True", or pass the --make_table flag when running `fRAT.py`, e.g.
   `fRAT.py --make_table`.
 * To change which keywords to extract from file names when creating this table, edit the two critical parameters
   options in the Parsing menu of the GUI. Alternatively edit the "parameter_dict1" and "parameter_dict2" options in
-  config.toml. Each critical parameter/parameter_dict list entry represents the name of the parameter and how it would
+  `config.toml`. Each critical parameter/parameter_dict list entry represents the name of the parameter and how it would
   be represented in file name (if at all). Critical parameters are also used for labelling plots.
 * If the file names do not contain information about which parameters were used (such as the file name
-  P1_MB3_S2_matchBW.nii showing that multiband 3 and SENSE 2 were used), edit paramValues.csv so it contains the correct
+  `P1_MB3_S2_matchBW.nii` showing that multiband 3 and SENSE 2 were used), edit paramValues.csv so it contains the correct
   information.
 * As an alternative to using paramValues.csv, the critical parameter selection method can be changed to 'manual' where
   the user will be prompted at runtime to enter the correct values, or 'name' if the user is certain the parameters can
