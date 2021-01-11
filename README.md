@@ -4,7 +4,8 @@
 Tested and developed using Python version 3.7.5.
 
 ## Installing / Getting started
-To install all required modules use the following command in the project directory: `pip install -r requirements.txt`
+To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
+
 To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
 the 'data' folder to test whether the project dependencies are correctly installed.
 
@@ -12,7 +13,7 @@ the 'data' folder to test whether the project dependencies are correctly install
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
 settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
 The recommended critical parameter validation method requires the creation of a paramValues.csv file containing 
-information about critical parameters [further information here](####-paramValues.csv:). If the paramValues.csv file is 
+information about critical parameters ([further information here](#paramvaluescsv:)). If the paramValues.csv file is 
 created before running the fRAT analysis, it should be placed in the 'base folder' (a copy of this file will then be 
 placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
 the output folder (whose name changes depending on the atlas used for analysis).
