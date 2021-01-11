@@ -25,8 +25,8 @@ def fRAT():
     if args.brain_loc is not None:
         config.brain_file_loc = args.brain_loc
 
-    if args.json_loc is not None:
-        config.json_file_loc = args.json_loc
+    if args.output_loc is not None:
+        config.output_folder_loc = args.output_loc
 
     if config.verbose and config.run_steps == 'all':
         print(f"\n--- Running all steps ---")

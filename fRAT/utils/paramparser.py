@@ -71,7 +71,7 @@ class ParamParser:
         # Save combined results
         if combined_results_create:
             combined_dataframe = combined_dataframe.reset_index()
-            combined_dataframe.to_json("combined_results.json", orient='records')
+            combined_dataframe.to_json("Summarised_results/combined_results.json", orient='records')
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
@@ -174,22 +174,22 @@ class ParamParser:
 
             os.chdir(json_directory)
 
-        elif config.json_file_loc in ("", " "):
-            print('Select the directory of json files.')
-            json_directory = Utils.file_browser(title='Select the directory of json files', chdir=True)
+        elif config.output_folder_loc in ("", " "):
+            print('Select the directory output by the fRAT.')
+            json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
 
         else:
-            json_directory = config.json_file_loc
+            json_directory = config.output_folder_loc
 
             try:
                 os.chdir(json_directory)
             except FileNotFoundError:
-                raise FileNotFoundError('JSON folder location (json_file_loc) in config.toml is not a valid directory.')
+                raise FileNotFoundError('Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
 
             if config.verbose:
-                print(f'Gathering json files from {config.json_file_loc}.')
+                print(f'Gathering json files from {config.output_folder_loc}.')
 
-        json_file_list = [os.path.basename(f) for f in glob(json_directory + "/*.json")]
+        json_file_list = [os.path.basename(f) for f in glob(f"{json_directory}/Summarised_results/*.json")]
 
         if len(json_file_list) == 0:
             raise NameError('No json files found.')
@@ -199,14 +199,14 @@ class ParamParser:
     @classmethod
     def construct_combined_json(cls, dataframe, json, parameters):
         if dataframe.empty:
-            dataframe = pd.read_json(json)
+            dataframe = pd.read_json(f"Summarised_results/{json}")
             dataframe = dataframe.transpose()
 
             for counter, parameter_name in enumerate(config.parameter_dict):
                 dataframe[parameter_name] = parameters[counter]
                 dataframe['File_name'] = os.path.splitext(json)[0]  # Save filename
         else:
-            new_dataframe = pd.read_json(json)
+            new_dataframe = pd.read_json(f"Summarised_results/{json}")
             new_dataframe = new_dataframe.transpose()
 
             for counter, parameter_name in enumerate(config.parameter_dict):

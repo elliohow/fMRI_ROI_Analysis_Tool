@@ -26,8 +26,8 @@ class Utils:
         parser.add_argument('--brain_loc', dest='brain_loc', action='store', type=str,
                             help='Directory location of brain files for analysis.')
 
-        parser.add_argument('--json_loc', dest='json_loc', action='store', type=str,
-                            help='Directory location of json files produced by the fRAT.')
+        parser.add_argument('--output_loc', dest='output_loc', action='store', type=str,
+                            help='Location of folder produced by the fRAT.')
 
         parser.add_argument('--make_table', dest='make_table', action='store_true',
                             help='Use this flag to create a csv file to store parameter information about files.'

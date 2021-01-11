@@ -103,16 +103,17 @@ Output folder
 │   │   └── ...
 │   └── Scatterplots
 │       └── ...
-
+│
 ├── Intermediate files
 │   └── (All intermediate files created during analysis)
 ├── NIFTI_ROI
 │   └── (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
 ├── Raw_results
 │   └── (JSON files containing non-summarised results for every ROI. Used to create the histogram figures and can be used for further statistical tests)
+├── Summarised_results
+│   ├── combined_results.json (created after plot step has been ran. Combines results from all other JSON files in this folder)
+│   └── (JSON files containing summarised results for each ROI)
 │
-├── (JSON files containing summarised results for each ROI)
-├── combined_results.json (created after plot step has been ran)
 ├── config_log.toml (log of settings used for analysis)
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 ```

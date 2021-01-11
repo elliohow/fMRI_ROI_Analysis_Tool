@@ -232,7 +232,7 @@ class Analysis:
 
         self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
 
-        self.roiResults = roiResults # Retain variable for atlas_scale function
+        self.roiResults = roiResults  # Retain variable for atlas_scale function
 
         self.file_cleanup(self.file_list, self._save_location) # Clean up files
 
@@ -485,6 +485,9 @@ class Analysis:
         # Remove rows where all columns have NaNs (essential to keep file size down)
         raw_results = raw_results.dropna(axis=0, how='all')
 
+        summary_results_path = f"{self._brain_directory}/{self._save_location}Summarised_results/"
+        Utils.check_and_make_dir(summary_results_path)
+
         raw_results_path = f"{self._brain_directory}/{self._save_location}Raw_results/"
         Utils.check_and_make_dir(raw_results_path)
 
@@ -492,7 +495,7 @@ class Analysis:
         if config.verbose:
             print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
 
-        with open(self._save_location + self.no_ext_brain + ".json", 'w') as file:
+        with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
         with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
             json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)

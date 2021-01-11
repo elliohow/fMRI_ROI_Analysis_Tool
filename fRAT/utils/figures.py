@@ -25,7 +25,7 @@ class Figures:
 
         plt.rcParams['figure.figsize'] = config.brain_table_x_size, config.brain_table_y_size  # Brain plot code
 
-        combined_results_df = pd.read_json("combined_results.json")
+        combined_results_df = pd.read_json("Summarised_results/combined_results.json")
 
         if config.multicore_processing & (config.make_one_region_fig or config.make_histogram):
             pool = Utils.start_processing_pool()
