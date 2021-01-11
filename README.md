@@ -6,19 +6,30 @@ Tested and developed using Python version 3.7.5.
 ## Installing / Getting started
 
 ## Running
-If FSL's FAST segmentation is used to only include grey matter voxels, these segmentations should before running fRAT 
-analysis. FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may 
-be added in the future.
-
 The fRAT.py or fRAT_GUI.py files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
-settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file.
+settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
+The recommended critical parameter validation method requires the creation of a paramValues.csv file containing 
+information about critical parameters [further information here](####paramValues.csv:). If the paramValues.csv file is 
+created before running the fRAT analysis, it should be placed in the 'base folder' (a copy of this file will then be 
+placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
+the output folder (whose name changes depending on the atlas used for analysis).
 
-After the analysis has been conducted, the json files in the outputted folder contain the results for each individual 
-fMRI volume. Once the plot step has been ran, combined_results.json contains the collated results. 
-Alternatively printResults.py (or the print results GUI option) can be used to print the desired results to the terminal. 
-During analysis, config_log.py is created in the outputted folder to record which config settings were used for analysis.
+After the analysis has been conducted, the output folder will contain the results for each individual fMRI volume in 
+separate JSON files. 
+Once the plot step has been run, combined_results.json contains the results of all fMRI volumes combined into one file. 
+printResults.py (or the print results GUI option) can be used to print the desired results to the terminal once
+combined_results.json has been created. 
+During analysis, a config_log.py file will be created in the output folder to record which config settings were used for
+analysis.
 
-### Folder structure for running fRAT:
+### Folder structure:
+The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by 
+running the fRAT. An example of the folder structure needed to run the fRAT is given
+[here](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/data). In this example 'QA_report' is the name of
+the folder containing the statistical map files and 'HarvardOxford-Cortical_ROI_report' is the folder that has been
+output by the fRAT.
+
+#### Folder structure for running fRAT
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
 ```
@@ -36,7 +47,7 @@ Base folder
 └── paramValues.csv (created through GUI)
 ```
 
-Therefore an example folder structure is:
+Therefore, an example folder structure is:
 ```
 Base folder
 ├── stat_maps (name can be chosen by user)
@@ -54,10 +65,35 @@ Base folder
 └── paramValues.csv (created through GUI)
 ```
 
-An example of the folder structure needed to run the fRAT is given
-[here](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/data).
+#### Folder structure of fRAT output
+```
+Output folder
+├── Figures
+│   ├── Barcharts
+│   │   └── ...
+│   ├── Brain_grids
+│   │   └── ...
+│   ├── Brain_images (individual images of brains used for the brain grid images)
+│   │   └── ...
+│   ├── Histograms
+│   │   └── ...
+│   └── Scatterplots
+│       └── ...
+│
+├── Intermediate files (All intermediate files created during analysis)
+│   └── ...
+├── NIFTI_ROI (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
+│   └── ...
+├── Raw_results (JSON files containing non-summarised results for every ROI. Used to create the histograms and can be used for further statistical tests)
+│   └── ...
+│
+├── JSON files (contains summarised results for each ROI)
+├── combined_results.json (created after plot step has been ran)
+├── config_log.toml (log of settings used for analysis)
+└── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
+```
 
-#### paramValues.csv:
+####paramValues.csv:
 * A paramValues.csv file containing the MRI parameter values of each scan should be in the base folder. To create this
   file, select the 'Setup parameters' option in the GUI. Alternatively, when running fRAT.py, the "make_table_only"
   variable in config.toml can be set to "True", or pass the --make_table flag when running fRAT.py, e.g.
@@ -77,8 +113,11 @@ An example of the folder structure needed to run the fRAT is given
 * A single (non-brain extracted) anatomical volume should be placed in a folder called "anat".
 
 #### If aligning to FSL FAST segmentation (recommended):
+* FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be
+  completed before running fRAT analysis.
 * Output of FAST should be placed in a folder called "fslfast", only the file with the suffix "pve_1" needs to be used.
-* This analysis should be conducted before running the fRAT.
+* FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
+  be added in the future.
 
 ### Shell scripts
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
