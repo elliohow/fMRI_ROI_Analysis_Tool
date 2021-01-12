@@ -168,7 +168,7 @@ class ParamParser:
 
     @staticmethod
     def json_search():
-        if config.run_steps == "all":
+        if config.run_steps != "plot":
             from utils.analysis import Analysis
             json_directory = os.getcwd() + f"/{Analysis._save_location}"
 

@@ -34,13 +34,12 @@ created before running the fRAT analysis, it should be placed in the 'base folde
 placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
 the output folder (whose name changes depending on the atlas used for analysis).
 
-After the analysis has been conducted, the output folder will contain the results for each individual fMRI volume in 
-separate JSON files. 
-Once the plot step has been run, combined_results.json contains the results of all fMRI volumes combined into one file.
+`combined_results.json` (found in `output_folder/Summarised_results/`) contains the summary results of all fMRI volumes 
+combined into one file. If paramValues.csv was created before running the analysis, this file will be created during the
+analysis, otherwise this file will be created once the plotting step has been run.
 `printResults.py` (or the print results GUI option) can be used to print the desired results to the terminal once
-`combined_results.json` has been created. 
-During analysis, a `config_log.py` file will be created in the output folder to record which config settings were used 
-for analysis.
+`combined_results.json` has been created. A `config_log.py` file will be created in the output folder during 
+analysis to record which config settings were used for analysis.
 
 NOTE: For plotting, as scaling of figures is calculated during the analysis step, scaled figures should only be used if 
 all files analysed together are also displayed together, otherwise the scaling will be based on files which are not 
@@ -111,7 +110,7 @@ Output folder
 ├── Raw_results
 │   └── (JSON files containing non-summarised results for every ROI. Used to create the histogram figures and can be used for further statistical tests)
 ├── Summarised_results
-│   ├── combined_results.json (created after plot step has been ran. Combines results from all other JSON files in this folder)
+│   ├── combined_results.json (Combines results from all other JSON files in this folder)
 │   └── (JSON files containing summarised results for each ROI)
 │
 ├── config_log.toml (log of settings used for analysis)
