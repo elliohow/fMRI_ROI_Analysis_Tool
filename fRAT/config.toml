@@ -37,7 +37,7 @@ make_brain_table = true                                                         
 make_one_region_fig = true                                                        # true or false.
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
-regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_fig_rois = 'Runtime'                                                     # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 # Scatter_plot
 table_x_label = 'tSNR mean'                                                       # 

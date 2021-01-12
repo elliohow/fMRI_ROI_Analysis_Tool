@@ -63,6 +63,7 @@ def fRAT():
 
         if config.anat_align:
             Analysis.file_cleanup(Analysis.file_list, Analysis._save_location)
+            Analysis.file_list = []
 
         # Atlas scaling
         '''Save a copy of the stats (default mean) for each ROI from the first brain. Then using sequential comparison

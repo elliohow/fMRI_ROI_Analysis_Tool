@@ -521,7 +521,7 @@ class Analysis:
             if config.verbose:
                 print('\n--- Atlas scaling ---')
         if config.verbose:
-            print('\n Creating NIFTI files for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
+            print('\n Creating NIFTI_ROI files for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
                 brain_num_cur=brain_number_current + 1,
                 brain_num_tot=brain_number_total,
                 brain=self.brain))
