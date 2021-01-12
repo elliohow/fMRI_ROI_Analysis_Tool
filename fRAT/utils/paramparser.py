@@ -71,7 +71,7 @@ class ParamParser:
         # Save combined results
         if combined_results_create:
             combined_dataframe = combined_dataframe.reset_index()
-            combined_dataframe.to_json("Summarised_results/combined_results.json", orient='records')
+            combined_dataframe.to_json("Summarised_results/combined_results.json", orient='records', indent=2)
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
