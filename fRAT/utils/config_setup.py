@@ -105,9 +105,11 @@ Parsing = {
                         'Description': 'Comma-separated list of parameter names to be parsed for and plotted'},
 
     'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list', 'label': 'Critical parameter abbreviation',
-                        'Description': 'Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.'},
-# MRI parameters to parse in the format of a dict. Key indicates parameter name and value indicates how it would be represented in the file name (if using name parameter searching). If using table parameter searching, values can be blank.
-
+                        'Description': 'Comma-separated list of terms to parse the file name for. Each entry '
+                                       'corresponds to a critical parameter above. \nOptional if using table parameter '
+                                       'verification, however if the file name contains this information it can use '
+                                       'this information to auto-detect the critical parameters used for each fMRI '
+                                       'volume.'},
 }
 
 '''General plot settings'''

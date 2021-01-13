@@ -5,7 +5,7 @@ Tested and developed using Python version 3.7.5. For MacOS and Linux
 
 ## Table of Contents
 <!--ts-->
-* [Installing / Getting started](#installing---getting-started)
+* [Installing / Getting started](#installing--getting-started)
 * [Running](#running)
   * [Folder structure](#folder-structure)
   * [paramValues.csv](#paramvaluescsv)

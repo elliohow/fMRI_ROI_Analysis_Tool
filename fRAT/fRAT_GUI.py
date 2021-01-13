@@ -15,6 +15,7 @@ import re
 import os
 import sys
 import logging
+import xmltodict
 from pathlib import Path
 
 from fRAT import fRAT
@@ -23,6 +24,8 @@ from utils import *
 from utils.config_setup import *
 
 w = None
+
+from PIL import ImageTk, Image
 
 
 def start_gui():
@@ -84,8 +87,10 @@ class Config_GUI:
         self.Setting_frame_create(window)
 
         if self.page == 'Settings':
-            self.Options_frame_draw(window)
-            self.Run_frame_draw(window)
+            self.banner_draw(window)
+            self.Options_frame_draw(self.Setting_frame)
+            self.Atlas_frame_draw(self.Setting_frame)
+            self.Run_frame_draw(self.Setting_frame)
 
     def load_initial_values(self):
         with open('config.toml', 'r') as f:
@@ -128,9 +133,29 @@ class Config_GUI:
         # request tkinter to call self.refresh after 1s (the delay is given in ms)
         self.Setting_frame.after(10000, self.refresh_frame)
 
+    def banner_draw(self, window):
+        img = Image.open(f'{os.getcwd()}/fRAT.gif')
+
+        zoom = 0.8
+        pixels_x, pixels_y = tuple([int(zoom * x) for x in img.size])
+        img = img.resize((pixels_x, pixels_y))
+
+        width, height = img.size
+        new_width = width + 88
+        result = Image.new('RGB', (new_width, height-20), (0, 0, 0))
+        result.paste(img, (44, -10))
+
+        result = ImageTk.PhotoImage(result)
+
+        panel = tk.Label(window, image=result, borderwidth=0)
+        panel.photo = result
+        panel.place(relx=0.02, y=10)
+
+        self.frames.append(panel)
+
     def Options_frame_draw(self, window):
         self.Options_frame = tk.LabelFrame(window)
-        self.Options_frame.place(relx=0.5, rely=0.06, height=150, relwidth=0.333)
+        self.Options_frame.place(relx=0.5, rely=0.01, height=150, relwidth=0.345)
         self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
         self.frame_setup(self.Options_frame)
         self.frames.append(self.Options_frame)
@@ -147,9 +172,45 @@ class Config_GUI:
         self.Reset_button.configure(text='''Reset preferences''')
         Tooltip.CreateToolTip(self.Reset_button, 'Reset preferences to recommended values')
 
+    def Atlas_frame_draw(self, window):
+        self.Atlas_frame = tk.LabelFrame(window)
+        self.Atlas_frame.place(relx=0.5, rely=0.395, height=128, relwidth=0.467)
+        self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
+        self.frame_setup(self.Atlas_frame)
+        self.frames.append(self.Atlas_frame)
+
+        atlas_options = ('Cerebellum_MNIflirt',
+                         'Cerebellum_MNIfnirt',
+                         'HarvardOxford-Cortical',
+                         'HarvardOxford-Subcortical',
+                         'JHU-labels',
+                         'JHU-tracts',
+                         'Juelich',
+                         'MNI',
+                         'SMATT',
+                         'STN',
+                         'Striatum-Structural',
+                         'Talairach',
+                         'Thalamus')
+
+        state = tk.StringVar()
+        state.set(atlas_options[2])
+        self.Atlas_option = tk.OptionMenu(self.Atlas_frame, state, *atlas_options)
+        self.Atlas_option.place(relx=0.08, rely=0.2, width=200, bordermode='ignore')
+        self.Atlas_option.configure(bg=self.background)
+        self.Atlas_option.val = state
+
+        self.Atlas_button = ttk.Button(self.Atlas_frame)
+        self.Atlas_button.place(relx=0.17, rely=0.45, height=42, width=150)
+        self.Atlas_button.configure(command=lambda: Print_atlas_ROIs(self.Atlas_option.val.get()))
+        self.Atlas_button.configure(text='''Print Atlas ROIs''')
+        Tooltip.CreateToolTip(self.Atlas_button, 'Print ROIs from selected atlas. This can be used to find which '
+                                                 'numbers to input in the "Plotting" menu to plot specific regions.'
+                                                 '\nNOTE: This does not change the atlas to be used for analysis.')
+
     def Run_frame_draw(self, window):
         self.Run_frame = tk.LabelFrame(window)
-        self.Run_frame.place(relx=0.056, rely=0.42, height=90, relwidth=0.91)
+        self.Run_frame.place(relx=0.025, rely=0.73, height=90, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
         self.frame_setup(self.Run_frame)
         self.frames.append(self.Run_frame)
@@ -177,13 +238,13 @@ class Config_GUI:
         self.frames.append(self.Setting_frame)
 
         if self.page == 'Settings':
-            self.Setting_frame.place(relx=0.02, rely=0.014, relheight=0.54, relwidth=0.973)
+            self.Setting_frame.place(relx=0.02, rely=0.15, relheight=0.54, relwidth=0.973)
             self.Setting_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
             self.frame_setup(self.Setting_frame)
 
-            self.General_settings_frame = tk.LabelFrame(window)
+            self.General_settings_frame = tk.LabelFrame(self.Setting_frame)
             self.frames.append(self.General_settings_frame)
-            self.General_settings_frame.place(relx=0.056, rely=0.06, height=280, relwidth=0.4)
+            self.General_settings_frame.place(relx=0.025, rely=0.01, height=280, relwidth=0.41)
             self.General_settings_frame.configure(text=f'''Preferences''', font='Helvetica 18 bold')
             self.frame_setup(self.General_settings_frame)
             current_frame = self.General_settings_frame
@@ -553,6 +614,34 @@ def Button_handler(command):
             log = logging.getLogger(__name__)
             log.exception(err)
             sys.exit()
+
+
+def Print_atlas_ROIs(selection):
+    """Extract labels from specified FSL atlas XML file."""
+    try:
+        fsl_path = os.environ['FSLDIR']
+    except OSError:
+        raise Exception('FSL environment variable not set.')
+
+    atlas_path = f"{fsl_path}/data/atlases/{selection}.xml"
+
+    with open(atlas_path) as fd:
+        atlas_label_dict = xmltodict.parse(fd.read())
+
+    roiArray = []
+    roiArray.append('No ROI')
+
+    for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
+        roiArray.append(roiLabelLine['#text'])
+
+    roiArray.append('Overall')
+
+    print(f"----------------------------\n{selection} Atlas:\n----------------------------")
+
+    for roi_num, roi in enumerate(roiArray):
+        print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))
+
+    print("----------------------------\n")
 
 
 def Save_settings():
