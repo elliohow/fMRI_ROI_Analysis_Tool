@@ -217,19 +217,19 @@ class Config_GUI:
 
         self.paramValues_button = ttk.Button(self.Run_frame)
         self.paramValues_button.place(x=2, y=12, height=42, width=150)
-        self.paramValues_button.configure(command=ParamParser.make_table)
+        self.paramValues_button.configure(command=lambda: Button_handler('Make paramValues.csv'))
         self.paramValues_button.configure(text='''Setup parameters''')
         Tooltip.CreateToolTip(self.paramValues_button, 'Creates a csv table with prefilled parameter info for each file. Can be set using a command line flag instead')
 
         self.Print_button = ttk.Button(self.Run_frame)
         self.Print_button.place(x=156, y=12, height=42, width=150)
-        self.Print_button.configure(command=lambda:Button_handler('Print_results'))
+        self.Print_button.configure(command=lambda: Button_handler('Print_results'))
         self.Print_button.configure(text='''Print results''')
         Tooltip.CreateToolTip(self.Print_button, 'Print results of fRAT to the terminal.')
 
         self.Run_button = ttk.Button(self.Run_frame)
         self.Run_button.place(x=309, y=12, height=42, width=150)
-        self.Run_button.configure(command=lambda:Button_handler('Run_fRAT'))
+        self.Run_button.configure(command=lambda: Button_handler('Run_fRAT'))
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings.')
 
@@ -606,6 +606,9 @@ def Button_handler(command):
 
         elif command == 'Print_results':
             printResults()
+
+        elif command == "Make paramValues.csv":
+            ParamParser.make_table()
 
     except Exception as err:
         if err.args[0] == 'No folder selected.':
