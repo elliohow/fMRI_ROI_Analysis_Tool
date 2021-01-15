@@ -187,7 +187,7 @@ class ParamParser:
                 raise FileNotFoundError('Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
 
             if config.verbose:
-                print(f'Gathering json files from {config.output_folder_loc}.')
+                print(f'Output folder selection: {config.output_folder_loc}.')
 
         json_file_list = [os.path.basename(f) for f in glob(f"{json_directory}/Summarised_results/*.json")]
 

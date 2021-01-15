@@ -114,7 +114,6 @@ class Utils:
     @staticmethod
     def class_method_handler(*argv):
         return argv[0](*argv[1:])
-        # Histogram calculations take quite some time, quicker way to do this too?
 
     @staticmethod
     def start_processing_pool():

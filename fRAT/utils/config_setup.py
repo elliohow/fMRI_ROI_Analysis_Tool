@@ -141,6 +141,11 @@ Plotting = {
     'regional_fig_rois': {'type': 'Entry', 'Recommended': 'Runtime',  'save_as': 'list', 'label': 'ROIs to plot',
                           'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 
+    'use_same_axis_limits': {'type': 'OptionMenu', 'Recommended': 'Create both', 'Options': ["Same limits", "Different limits", "Create both"],
+                          'label': 'Figure axis limits', 'save_as': 'string',
+                          'Description': '"Same limits", "Different limits" or "Both". \n'
+                                         'Choose whether to create figures with the same x/y limits.'},
+
 }
 
 '''Brain table settings'''

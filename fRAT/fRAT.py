@@ -139,7 +139,7 @@ def checkversion():
     expect_minor = 7
     expect_rev = 5
 
-    print(f"fRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
+    print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
     if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):
         current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
         print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "

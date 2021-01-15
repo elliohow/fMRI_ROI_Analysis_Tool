@@ -1,9 +1,11 @@
 import itertools
 import os
+import re
 import warnings
 
 import matplotlib.image as mpimg
 import numpy as np
+import nibabel as nib
 import pandas as pd
 import plotnine as pltn
 from matplotlib import pyplot as plt
@@ -33,7 +35,9 @@ class Figures:
             pool = None
 
         if config.make_brain_table:
-            brain_plot_opts_exts = ["_Mean.nii.gz", "_Mean_within_roi_scaled.nii.gz", "_Mean_mixed_roi_scaled.nii.gz",
+            brain_plot_opts_exts = ["_Mean.nii.gz",
+                                    "_Mean_within_roi_scaled.nii.gz",
+                                    "_Mean_mixed_roi_scaled.nii.gz",
                                     "all"]
             brain_plot_base_ext = brain_plot_opts_exts[config.brain_fig_file]
 
@@ -120,16 +124,35 @@ class Figures:
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="One region bar chart",
                                            config_region_var=config.regional_fig_rois)
 
-        iterable = zip(itertools.repeat(Figures.barchart_make), chosen_rois,
-                       itertools.repeat(df), itertools.repeat(list_rois), itertools.repeat(config))
+        if config.verbose:
+            print(f'\n--- Barchart creation ---')
 
-        if pool:
-            pool.starmap(Utils.class_method_handler, iterable)
-        else:
-            list(itertools.starmap(Utils.class_method_handler, iterable))
+        ylim = 0
+        while True:
+            iterable = zip(itertools.repeat(Figures.barchart_make), chosen_rois,
+                           itertools.repeat(df), itertools.repeat(list_rois),
+                           itertools.repeat(config), itertools.repeat(ylim),
+                           itertools.repeat(cls.figure_save), itertools.repeat(cls.find_axis_limit))
+
+            if pool:
+                ylim = pool.starmap(Utils.class_method_handler, iterable)
+
+            else:
+                ylim = list(itertools.starmap(Utils.class_method_handler, iterable))
+
+            if any(ylim):
+                ylim.sort(key=lambda x: x[1])
+
+                if config.verbose:
+                    print(f'Maximum y limit of: {round(ylim[-1][1])} seen with ROI: {ylim[-1][2]}. '
+                          f'Creating figures with this y limit.\n')
+
+                ylim = ylim[-1][1]
+            else:
+                break
 
     @staticmethod
-    def barchart_make(roi, df, list_rois, config):
+    def barchart_make(roi, df, list_rois, config, ylimit, save_function, find_ylim_function):
         thisroi = list_rois[roi]
 
         current_df = df.loc[df['index'] == thisroi]
@@ -166,12 +189,25 @@ class Figures:
                 + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
         )
 
-        figure.save("Figures/Barcharts/{thisroi}_barplot.png".format(thisroi=thisroi), height=config.plot_scale,
-                    width=config.plot_scale * 3,
-                    verbose=False, limitsize=False)
+        if ylimit:
+            # Set y limit of figure (used to make it the same for every barchart)
+            figure += pltn.ylim(None, ylimit)
+            thisroi += '_same_ylim'
 
-        if config.verbose:
-            print("Saved {thisroi}_barplot.png".format(thisroi=thisroi))
+        returned_ylim = 0
+        if config.use_same_axis_limits in ('Same limits', 'Create both') and ylimit == 0:
+            returned_ylim = find_ylim_function(thisroi, figure, 'yaxis')
+
+        if config.use_same_axis_limits == 'Same limits' and ylimit == 0:
+            return returned_ylim
+        elif ylimit != 0:
+            folder = 'Same_yaxis'
+        else:
+            folder = 'Different_yaxis'
+
+        save_function(figure, thisroi, config, folder, 'barchart')
+
+        return returned_ylim
 
     @classmethod
     def histogram_setup(cls, combined_df, pool):
@@ -182,23 +218,46 @@ class Figures:
 
         # Compile a dataframe containing raw values and parameter values for all ROIs and save as combined_raw_df
         if chosen_rois:
+            if config.verbose:
+                print(f'\n--- Histogram creation ---')
+
             jsons = Utils.find_files("Raw_results", "json")
             combined_raw_df = cls.make_raw_df(jsons, combined_df)
 
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.histogram_df_make(roi, combined_raw_df, list_rois, config))
+                combined_raw_dfs.append(cls.histogram_df_setup(roi, combined_raw_df, list_rois, config))
 
-            iterable = zip(itertools.repeat(Figures.histogram_make), chosen_rois,
-                           combined_raw_dfs, itertools.repeat(list_rois), itertools.repeat(config))
+            xlim = 0
+            while True:
+                iterable = zip(itertools.repeat(Figures.histogram_make), chosen_rois,
+                               combined_raw_dfs, itertools.repeat(list_rois),
+                               itertools.repeat(config), itertools.repeat(xlim),
+                               itertools.repeat(cls.figure_save), itertools.repeat(cls.find_axis_limit))
 
-            if pool:
-                pool.starmap(Utils.class_method_handler, iterable)
-            else:
-                list(itertools.starmap(Utils.class_method_handler, iterable))
+                if pool:
+                    xlim = pool.starmap(Utils.class_method_handler, iterable)
+                else:
+                    xlim = list(itertools.starmap(Utils.class_method_handler, iterable))
+
+                if any(xlim):
+                    try:
+                        xlim.remove(None)
+                    except ValueError:
+                        pass
+
+                    xlim.sort(key=lambda x: x[1])
+
+                    if config.verbose:
+                        print(f'Maximum x limit of: {round(xlim[-1][1])} seen with ROI: {xlim[-1][2]}. '
+                              f'Creating figures with this x limit.\n')
+
+                    xlim = xlim[-1][1]
+                else:
+                    break
 
     @staticmethod
-    def histogram_df_make(roi, combined_raw_df, list_rois, config):
+    def histogram_df_setup(roi, combined_raw_df, list_rois, config):
         # Set up the df for each chosen roi
         thisroi = list_rois[roi]
 
@@ -227,8 +286,10 @@ class Figures:
         return current_df
 
     @staticmethod
-    def histogram_make(roi, combined_raw_df, list_rois, config):
+    def histogram_make(roi, combined_raw_df, list_rois, config, xlimit, save_function, find_xlim_function):
         if combined_raw_df.empty:
+            if config.verbose:
+                print('INFO: Histograms cannot be made for the No ROI category.')
             return
         else:
             thisroi = list_rois[roi]
@@ -237,10 +298,10 @@ class Figures:
                     pltn.ggplot(combined_raw_df, pltn.aes(x="voxel_value"))
                     + pltn.theme_538()
                     + pltn.geom_histogram(binwidth=config.histogram_binwidth, fill=config.histogram_fig_colour,
-                                          boundary=0, na_rm=True)  # Boundary centers the bars, na_rm cancels error from setting an xlimit
+                                          boundary=0,
+                                          na_rm=True)  # Boundary centers the bars, na_rm cancels error from setting an xlimit
                     + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
                                       drop=True, labeller="label_both")
-                    + pltn.xlim(-1, None)
                     + pltn.labs(x=config.histogram_fig_label_x, y=config.histogram_fig_label_y)
                     + pltn.theme(
                 panel_grid_minor_x=pltn.themes.element_line(alpha=0),
@@ -255,7 +316,7 @@ class Figures:
                 axis_text_x=pltn.element_text(size=10, color='black'),
                 axis_text_y=pltn.element_text(size=10, color='black'),
                 dpi=config.plot_dpi
-                )
+            )
             )
 
             # Display mean or median as vertical lines on plot
@@ -269,17 +330,68 @@ class Figures:
             if not config.histogram_show_legend:
                 figure += pltn.theme(legend_position='none')
 
+            if xlimit:
+                # Set y limit of figure (used to make it the same for every barchart)
+                figure += pltn.xlim(-1, xlimit)
+                thisroi += '_same_xlim'
+            else:
+                figure += pltn.xlim(-1, None)
+
+            returned_xlim = 0
+            if config.use_same_axis_limits in ('Same limits', 'Create both') and xlimit == 0:
+                returned_xlim = find_xlim_function(thisroi, figure, 'xaxis')
+
+            if config.use_same_axis_limits == 'Same limits' and xlimit == 0:
+                return returned_xlim
+            elif xlimit != 0:
+                folder = 'Same_xaxis'
+            else:
+                folder = 'Different_xaxis'
+
             # Suppress Pandas warning about alignment of non-concatenation axis
             warnings.simplefilter(action='ignore', category=FutureWarning)
 
-            figure.save(f"Figures/Histograms/{thisroi}_histogram.png",
-                        height=config.plot_scale, width=config.plot_scale * 3,
-                        verbose=False, limitsize=False)
+            save_function(figure, thisroi, config, folder, 'histogram')
 
             warnings.simplefilter(action='default', category=FutureWarning)
 
-            if config.verbose:
-                print(f"Saved {thisroi}_histogram.png")
+            return returned_xlim
+
+    @staticmethod
+    def find_axis_limit(thisroi, figure, axis):
+        # Find what the current axis limits will be
+        fig = figure.draw()
+        axes = fig.axes
+
+        if axis == 'xaxis':
+            lim = axes[0].get_xlim()
+        elif axis == 'yaxis':
+            lim = axes[0].get_ylim()
+
+            lim = (*lim, thisroi)
+
+        return lim
+
+    @staticmethod
+    def figure_save(figure, thisroi, config, folder, chart_type):
+
+        # Format file name correctly
+        replacements = [
+            (r'\([^()]*\)', ""),  # Remove anything between parenthesis
+            (r'[^a-zA-Z\d:]', "_"),  # Remove non-alphanumeric characters
+            (r'_{2,}', "_")  # Replace multiple underscores with one
+        ]
+        thisroi = thisroi.replace("\'", "")  # Remove apostrophes
+        for old, new in replacements:
+            thisroi = re.sub(old, new, thisroi)
+
+        Utils.check_and_make_dir(f"Figures/{chart_type.title()}s/{folder}/")
+        figure.save(f"Figures/{chart_type.title()}s/{folder}/{thisroi}_{chart_type}.png",
+                    height=config.plot_scale, width=config.plot_scale * 3,
+                    verbose=False, limitsize=False)
+
+        if config.verbose:
+            print(f"Saved {thisroi}_{chart_type}.png")
 
     @classmethod
     def brain_grid(cls, df, base_extension):
@@ -287,60 +399,83 @@ class Figures:
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
-        if config.verbose:
-            print(f"Preparing {base_ext_clean} table!")
-
         json_array = df['File_name'].unique()
 
         plot_values, axis_titles, current_params, col_nums, \
         row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
-        if base_extension != "_Mean.nii.gz":
-            config.brain_fig_value_max = 100
+        vmax = vmax_storage = config.brain_fig_value_max
+        if vmax_storage is None:
+            vmax_storage = []
 
-        for file_num, json in enumerate(json_array):
-            # Save brain image using nilearn
-            image_name = f"{json}_{base_ext_clean}.png"
-            plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
-                                      draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
-                                      vmin=config.brain_fig_value_min, vmax=config.brain_fig_value_max,
-                                      cut_coords=(config.brain_x_coord, config.brain_z_coord),
-                                      cmap='inferno')
+        while True:
+            if base_extension != "_Mean.nii.gz":
+                vmax = 100
+            elif base_extension == "_Mean.nii.gz" and vmax is not None:
+                base_ext_clean += "_same_scale"
 
-            plot.savefig(image_name)
-            plot.close()
+            if config.verbose:
+                print(f"Saving {base_ext_clean} table!")
 
-            indiv_brain_imgs.append(image_name)
+            for file_num, json in enumerate(json_array):
+                # Save brain image using nilearn
+                image_name = f"{json}_{base_ext_clean}.png"
 
-            # Import saved image into subplot
-            img = mpimg.imread(image_name)
-            plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
-            plt.imshow(img)
+                if base_extension == "_Mean.nii.gz" and base_ext_clean.find("_same_scale") == -1:
+                    # Calculate colour bar limit if not manually set
+                    brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
+                    brain = brain.get_fdata()
 
-            ax = plt.gca()
-            ax.set_yticks([])  # Remove y-axis ticks
-            ax.axes.yaxis.set_ticklabels([])  # Remove y-axis labels
+                    vmax = np.nanmax(brain)
+                    vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
 
-            ax.set_xticks([])  # Remove x-axis ticks
-            ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
+                plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
+                                          draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
+                                          vmin=config.brain_fig_value_min, vmax=vmax,
+                                          cut_coords=(config.brain_x_coord, config.brain_z_coord),
+                                          cmap='inferno')
 
-            if row_nums[file_num] == 0:
-                plt.title(axis_titles[0] + " " + plot_values[0][col_nums[file_num]], fontsize=config.plot_font_size)
+                plot.savefig(image_name)
+                plot.close()
 
-            if col_nums[file_num] == 0:
-                plt.ylabel(axis_titles[1] + " " + plot_values[1][row_nums[file_num]],
-                           fontsize=config.plot_font_size)
+                indiv_brain_imgs.append(image_name)
 
-        cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size)
+                # Import saved image into subplot
+                img = mpimg.imread(image_name)
+                plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
+                plt.imshow(img)
 
-        if config.brain_tight_layout:
-            plt.tight_layout()
+                ax = plt.gca()
+                ax.set_yticks([])  # Remove y-axis ticks
+                ax.axes.yaxis.set_ticklabels([])  # Remove y-axis labels
 
-        plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
-        plt.close()
+                ax.set_xticks([])  # Remove x-axis ticks
+                ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
-        if config.verbose:
-            print("Saved table!")
+                if row_nums[file_num] == 0:
+                    plt.title(axis_titles[0] + " " + plot_values[0][col_nums[file_num]], fontsize=config.plot_font_size)
+
+                if col_nums[file_num] == 0:
+                    plt.ylabel(axis_titles[1] + " " + plot_values[1][row_nums[file_num]],
+                               fontsize=config.plot_font_size)
+
+            cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size)
+
+            if config.brain_tight_layout:
+                plt.tight_layout()
+
+            plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
+            plt.close()
+
+            if base_extension != "_Mean.nii.gz" or config.brain_fig_value_max is not None:
+                break
+            else:
+                # Find highest ROI value seen to create figures with the same scale
+                vmax_storage = sorted(vmax_storage)[-1]
+                vmax = config.brain_fig_value_max = vmax_storage[0]
+
+                print(f'Maximum ROI value of: {round(vmax_storage[0])} seen in file: {vmax_storage[1]}. '
+                      f'Creating figures with this colourbar limit.')
 
         return indiv_brain_imgs
 
