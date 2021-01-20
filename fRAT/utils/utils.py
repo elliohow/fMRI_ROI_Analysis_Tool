@@ -90,7 +90,7 @@ class Utils:
         return results.value, conf_int
 
     @staticmethod
-    def move_file(name, original_dir, new_dir, copy=False):
+    def move_file(name, original_dir, new_dir, copy=False, rename_copy=True):
         if not original_dir.endswith('/'):
             original_dir += '/'
 
@@ -98,7 +98,10 @@ class Utils:
             new_dir += '/'
 
         if copy:
-            shutil.copy(f"{original_dir}{name}", f"{new_dir}copy_{name}")
+            if rename_copy:
+                shutil.copy(f"{original_dir}{name}", f"{new_dir}copy_{name}")
+            else:
+                shutil.copy(f"{original_dir}{name}", f"{new_dir}{name}")
         else:
             os.rename(f"{original_dir}{name}", f"{new_dir}{name}")
 
