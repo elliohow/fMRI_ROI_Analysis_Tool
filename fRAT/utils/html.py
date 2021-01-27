@@ -7,7 +7,6 @@ except:
     pass
 import os
 
-table_headers = ['Col1', 'Col2', 'Mmmm']
 
 def create_index():
     doc = doc_setup()
@@ -24,6 +23,7 @@ def create_index():
                 h3(a('Tables', href='tables.html'))
 
     save_page(doc, 'index.html')
+
 
 def create_figure_index():
     doc = doc_setup()
@@ -48,7 +48,7 @@ def create_figure_index():
 
                         for fig in fig_types:
                             l = tr()
-                            l.add(td(a(h4(os.path.split(fig)[1]), href=f'{os.path.split(fig)[1]}.html')))
+                            l.add(td(a(h4(str_format(os.path.split(fig)[1])), href=f'{os.path.split(fig)[1]}.html')))
                             image = glob(f"{fig}/**/*.png", recursive=True)[0]
                             l.add(td(a(img(src=f"{os.getcwd()}/{image}", width=400), href=f'{os.path.split(fig)[1]}.html')))
 
@@ -81,10 +81,10 @@ def create_figure_pages(figure_type):
 
                     if len(folders) > 1:
                         folder = os.path.split(os.path.split(folder[:-1])[0])[1]
-                        h2(f"{folder} ({axis_type.replace('_', ' ').lower()})")
+                        h2(f"{folder} ({str_format(axis_type).lower()})")
                     else:
                         folder = os.path.split(folder)[1]
-                        h2(f"{folder}")
+                        h2(f"{str_format(folder)}")
 
                     with table():
                         with tbody():
@@ -116,10 +116,25 @@ def create_figure_pages(figure_type):
                             l = tr()
 
                             for folder in folders:
-                                l.add(a(h4(os.path.split(folder[:-1])[1].replace('_', ' ')),
+                                l.add(a(h4(str_format(os.path.split(folder[:-1])[1])),
                                         href=f'{os.path.split(figure_type)[1]}_{os.path.split(folder[:-1])[1]}.html'))
 
         save_page(doc, f'{os.path.split(figure_type)[1]}.html')
+
+
+def str_format(string):
+    replace_chars = (("axis", "-axis"),
+                     ("roi", "ROI"),
+                     ("stat", "Stat"),
+                     ("same_ylim", ""),
+                     ("same_xlim", ""),
+                     ('_', ' '))
+
+    for char in replace_chars:
+        string = string.replace(char[0], char[1])
+
+    return string
+
 
 def plot_figs(figure_type, figures):
     # Determine how much to trim off the end of the file name (removing .png etc.)
@@ -129,10 +144,10 @@ def plot_figs(figure_type, figures):
         length = len(figure_type)
 
     for fig in figures:
-        fig_name = os.path.split(fig)[1].title().replace("_", " ")[:-(length+3)]  # Format name for better presentation
+        fig_name = os.path.split(str_format(fig))[1][:-(length+3)]  # Format name for better presentation
 
         l = tr()
-        l.add(td(a(h4(fig_name), href=f"{os.getcwd()}/{fig}")))  # Add plot title
+        l.add(td(a(h4(str_format(fig_name)), href=f"{os.getcwd()}/{fig}")))  # Add plot title
         l.add(td(a(img(src=f"{os.getcwd()}/{fig}", width=700), href=f"{os.getcwd()}/{fig}")))  # Show plot
 
 
@@ -145,9 +160,11 @@ def doc_setup():
 
     return doc
 
+
 def save_page(doc, page):
     with open(f"fRAT_report/{page}", 'w') as file:
         file.write(doc.render())
+
 
 def navbar(index=False):
     with nav(cls="navbar navbar-expand-lg fixed-top navbar-dark bg-primary"):
@@ -175,4 +192,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# todo: Search bar?
