@@ -1,11 +1,8 @@
 import dominate
+import os
 from dominate.tags import *
 from glob import glob
-try:
-    from utils import Utils
-except:
-    pass
-import os
+from utils import Utils
 
 
 def create_index():
@@ -13,23 +10,6 @@ def create_index():
 
     with doc.body:
         navbar(index=True)
-
-        with div(cls='container'):
-            with div(id='content'):
-                for iC in range(4):
-                    br()
-
-                h3(a('Figures', href='figures.html'))
-                h3(a('Tables', href='tables.html'))
-
-    save_page(doc, 'index.html')
-
-
-def create_figure_index():
-    doc = doc_setup()
-
-    with doc.body:
-        navbar()
 
         with div(cls='container'):
             with div(id='content'):
@@ -48,11 +28,11 @@ def create_figure_index():
 
                         for fig in fig_types:
                             l = tr()
-                            l.add(td(a(h4(str_format(os.path.split(fig)[1])), href=f'{os.path.split(fig)[1]}.html')))
+                            l.add(td(a(h4(str_format(os.path.split(fig)[1])), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
                             image = glob(f"{fig}/**/*.png", recursive=True)[0]
-                            l.add(td(a(img(src=f"{os.getcwd()}/{image}", width=400), href=f'{os.path.split(fig)[1]}.html')))
+                            l.add(td(a(img(src=f"{os.getcwd()}/{image}", width=400), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
 
-    save_page(doc, 'figures.html')
+    save_page(doc, 'index.html')
 
 
 def create_figure_pages(figure_type):
@@ -162,20 +142,23 @@ def doc_setup():
 
 
 def save_page(doc, page):
-    with open(f"fRAT_report/{page}", 'w') as file:
+    if page == 'index.html':
+        folder = ""
+    else:
+        folder = "fRAT_report/"
+    with open(f"{folder}{page}", 'w') as file:
         file.write(doc.render())
 
 
 def navbar(index=False):
     with nav(cls="navbar navbar-expand-lg fixed-top navbar-dark bg-primary"):
         with div(cls='container'):
-            a('fRAT report', style="font-size:30px", cls="navbar-brand", href='index.html')
+            h1('fRAT report', style="font-size:30px", cls="navbar-brand")
 
             if not index:
                 with div(cls='collapse navbar-collapse', id='navbarResponsive'):
                     with ul(cls='navbar-nav'):
-                        li(a('Figures', cls="nav-link", href='figures.html', align='center'), cls='nav-item')
-                        li(a('Tables', cls="nav-link", href='tables.html', align='center'), cls='nav-item')
+                        li(a('Back to Figures', cls="nav-link", href=f'{os.getcwd()}/index.html', align='center'), cls='nav-item')
 
 
 def main():
@@ -183,7 +166,6 @@ def main():
     Utils.move_file('bootstrap.css', os.getcwd(), 'fRAT_report/', copy=True, rename_copy=False)
 
     create_index()
-    create_figure_index()
     fig_types = [f for f in glob(f"Figures/*")]
 
     for fig in fig_types:
