@@ -105,6 +105,8 @@ Output folder
 │   └── Scatterplots
 │       └── ...
 │
+├── fRAT_report
+│   └── (Pages of HTML report accessed using index.html)
 ├── Intermediate files
 │   └── (All intermediate files created during analysis)
 ├── NIFTI_ROI
@@ -115,6 +117,7 @@ Output folder
 │   ├── combined_results.json (Combines results from all other JSON files in this folder)
 │   └── (JSON files containing summarised results for each ROI)
 │
+├── index.html (Index page of HTML report showing created figures)
 ├── config_log.toml (log of settings used for analysis)
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 ```
