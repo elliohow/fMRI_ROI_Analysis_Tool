@@ -47,7 +47,7 @@ def main():
 
 
 def df_setup():
-    print(f'--- Making interactive table on server localhost:{server_address[1]} ---')
+    print(f'--- Creating interactive report on server localhost:{server_address[1]} ---')
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
     df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
