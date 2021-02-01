@@ -121,6 +121,8 @@ def fRAT():
         # Plotting
         Figures.Make_figures(config)
 
+        html_report.main(str(orig_path))
+
     os.chdir(orig_path)  # Reset path
 
     if config.verbose:

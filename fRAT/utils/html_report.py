@@ -2,11 +2,11 @@ import dominate
 import os
 from dominate.tags import *
 from glob import glob
-from utils import Utils
+from .utils import Utils
 
 
 def create_index():
-    doc = doc_setup()
+    doc = doc_setup("index.html")
 
     with doc.body:
         navbar(index=True)
@@ -131,11 +131,16 @@ def plot_figs(figure_type, figures):
         l.add(td(a(img(src=f"{os.getcwd()}/{fig}", width=700), href=f"{os.getcwd()}/{fig}")))  # Show plot
 
 
-def doc_setup():
+def doc_setup(page=None):
+    if page == 'index.html':
+        folder = "fRAT_report/"
+    else:
+        folder = ""
+
     doc = dominate.document(title='fRAT report')
 
     with doc.head:
-        link(rel='stylesheet', href='bootstrap.css')
+        link(rel='stylesheet', href=f'{folder}bootstrap.css')
         script(type='text/javascript', src='script.js')
 
     return doc
@@ -161,16 +166,13 @@ def navbar(index=False):
                         li(a('Back to Figures', cls="nav-link", href=f'{os.getcwd()}/index.html', align='center'), cls='nav-item')
 
 
-def main():
+def main(orig_path):
     Utils.check_and_make_dir("fRAT_report")
-    Utils.move_file('bootstrap.css', os.getcwd(), 'fRAT_report/', copy=True, rename_copy=False)
+    orig_path += "/utils"
+    Utils.move_file('bootstrap.css', orig_path, 'fRAT_report/', copy=True, rename_copy=False)
 
     create_index()
     fig_types = [f for f in glob(f"Figures/*")]
 
     for fig in fig_types:
         create_figure_pages(fig)
-
-
-if __name__ == '__main__':
-    main()

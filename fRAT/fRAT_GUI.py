@@ -20,6 +20,7 @@ from pathlib import Path
 
 from fRAT import fRAT
 from printResults import printResults
+import dash_report
 from utils import *
 from utils.config_setup import *
 
@@ -174,7 +175,7 @@ class Config_GUI:
 
     def Atlas_frame_draw(self, window):
         self.Atlas_frame = tk.LabelFrame(window)
-        self.Atlas_frame.place(relx=0.5, rely=0.395, height=128, relwidth=0.467)
+        self.Atlas_frame.place(relx=0.5, rely=0.348, height=128, relwidth=0.467)
         self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
         self.frame_setup(self.Atlas_frame)
         self.frames.append(self.Atlas_frame)
@@ -210,7 +211,7 @@ class Config_GUI:
 
     def Run_frame_draw(self, window):
         self.Run_frame = tk.LabelFrame(window)
-        self.Run_frame.place(relx=0.025, rely=0.73, height=90, relwidth=0.945)
+        self.Run_frame.place(relx=0.025, rely=0.65, height=145, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
         self.frame_setup(self.Run_frame)
         self.frames.append(self.Run_frame)
@@ -225,20 +226,26 @@ class Config_GUI:
         self.Print_button.place(x=156, y=12, height=42, width=150)
         self.Print_button.configure(command=lambda: Button_handler('Print_results'))
         self.Print_button.configure(text='''Print results''')
-        Tooltip.CreateToolTip(self.Print_button, 'Print results of fRAT to the terminal.')
+        Tooltip.CreateToolTip(self.Print_button, 'Print results of fRAT to the terminal')
+
+        self.Dash_button = ttk.Button(self.Run_frame)
+        self.Dash_button.place(x=309, y=12, height=42, width=150)
+        self.Dash_button.configure(command=lambda: Button_handler('Run_dash'))
+        self.Dash_button.configure(text='''Interactive table''')
+        Tooltip.CreateToolTip(self.Dash_button, 'Create an interactive table to display fRAT results')
 
         self.Run_button = ttk.Button(self.Run_frame)
-        self.Run_button.place(x=309, y=12, height=42, width=150)
+        self.Run_button.place(x=139, y=66, height=42, width=180)
         self.Run_button.configure(command=lambda: Button_handler('Run_fRAT'))
         self.Run_button.configure(text='''Run fRAT''')
-        Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings.')
+        Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings')
 
     def Setting_frame_create(self, window):
         self.Setting_frame = tk.LabelFrame(window)
         self.frames.append(self.Setting_frame)
 
         if self.page == 'Settings':
-            self.Setting_frame.place(relx=0.02, rely=0.15, relheight=0.54, relwidth=0.973)
+            self.Setting_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
             self.Setting_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
             self.frame_setup(self.Setting_frame)
 
@@ -609,6 +616,9 @@ def Button_handler(command):
 
         elif command == "Make paramValues.csv":
             ParamParser.make_table()
+
+        elif command == "Run_dash":
+            dash_report.main()
 
     except Exception as err:
         if err.args[0] == 'No folder selected.':
