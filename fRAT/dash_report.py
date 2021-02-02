@@ -3,7 +3,8 @@ import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import plotly.express as px
+from dash_table.Format import Format, Scheme
+import fnmatch
 import pandas as pd
 import numpy
 import webbrowser
@@ -30,7 +31,7 @@ class WebServer(threading.Thread):
 
 
 def shutdown(num, info):
-    print(f'Shutting down website server on port {server_address[1]}.\n')
+    print(f'Shutting down server on port {server_address[1]}.\n')
     server.stop()
     server.close()
 
@@ -50,19 +51,16 @@ def df_setup():
     print(f'--- Creating interactive report on server localhost:{server_address[1]} ---')
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
-    df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
 
-    for key in df.keys():
-        if isinstance(df[key][0], numpy.float64):
-            df[key] = df[key].map("{:,.3f}".format)  # Number of significant figures to use for floats
-        elif isinstance(df[key][0], numpy.int64):
-            df[key] = df[key].map("{:,d}".format)  # Convert to integer object so number searching works
+    df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
 
     column_order = [0, 4, 8, 6, 9, 1, 7, 5, 10, 2, 3]
     for i in range(11, len(df.columns)):
         column_order.insert(3, i)  # Used to insert additional columns if more than 2 parameters used in paramValues.csv
 
     df = df[df.columns[column_order]]  # Reorganise columns
+
+    df["id"] = df.index
 
     return df
 
@@ -74,14 +72,23 @@ def dash_setup(df):
     external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
     appserver = Flask(__name__)
-
     app = dash.Dash(__name__, server=appserver, external_stylesheets=external_stylesheets)
+
+    columns = []
+    for i, key in enumerate(df.columns):
+        # Column format setup
+        columns.append({"name": key, "id": key, "deletable": True, "selectable": True})
+
+        if isinstance(df[key][0], numpy.float64):
+            columns[i].update({"type": "numeric", "format": Format(precision=2, scheme=Scheme.fixed)})
+        elif isinstance(df[key][0], numpy.int64):
+            columns[i].update({"type": "numeric", "format": Format(precision=2, scheme=Scheme.decimal_integer)})
 
     app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
         dcc.Markdown('# fRAT Report \n Interactive table', style={'textAlign': 'center', 'color': colors['text']}),
         dash_table.DataTable(
-            id='datatable-interactivity',
-            columns=[{"name": i, "id": i, "deletable": True, "selectable": True} for i in df.columns],
+            id='datatable',
+            columns=columns,
             data=df.to_dict('records'),
             filter_action="native",
             sort_action="native",
@@ -93,67 +100,59 @@ def dash_setup(df):
             page_current=0,
             page_size=len(df['index'].unique()),
             style_cell={'textAlign': 'left'},
-            # style_data_conditional=[
-            #     {
-            #         'if': {'row_index': 'odd'},
-            #         'backgroundColor': 'rgb(248, 248, 248)'
-            #     }
-            # ],
         ),
-        html.Div(id='figure-container'),
+
+        html.Div(dcc.Dropdown(id='barchart_dropdown',
+                              options=[
+                                  {'label': 'Mean', 'value': 'Mean'},
+                                  {'label': 'Minimum', 'value': 'Min'},
+                                  {'label': 'Maximum', 'value': 'Max'},
+                                  {'label': 'Voxels', 'value': 'Voxels'},
+                                  {'label': 'Excluded voxels (percentage)', 'value': 'Excluded_Voxels'}
+                              ],
+                              value='Mean')),
+
+        html.Div(dcc.Graph(id='barchart', figure={"layout": {
+            "height": 500,
+            }}))
     ])
 
-    @app.callback(Output('datatable-interactivity', 'style_data_conditional'),
-                  [Input('datatable-interactivity', 'selected_rows'), Input('datatable-interactivity', 'derived_virtual_indices')])
-    def update_styles(selected_rows, derived_virtual_indices):
-        print(derived_virtual_indices)
-        return [{'if': {'derived_virtual_indices': i}, 'background_color': '#D2F3FF'} for i in selected_rows]
+    @app.callback(Output("datatable", "style_data_conditional"),
+                  Input("datatable", "derived_viewport_selected_row_ids"))
+    def style_selected_rows(selected_rows):
+        if selected_rows is None:
+            return dash.no_update
 
+        style = [{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}]
+        [style.append({"if": {"filter_query": f"{{id}} ={i}"}, "backgroundColor": "#D2F3FF"}) for i in selected_rows]
 
-    @app.callback(Output("figure_container", "children"),
-                 [Input('datatable', 'rows'),
-                  Input('datatable', 'selected_row_indices')])
-    def update_barchart(rows, selected_row_indices):
-        print(rows, selected_row_indices)
-        if selected_row_indices is None:
-            selected_row_indices = []
+        return style
 
-        dff = df if rows is None else pd.DataFrame(rows)
+    @app.callback(
+        Output('barchart', 'figure'),
+        [Input('datatable', 'derived_viewport_selected_row_ids'),
+         Input('barchart_dropdown', 'value')])
+    def update_graph(selected_rows, dropdown_value):
+        if selected_rows is None:
+            return dash.no_update
 
-        fig = None
-        if rows is not None:
-            selected_rows = [rows[i] for i in selected_row_indices]
-            print(selected_rows)
-            fig = px.bar(df, x="Voxels", y="Mean", barmode="group")
+        dff = df.loc[df['id'].isin(selected_rows)]
 
-            return [
-                dcc.Graph(
-                    id='test',
-                    figure={
-                        "data": [
-                            {
-                                "x": dff["index"],
-                                "y": dff["Voxels"],
-                                "type": "bar",
-                                "marker": {"color": colors},
-                            }
-                        ],
-                        "layout": {
-                            "xaxis": {"automargin": True},
-                            "yaxis": {
-                                "automargin": True,
-                                "title": {"text": 'test'}
-                            },
-                            "height": 250,
-                            "margin": {"t": 10, "l": 10, "r": 10},
-                        },
-                    },
-                )
-                # # check if column exists - user may have deleted it
-                # # If `column.deletable=False`, then you don't
-                # # need to do this check.
-                # for column in ["pop", "lifeExp", "gdpPercap"] if column in dff
-            ]
+        ConfInts = []
+        if dropdown_value == 'Mean':
+            ConfInts = dff[fnmatch.filter(df.columns, 'Conf_Int*')[0]]
+        elif dropdown_value == 'Excluded_Voxels':
+            dff['Excluded_Voxels'] = dff['Excluded_Voxels'] / (dff['Excluded_Voxels'] + dff['Voxels']) * 100
+
+        return {
+            'data': [dict(x=dff['index'],
+                          y=dff[dropdown_value],
+                          error_y=dict(type='data', array=ConfInts,
+                                       thickness=2, width=50),
+                          barmode="group",
+                          type='bar',
+                          )]
+        }
 
 
 if __name__ == '__main__':
