@@ -159,13 +159,11 @@ def dash_setup(df):
         barwidth = 0.09 * (len(selected_rows))
 
         return {
-            'data': [dict(x=dff['index'],
-                          y=dff[dropdown_value],
-                          width=barwidth,
-                          error_y=dict(type='data', array=ConfInts,
-                                       thickness=2, width=intwidth),
-                          type='bar'
-                          )],
+            'data': [{"x": dff['index'],
+                     "y": dff[dropdown_value],
+                     "width": barwidth,
+                     "error_y": {"type": 'data', "array": ConfInts, "thickness": 2, "width": intwidth},
+                     "type": 'bar'}],
 
             "layout": {
                 'title': 'Interactive barchart',
