@@ -114,6 +114,15 @@ class NipypeFunctions:
                                               folder_name="mcflirt", label="mcf")
         return created_files
 
+    def reset_header(self, args=""):
+        standargs = ["operation.inputs.operation = 'mul'",
+                     "operation.inputs.operand_value = 1.0"]
+
+        created_files = self._generic_routine(fsl, "BinaryMaths", args=args, standargs=standargs,
+                                              folder_name="reset_header")
+
+        return created_files
+
     def spatial_smooth(self, args=""):
         standargs = ["operation.inputs."]
 

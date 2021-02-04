@@ -55,7 +55,12 @@ class Utils:
 
     @staticmethod
     def file_browser(title='', chdir=False):
+        root = Tk()
+        root.withdraw()  # Hide tkinter root window
+
         directory = filedialog.askdirectory(title=title)
+
+        root.destroy()  # Destroy tkinter root window
 
         if not directory:
             raise FileNotFoundError('No folder selected.')
