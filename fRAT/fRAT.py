@@ -77,22 +77,6 @@ def fRAT():
                 if roi_stat > roi_stats[counter]:
                     roi_stats[counter] = roi_stat
 
-        # Move csv file containing parameter info
-        try:
-            Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis._save_location}", copy=True)
-
-        except FileNotFoundError:
-            if config.verify_param_method == 'table' and config.run_steps == 'all':
-                raise
-
-        else:
-            if config.verify_param_method == 'table':
-                # Create combined_results.json
-                curr_dir = os.getcwd()
-                ParamParser.run_parse(config)
-                os.chdir(curr_dir)
-                combined_results_created = True
-
         # Set arguments to pass to atlas_scale function
         iterable = zip(brain_list, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
                        range(len(brain_list)), itertools.repeat(len(brain_list)), itertools.repeat(config))
@@ -108,6 +92,22 @@ def fRAT():
             pool.join()
         else:
             list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+        # Move csv file containing parameter info
+        try:
+            Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis._save_location}", copy=True)
+
+        except FileNotFoundError:
+            if config.verify_param_method == 'table' and config.run_steps == 'all':
+                raise
+
+        else:
+            if config.verify_param_method == 'table':
+                # Create combined_results.json
+                curr_dir = os.getcwd()
+                ParamParser.run_parse(config)
+                os.chdir(curr_dir)
+                combined_results_created = True
 
     # Plot the results
     if config.run_steps in ("plot", "all"):

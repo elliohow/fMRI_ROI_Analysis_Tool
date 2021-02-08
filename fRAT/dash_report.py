@@ -95,7 +95,7 @@ def dash_setup(df):
             sort_mode="multi",
             row_deletable=True,
             row_selectable='multi',
-            selected_rows=[0],
+            selected_rows=[],
             page_action="native",
             page_current=0,
             page_size=len(df['index'].unique()),
@@ -114,7 +114,8 @@ def dash_setup(df):
                                                {'label': 'Excluded voxels (percentage)', 'value': 'Excluded_Voxels'}
                                            ],
                                            value='Mean',
-                                           style={"width": "40%"}
+                                           style={"width": "40%"},
+                                           clearable=False
                                            )]),
                   html.Br(),
                   dcc.Graph(id='barchart', figure={"layout": {"height": 500}})
@@ -151,6 +152,7 @@ def dash_setup(df):
         ConfInts = []
         if dropdown_value == 'Mean':
             ConfInts = dff[fnmatch.filter(df.columns, 'Conf_Int*')[0]]
+
         elif dropdown_value == 'Excluded_Voxels':
             dff['Excluded_Voxels'] = dff['Excluded_Voxels'] / (dff['Excluded_Voxels'] + dff['Voxels']) * 100
             dropdown_label = 'Percentage of voxels excluded'
@@ -170,7 +172,7 @@ def dash_setup(df):
                 "xaxis": {"title": "Region of interest"},
                 "yaxis": {"title": dropdown_label},
                 'plot_bgcolor': colors['background'],
-                'paper_bgcolor': colors['background'],
+                'paper_bgcolor': colors['background']
             },
         }
 
