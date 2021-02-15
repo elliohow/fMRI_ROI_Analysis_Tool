@@ -164,12 +164,6 @@ Brain_table = {
     'brain_fig_file': {'type': 'OptionMenu', 'Recommended': 'Produce all three figures', 'Options': ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'],
                                'save_as': 'string', 'Description': ''},
 
-    'brain_table_x_size': {'type': 'Entry', 'Recommended': 40,
-                            'Description': 'Change the size of the x-axis. Recommended: 40'},
-
-    'brain_table_y_size': {'type': 'Entry', 'Recommended': 10,
-                            'Description': 'Change the size of the y-axis. Recommended: 10'},
-
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
                            'Description': 'Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58'},
 

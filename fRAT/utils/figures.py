@@ -8,8 +8,10 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 import plotnine as pltn
+import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from nilearn import plotting
+from PIL import Image
 
 from .utils import Utils
 
@@ -24,8 +26,6 @@ class Figures:
 
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
-
-        plt.rcParams['figure.figsize'] = config.brain_table_x_size, config.brain_table_y_size  # Brain plot code
 
         combined_results_df = pd.read_json("Summarised_results/combined_results.json")
 
@@ -405,6 +405,17 @@ class Figures:
         plot_values, axis_titles, current_params, col_nums, \
         row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
+        if x_axis_size in (1, 2):
+            brain_table_x_size = 32
+        else:
+            brain_table_x_size = x_axis_size * 16
+
+        brain_table_y_size = 15
+
+        plt.rcParams['figure.figsize'] = brain_table_x_size, brain_table_y_size
+        plt.rcParams['figure.subplot.wspace'] = 0.01
+        plt.rcParams['figure.subplot.hspace'] = 0.1
+
         vmax = vmax_storage = config.brain_fig_value_max
         if vmax_storage is None:
             vmax_storage = []
@@ -419,30 +430,11 @@ class Figures:
                 print(f"Saving {base_ext_clean} table!")
 
             for file_num, json in enumerate(json_array):
-                # Save brain image using nilearn
-                image_name = f"{json}_{base_ext_clean}.png"
-
-                if base_extension == "_Mean.nii.gz" and base_ext_clean.find("_same_scale") == -1:
-                    # Calculate colour bar limit if not manually set
-                    brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
-                    brain = brain.get_fdata()
-
-                    vmax = np.nanmax(brain)
-                    vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
-
-                plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
-                                          draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
-                                          vmin=config.brain_fig_value_min, vmax=vmax,
-                                          cut_coords=(config.brain_x_coord, config.brain_z_coord),
-                                          cmap='inferno')
-
-                plot.savefig(image_name)
-                plot.close()
-
-                indiv_brain_imgs.append(image_name)
+                brain_img, indiv_brain_imgs, dims = cls.create_indiv_brain_img(json, base_ext_clean, base_extension,
+                                                                               vmax, vmax_storage, indiv_brain_imgs)
 
                 # Import saved image into subplot
-                img = mpimg.imread(image_name)
+                img = mpimg.imread(brain_img)
                 plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
                 plt.imshow(img)
 
@@ -460,7 +452,7 @@ class Figures:
                     plt.ylabel(axis_titles[1] + " " + plot_values[1][row_nums[file_num]],
                                fontsize=config.plot_font_size)
 
-            cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size)
+            cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
 
             if config.brain_tight_layout:
                 plt.tight_layout()
@@ -479,6 +471,33 @@ class Figures:
                       f'Creating figures with this colourbar limit.')
 
         return indiv_brain_imgs
+
+    @classmethod
+    def create_indiv_brain_img(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs):
+        # Save brain image using nilearn
+        brain_img = f"{json}_{base_ext_clean}.png"
+        indiv_brain_imgs.append(brain_img)
+
+        if base_extension == "_Mean.nii.gz" and base_ext_clean.find("_same_scale") == -1:
+            # Calculate colour bar limit if not manually set
+            brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
+            brain = brain.get_fdata()
+
+            vmax = np.nanmax(brain)
+            vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
+
+        plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
+                                  draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
+                                  vmin=config.brain_fig_value_min, vmax=vmax,
+                                  cut_coords=(config.brain_x_coord, config.brain_z_coord),
+                                  cmap='inferno')
+        plot.savefig(brain_img)
+        plot.close()
+
+        im = Image.open(brain_img)
+        width, height = im.size
+
+        return brain_img, indiv_brain_imgs, (width, height)
 
     @classmethod
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
@@ -591,27 +610,32 @@ class Figures:
         return plot_values_sorted, axis_titles, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
 
     @classmethod
-    def label_blank_cell_axes(cls, plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size):
+    def label_blank_cell_axes(cls, plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims):
+        # Make blank image with the same dimensions as previous images
+        img = Image.new("RGB", (dims[0], dims[1]), (255, 255, 255))
+
         for counter, x_title in enumerate(plot_values[0]):
             hidden_cell = np.ravel_multi_index((0, counter), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums:
                 plt.subplot(y_axis_size, x_axis_size, hidden_cell + 1)
+                plt.imshow(img)
+                cls.make_cell_invisible()
+
                 plt.title(axis_titles[0] + " " + x_title, fontsize=config.plot_font_size)
 
                 if hidden_cell == 0:
                     plt.ylabel(axis_titles[1] + " " + plot_values[1][0], fontsize=config.plot_font_size)
-
-                cls.make_cell_invisible()
 
         for counter, y_title in enumerate(plot_values[1]):
             hidden_cell = np.ravel_multi_index((counter, 0), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums and hidden_cell != 0:
                 plt.subplot(y_axis_size, x_axis_size, hidden_cell + 1)
-                plt.ylabel(axis_titles[1] + " " + y_title, fontsize=config.plot_font_size)
-
+                plt.imshow(img)
                 cls.make_cell_invisible()
+
+                plt.ylabel(axis_titles[1] + " " + y_title, fontsize=config.plot_font_size)
 
     @staticmethod
     def make_cell_invisible():
