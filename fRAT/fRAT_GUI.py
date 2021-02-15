@@ -235,7 +235,7 @@ class Config_GUI:
         Tooltip.CreateToolTip(self.Dash_button, 'Create an interactive table to display fRAT results')
 
         self.Run_button = ttk.Button(self.Run_frame)
-        self.Run_button.place(x=139, y=66, height=42, width=180)
+        self.Run_button.place(x=138, y=66, height=42, width=180)
         self.Run_button.configure(command=lambda: Button_handler('Run_fRAT'))
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings')
@@ -737,5 +737,5 @@ def Reset_settings():
 
 
 if __name__ == '__main__':
-    print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------\n')
+    print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------')
     start_gui()

@@ -365,10 +365,11 @@ class Figures:
 
         if axis == 'xaxis':
             lim = axes[0].get_xlim()
+
         elif axis == 'yaxis':
             lim = axes[0].get_ylim()
 
-            lim = (*lim, thisroi)
+        lim = (*lim, thisroi)
 
         return lim
 
@@ -536,8 +537,12 @@ class Figures:
 
             # Find parameter values for each file_name
             combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
-            current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet].iloc[0]
-            current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet].iloc[0]
+
+            try:
+                current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet].iloc[0]
+                current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet].iloc[0]
+            except IndexError:
+                continue
 
             combined_raw_df = combined_raw_df.append(current_json)
 
