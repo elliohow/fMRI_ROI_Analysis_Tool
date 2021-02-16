@@ -86,7 +86,7 @@ class Figures:
 
         for scatterplot in scatterplots:
             if config.verbose:
-                print(f"Preparing {scatterplot} scatterplot!")
+                print(f"Saving {scatterplot} scatterplot!")
 
             if scatterplot == 'roi_ordered':
                 roi_ord = pd.Categorical(df['index'],
@@ -113,8 +113,6 @@ class Figures:
             figure_table.save(f"Figures/Scatterplots/{scatterplot}_scatterplot.png", height=config.plot_scale,
                               width=config.plot_scale * 3,
                               verbose=False, limitsize=False)
-            if config.verbose:
-                print("Saved scatterplot!")
 
     @classmethod
     def barchart_setup(cls, df, pool):

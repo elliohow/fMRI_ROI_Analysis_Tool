@@ -1,6 +1,6 @@
 import os
 import re
-import sys
+from pathlib import Path
 from glob import glob
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class ParamParser:
                 continue
 
             if config.verify_param_method in ("manual", "name"):
-                param_nums = cls.parse_params_from_file_name(json)
+                param_nums = cls.parse_params_from_file_name(json, config)
             else:
                 param_nums = cls.parse_params_from_table_file(json, table)
 
@@ -98,14 +98,14 @@ class ParamParser:
         return param_nums
 
     @classmethod
-    def parse_params_from_file_name(cls, json_file_name):
+    def parse_params_from_file_name(cls, json_file_name, cfg=config):
         """Search for MRI parameters in each json file name for use in table headers and created the combined json."""
         param_nums = []
 
-        for key in config.parameter_dict:
-            parameter = config.parameter_dict[key]  # Extract search term
+        for key in cfg.parameter_dict:
+            parameter = cfg.parameter_dict[key]  # Extract search term
 
-            if parameter in config.binary_params:
+            if parameter in cfg.binary_params:
                 param = re.search("{}".format(parameter), json_file_name, flags=re.IGNORECASE)
 
                 if param is not None:
@@ -220,6 +220,8 @@ class ParamParser:
 
     @classmethod
     def make_table(cls):
+        config = Utils.load_config(Path(os.path.abspath(__file__)).parents[1], 'config.toml')  # Load config file
+
         print('--- Creating paramValues.csv ---')
         print('Select the NIFTI/ANALYZE file directory.')
         brain_directory = Utils.file_browser(title='Select the NIFTI/ANALYZE file directory', chdir=True)
@@ -234,7 +236,7 @@ class ParamParser:
         params = []
         for file in brain_file_list:
             # Try to find parameters to prefill table
-            params.append(ParamParser.parse_params_from_file_name(file))
+            params.append(ParamParser.parse_params_from_file_name(file, config))
         params = np.array(params).transpose()
 
         df = pd.DataFrame(data={'File name': brain_file_list})
@@ -249,4 +251,4 @@ class ParamParser:
         print(f"\nparamValues.csv saved in {brain_directory}.\n\nInput parameter values in paramValues.csv and change "
               f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
               f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
-              f"parameters, update config.parameter_dict2.")
+              f"parameters, update the parsing options in the GUI or parameter_dict2 in config.toml.")

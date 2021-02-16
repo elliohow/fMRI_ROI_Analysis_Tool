@@ -104,9 +104,7 @@ def fRAT():
         else:
             if config.verify_param_method == 'table':
                 # Create combined_results.json
-                curr_dir = os.getcwd()
                 ParamParser.run_parse(config)
-                os.chdir(curr_dir)
                 combined_results_created = True
 
     # Plot the results
@@ -125,7 +123,7 @@ def fRAT():
         html_report.main(str(orig_path))
 
         if config.verbose:
-            print('\nCreated html report.')
+            print('\nCreated html report')
 
     os.chdir(orig_path)  # Reset path
 

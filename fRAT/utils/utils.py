@@ -75,7 +75,7 @@ class Utils:
 
     @staticmethod
     def save_config(directory):
-        with open(directory + '/config_log.toml', 'w') as f, open('config.toml', 'r') as r:
+        with open(directory + '/config_log.toml', 'w') as f, open(f'config.toml', 'r') as r:
             for line in r:
                 f.write(line)
 
