@@ -1715,6 +1715,11 @@ pre code {
   border: 0;
 }
 
+td
+{
+padding:5px 10px;
+}
+
 .table-striped tbody tr:nth-of-type(odd) {
   background-color: #303030;
 }

@@ -13,10 +13,12 @@ def create_index():
 
         with div(cls='container'):
             with div(id='content'):
-                for iC in range(4):
+                for i in range(5):
                     br()
 
                 h2('Figures')
+
+                br()
 
                 with table():
                     with thead():
@@ -56,7 +58,7 @@ def create_figure_pages(figure_type):
 
             with div(cls='container'):
                 with div(id='content'):
-                    for iC in range(4):
+                    for i in range(5):
                         br()
 
                     if len(folders) > 1:
@@ -65,6 +67,8 @@ def create_figure_pages(figure_type):
                     else:
                         folder = os.path.split(folder)[1]
                         h2(f"{str_format(folder)}")
+
+                    br()
 
                     with table():
                         with tbody():
@@ -86,10 +90,12 @@ def create_figure_pages(figure_type):
 
             with div(cls='container'):
                 with div(id='content'):
-                    for iC in range(4):
+                    for i in range(5):
                         br()
 
                     h2(os.path.split(figure_type)[1])
+
+                    br()
 
                     with table():
                         with tbody():
