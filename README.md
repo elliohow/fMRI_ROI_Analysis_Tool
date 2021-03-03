@@ -27,6 +27,12 @@ To install all required modules use the following command in the project directo
 To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
 the 'data' folder to test whether the project dependencies are correctly installed.
 
+### install using `conda` and virtual env
+
+If you have `conda` installed on your system, you can also get all the dependencies using a *virtual environment*.
+
+For some more detailed instructions [check the Readme in the conda_env folder](conda_env/Readme.md).
+
 ## Running
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
 settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
