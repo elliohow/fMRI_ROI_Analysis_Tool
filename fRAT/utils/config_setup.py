@@ -80,7 +80,7 @@ Analysis = {
                         'Description': 'File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img'},
 
     'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
-                  'Description': 'True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
+                  'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                             'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
@@ -124,16 +124,16 @@ Plotting = {
                    'Description': 'Recommended value 10'},
 
     'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make scatterplots',
-                           'Description': 'True or False.'},
+                           'Description': 'true or false.'},
 
     'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make brain visualisations',
-                         'Description': 'True or False.'},
+                         'Description': 'true or false.'},
 
     'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make regional barcharts',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'make_histogram': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make regional histograms',
-                       'Description': 'True or False.'},
+                       'Description': 'true or false.'},
 
     'colorblind_friendly_plot_colours': {'type': 'Entry', 'Recommended': '#ffeda0, #feb24c, #fc4e2a, #bd0026',  'save_as': 'list',
                                          'Description': 'Hex values of colourblind friendly colour scale.'},
@@ -151,7 +151,7 @@ Plotting = {
 '''Brain table settings'''
 Brain_table = {
     'brain_tight_layout': {'type': 'CheckButton', 'Recommended': 'false',
-                'Description': 'True or False. Use a tight layout when laying out the figure. Recommended: false'},
+                'Description': 'true or false. Use a tight layout when laying out the figure. Recommended: false'},
 
     'brain_fig_value_min': {'type': 'Entry', 'Recommended': 0,
             'Description': 'Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black.\n'
@@ -235,13 +235,13 @@ Region_histogram = {
                                  'Description': ''},
 
     'histogram_show_mean': {'type': 'CheckButton', 'Recommended': 'true',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'histogram_show_median': {'type': 'CheckButton', 'Recommended': 'true',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
