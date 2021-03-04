@@ -274,7 +274,7 @@ class Config_GUI:
 
             self.Plot_settings_frame = tk.LabelFrame(window)
             self.frames.append(self.Plot_settings_frame)
-            self.Plot_settings_frame.place(relx=0.31, y=y_loc + 70, height=270, relwidth=0.394)
+            self.Plot_settings_frame.place(relx=0.31, y=y_loc + 58, height=270, relwidth=0.394)
             self.Plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
             self.frame_setup(self.Plot_settings_frame)
 
@@ -615,6 +615,7 @@ def Button_handler(command):
             printResults()
 
         elif command == "Make paramValues.csv":
+            Save_settings()
             ParamParser.make_table()
             sys.exit()
 
