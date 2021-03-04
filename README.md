@@ -26,7 +26,7 @@
 To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
 
 To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
-the 'example_data' folder to test whether the project dependencies are correctly installed.
+the `example_data` folder to test whether the project dependencies are correctly installed.
 
 ### Install packages using a virtual environment
 Using virtual environments keeps dependencies required by different projects separate by creating an isolated virtual environment for each project, preventing a number of dependency issues. You can install all the dependencies required by the fRAT within a *virtual environment* using `conda`, the `venv` module built-in to python or any other virtual environment package installed on your system.
