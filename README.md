@@ -8,6 +8,7 @@
 ## Table of Contents
 <!--ts-->
 * [Installing / Getting started](#installing--getting-started)
+  * [Virtual environments](#install-packages-using-a-virtual-environment)
 * [Running](#running)
   * [Folder structure](#folder-structure)
   * [paramValues.csv](#paramvaluescsv)
