@@ -54,8 +54,8 @@ def df_setup():
 
     df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
 
-    column_order = [0, 4, 8, 6, 9, 1, 7, 5, 10, 2, 3]
-    for i in range(11, len(df.columns)):
+    column_order = [0, 4, 9, 6, 10, 1, 7, 8, 5, 11, 2, 3]
+    for i in range(12, len(df.columns)):
         column_order.insert(3, i)  # Used to insert additional columns if more than 2 parameters used in paramValues.csv
 
     df = df[df.columns[column_order]]  # Reorganise columns
@@ -108,6 +108,7 @@ def dash_setup(df):
                                            options=[
                                                {'label': 'Mean', 'value': 'Mean'},
                                                {'label': 'Standard deviation', 'value': 'Std_dev'},
+                                               {'label': 'Median', 'value': 'Median'},
                                                {'label': 'Minimum', 'value': 'Min'},
                                                {'label': 'Maximum', 'value': 'Max'},
                                                {'label': 'Voxels', 'value': 'Voxels'},

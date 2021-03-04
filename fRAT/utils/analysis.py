@@ -167,7 +167,7 @@ class Analysis:
         config = cfg
 
         if config.verbose:
-            print(f'\nAnalysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
+            print(f'- Analysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}')
 
         excluded_voxels = self.roi_flirt_transform()  # Convert MNI brain to native space
         self.roi_stats(brain_number_current, brain_number_total, excluded_voxels)  # Calculate and save statistics
@@ -397,8 +397,8 @@ class Analysis:
 
         # Create arrays to store the values before and after statistics
         roiTempStore = np.full([roiNum, idxMNI.shape[0]], np.nan)
-        roiResults = np.full([7, roiNum + 1], np.nan)
-        roiResults[6, 0:-1] = 0  # Change excluded voxels measure from NaN to 0
+        roiResults = np.full([8, roiNum + 1], np.nan)
+        roiResults[7, 0:-1] = 0  # Change excluded voxels measure from NaN to 0
 
         return roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum
 
@@ -410,7 +410,7 @@ class Analysis:
 
             else:
                 roiTempStore[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
-                roiResults[6, int(roi)] += 1
+                roiResults[7, int(roi)] += 1
 
         return roiTempStore, roiResults
 
@@ -427,15 +427,16 @@ class Analysis:
             roiResults[3, write_start:write_end] = self._conf_level_list[int(config.conf_level_number)][1] \
                                                    * roiResults[2, write_start:write_end] \
                                                    / np.sqrt(roiResults[0, write_start:write_end])  # 95% confidence interval calculation
-            roiResults[4, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
-            roiResults[5, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
+            roiResults[4, write_start:write_end] = np.nanmedian(roiTempStore[read_start:, :], axis=axis)
+            roiResults[5, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
+            roiResults[6, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
 
             axis = None
             read_start = 1
             write_start = -1
             write_end = None
 
-        roiResults[6, -1] = np.sum(roiResults[6, 1:-1])  # Calculate excluded voxels
+        roiResults[7, -1] = np.sum(roiResults[6, 1:-1])  # Calculate excluded voxels
 
         # Convert ROIs with no voxels from columns with NaNs to zeros
         for column, voxel_num in enumerate(roiResults[0]):
@@ -462,7 +463,7 @@ class Analysis:
     def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
         headers = ['Voxels', 'Mean', 'Std_dev',
                    f'Conf_Int_{self._conf_level_list[int(config.conf_level_number)][0]}',
-                   'Min', 'Max', 'Excluded_Voxels']
+                   'Median', 'Min', 'Max', 'Excluded_Voxels']
 
         # Reorganise matrix to later remove nan rows
         roiTempStore = roiTempStore.transpose()
@@ -493,7 +494,7 @@ class Analysis:
 
         # Save JSON files
         if config.verbose:
-            print(f'\nSaving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
+            print(f'- Saving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}')
 
         with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
