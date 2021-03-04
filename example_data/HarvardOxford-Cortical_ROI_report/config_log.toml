@@ -15,7 +15,7 @@ frac_inten = 0.4                                                                
 dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = false                                                            # true or false. Note: This will inflate values such as tSNR.
 anat_align = true                                                                 # true or false. Recommended: true.
-grey_matter_segment = 'fslfast'                                                   # "freesurfer", "fslfast" or "None".  Note: Requires anatomical align be true to function. Options: ['fslfast', 'freesurfer', 'None'].
+grey_matter_segment = 'fslfast'                                                   # "fslfast" or "None".  Note: Requires anatomical align be true to function. Options: ['fslfast', 'None'].
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
@@ -25,8 +25,8 @@ binary_params = ['']                                                            
 
 # Parsing
 verify_param_method = 'table'                                                     # "table", "name" or "manual".  How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime. Options: ['table', 'name', 'manual'].
-parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted
-parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to an entry above.
+parameter_dict1 = ['MBd', 'SENSE']                                                # Comma-separated list of parameter names to be parsed for and plotted
+parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 
 # Plotting
 plot_dpi = 200                                                                    # Recommended value 600
@@ -38,6 +38,7 @@ make_one_region_fig = true                                                      
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = 'Runtime'                                                     # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+use_same_axis_limits = 'Create both'                                              # "Same limits", "Different limits" or "Both".  Choose whether to create figures with the same x/y limits. Options: ['Same limits', 'Different limits', 'Create both'].
 
 # Scatter_plot
 table_x_label = 'tSNR mean'                                                       # 
@@ -51,8 +52,6 @@ brain_tight_layout = false                                                      
 brain_fig_value_min = 0                                                           # Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black. Recommended value: 0
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_fig_file = 'Produce all three figures'                                      #  Options: ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'].
-brain_table_x_size = 40                                                           # Change the size of the x-axis. Recommended: 40
-brain_table_y_size = 10                                                           # Change the size of the y-axis. Recommended: 10
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
 brain_table_cols = 'MB'                                                           # 
