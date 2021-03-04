@@ -133,8 +133,8 @@ def plot_figs(figure_type, figures):
         fig_name = os.path.split(str_format(fig))[1][:-(length+3)]  # Format name for better presentation
 
         l = tr()
-        l.add(td(a(h4(str_format(fig_name)), href=f"{os.getcwd()}/{fig}")))  # Add plot title
-        l.add(td(a(img(src=f"{os.getcwd()}/{fig}", width=700), href=f"{os.getcwd()}/{fig}")))  # Show plot
+        l.add(td(a(h4(str_format(fig_name)), href=f"../{fig}")))  # Add plot title
+        l.add(td(a(img(src=f"{os.getcwd()}/{fig}", width=700), href=f"../{fig}")))  # Show plot
 
 
 def doc_setup(page=None):
