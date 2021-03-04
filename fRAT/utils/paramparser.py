@@ -93,7 +93,12 @@ class ParamParser:
             return param_nums
         else:
             for key in config.parameter_dict:
-                param_nums.append(float(table_row[key]))
+                try:
+                    param_nums.append(float(table_row[key]))
+                except KeyError:
+                    raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
+                                    f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
+                                    f'paramValues.csv headers.')
 
         return param_nums
 
