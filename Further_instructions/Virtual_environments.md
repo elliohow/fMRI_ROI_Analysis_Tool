@@ -1,7 +1,7 @@
 # Installing depencies in virtual environments
 
 ## `venv` and `conda` setup
-These instructions apply if you are running under `Linux` or `MacOS`. For Windows there may be similar solutions, however be aware that fRAT is untested with Windows due to difficulties running software important to fRAT such as FSL.
+These instructions apply if you are running under `Linux` or `MacOS`. For `Windows` there may be similar solutions, however be aware that fRAT is untested with Windows due to difficulties running software important to fRAT such as FSL.
 
 ```bash
 # Create an environment called fRAT
