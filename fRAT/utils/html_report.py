@@ -32,7 +32,7 @@ def create_index():
                             l = tr()
                             l.add(td(a(h4(str_format(os.path.split(fig)[1])), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
                             image = glob(f"{fig}/**/*.png", recursive=True)[0]
-                            l.add(td(a(img(src=f"{os.getcwd()}/{image}", width=400), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
+                            l.add(td(a(img(src=f"{image}", width=400), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
 
     save_page(doc, 'index.html')
 
