@@ -134,7 +134,7 @@ def plot_figs(figure_type, figures):
 
         l = tr()
         l.add(td(a(h4(str_format(fig_name)), href=f"../{fig}")))  # Add plot title
-        l.add(td(a(img(src=f"{os.getcwd()}/{fig}", width=700), href=f"../{fig}")))  # Show plot
+        l.add(td(a(img(src=f"../{fig}", width=700), href=f"../{fig}")))  # Show plot
 
 
 def doc_setup(page=None):
