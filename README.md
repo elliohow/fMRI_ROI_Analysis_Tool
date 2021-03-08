@@ -25,12 +25,12 @@
 
 ### GUI images
 <p align="center">
- <img src="docs/example_images/GUI.png" height=400>
+ <img src="docs/example_images/GUI.png" width=700>
 </p>
 
 ### HTML report images
 <p align="center">
- <img src="docs/example_images/HTML_report.png" height=400>
+ <img src="docs/example_images/HTML_report.png" width=900>
 </p>
 
 ## Installing / Getting started
