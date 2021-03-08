@@ -24,10 +24,14 @@
 ## About
 
 ### GUI images
-<img src="docs/example_images/GUI.png" height=450>
+<p align="center">
+ <img src="docs/example_images/GUI.png" height=420>
+</p>
 
 ### HTML report images
-<img src="docs/example_images/HTML_report.png" height=450>
+<p align="center">
+ <img src="docs/example_images/HTML_report.png" height=420>
+</p>
 
 ## Installing / Getting started
 To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
