@@ -21,7 +21,13 @@
 * [Licensing](#licensing)
 <!--te-->
 
-![GUI](docs/example_images/GUI.png)
+## About
+
+### GUI images
+<img src="docs/example_images/GUI.png" height=450>
+
+### HTML report images
+<img src="docs/example_images/HTML_report.png" height=450>
 
 ## Installing / Getting started
 To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
