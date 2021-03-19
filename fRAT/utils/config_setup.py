@@ -54,8 +54,8 @@ Analysis = {
                         'Options': ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'],
                         'Description': 'Set the statistic to scale the brain figures by. Recommended: Mean.'},
 
-    'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.4, 'label': 'Fractional intensity',
-                   'Description': 'Fractional intensity threshold for BET. Default: 0.4'},
+    'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.3, 'label': 'Fractional intensity',
+                   'Description': 'Fractional intensity threshold for BET. Default: 0.3'},  # TODO delete
 
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
@@ -165,10 +165,16 @@ Brain_table = {
                                'save_as': 'string', 'Description': ''},
 
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
-                           'Description': 'Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58'},
+                      'Description': 'Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58'},
 
     'brain_z_coord': {'type': 'Entry', 'Recommended': 91,
-                           'Description': 'Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58'},
+                      'Description': 'Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58'},
+
+    'brain_table_col_labels': {'type': 'Entry', 'Recommended': 'MB', 'save_as': 'string', 'label': 'Column labels',
+                              'Description': 'Label for columns.'},
+
+    'brain_table_row_labels': {'type': 'Entry', 'Recommended': 'SENSE', 'save_as': 'string', 'label': 'Row labels',
+                              'Description': 'Label for rows.'},
 
     'brain_table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]', 'subtype': 'OptionMenu', 'save_as': 'string',
                          'DefaultNumber': 0, 'Description': ''},

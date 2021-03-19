@@ -92,7 +92,7 @@ class Figures:
                 roi_ord = pd.Categorical(df['index'],
                                          categories=df['index'].unique())  # Order rows based on first facet
             else:
-                roi_ord = pd.Categorical(df.groupby(['MB', 'SENSE']).cumcount())  # Order each facet individually
+                roi_ord = pd.Categorical(df.groupby([config.table_cols, config.table_rows]).cumcount())  # Order each facet individually
 
             figure_table = (pltn.ggplot(df, pltn.aes(x="Mean", y=roi_ord))
                             + pltn.geom_point(na_rm=True, size=1)
@@ -161,11 +161,14 @@ class Figures:
                                                                   categories=current_df[
                                                                       config.single_roi_fig_x_axis].unique())
 
+        current_df.columns = [c.replace(' ', '_') for c in current_df.columns]
+        config.single_roi_fig_x_axis = config.single_roi_fig_x_axis.replace(" ", "_")  # TODO: Comment this
+        config.single_roi_fig_colour = config.single_roi_fig_colour.replace(" ", "_")
+
         figure = (
                 pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
                                                  ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
-                                                 fill='factor({colour})'.format(
-                                                     colour=config.single_roi_fig_colour)))
+                                                 fill=f'factor({config.single_roi_fig_colour})'))
                 + pltn.theme_538()
                 + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                 + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
@@ -401,7 +404,7 @@ class Figures:
         json_array = df['File_name'].unique()
 
         plot_values, axis_titles, current_params, col_nums, \
-        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
+        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df) # TODO: check if axis titles still need to be returned
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -444,11 +447,10 @@ class Figures:
                 ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
                 if row_nums[file_num] == 0:
-                    plt.title(axis_titles[0] + " " + plot_values[0][col_nums[file_num]], fontsize=config.plot_font_size)
+                    plt.title(config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]], fontsize=config.plot_font_size)
 
                 if col_nums[file_num] == 0:
-                    plt.ylabel(axis_titles[1] + " " + plot_values[1][row_nums[file_num]],
-                               fontsize=config.plot_font_size)
+                    plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]], fontsize=config.plot_font_size)
 
             cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
 
@@ -620,10 +622,10 @@ class Figures:
                 plt.imshow(img)
                 cls.make_cell_invisible()
 
-                plt.title(axis_titles[0] + " " + x_title, fontsize=config.plot_font_size)
+                plt.title(config.brain_table_col_labels + " " + x_title, fontsize=config.plot_font_size)
 
                 if hidden_cell == 0:
-                    plt.ylabel(axis_titles[1] + " " + plot_values[1][0], fontsize=config.plot_font_size)
+                    plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][0], fontsize=config.plot_font_size)
 
         for counter, y_title in enumerate(plot_values[1]):
             hidden_cell = np.ravel_multi_index((counter, 0), (y_axis_size, x_axis_size))
@@ -633,7 +635,7 @@ class Figures:
                 plt.imshow(img)
                 cls.make_cell_invisible()
 
-                plt.ylabel(axis_titles[1] + " " + y_title, fontsize=config.plot_font_size)
+                plt.ylabel(config.brain_table_row_labels + " " + y_title, fontsize=config.plot_font_size)
 
     @staticmethod
     def make_cell_invisible():

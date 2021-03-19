@@ -252,10 +252,11 @@ class Analysis:
 
         # Arguments dependent on FSL function used
         if func == 'MCFLIRT':
-            object.brain = current_brain
+            object.brain = current_brain  # TODO comment this
 
         elif func == 'BET':
             fslfunc.inputs.frac = config.frac_inten
+            fslfunc.inputs.functional = True
 
         elif func == 'FLIRT':
             fslfunc.inputs.reference = argv[0]
@@ -281,17 +282,19 @@ class Analysis:
 
         fslfunc.run()
 
-        if func == 'FLIRT':
+        if func in ('FLIRT', 'ApplyXFM'):
             object.file_list.extend([current_brain, current_mat])
-            return current_mat
 
-        elif func == 'ApplyXFM':
-            object.file_list.extend([current_brain, current_mat])
-            return current_brain
+        elif func == 'BET':
+            object.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
 
         else:
             object.file_list.append(current_brain)
-            return current_brain
+
+        if func == 'FLIRT':
+            return current_mat
+
+        return current_brain
 
     def segmentation_to_fmri(self, anat_aligned_mat, current_brain):
         if config.verbose:

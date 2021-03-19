@@ -11,7 +11,7 @@ file_cleanup = 'move'                                                           
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
 roi_stat_number = 'Mean'                                                          # Set the statistic to scale the brain figures by. Recommended: Mean. Options: ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'].
-frac_inten = 0.4                                                                  # Fractional intensity threshold for BET. Default: 0.4
+frac_inten = 0.3                                                                  # Fractional intensity threshold for BET. Default: 0.3
 dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = false                                                            # true or false. Note: This will inflate values such as tSNR.
 anat_align = true                                                                 # true or false. Recommended: true.
@@ -54,6 +54,8 @@ brain_fig_value_max = 'None'                                                    
 brain_fig_file = 'Produce all three figures'                                      #  Options: ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'].
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
+brain_table_col_labels = 'MB'                                                     # Label for columns.
+brain_table_row_labels = 'SENSE'                                                  # Label for rows.
 brain_table_cols = 'MB'                                                           # 
 brain_table_rows = 'SENSE'                                                        # 
 
