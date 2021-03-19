@@ -7,6 +7,7 @@ from dash_table.Format import Format, Scheme
 import fnmatch
 import pandas as pd
 import numpy
+import re
 import webbrowser
 from flask import Flask
 import signal
@@ -54,11 +55,16 @@ def df_setup():
 
     df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
 
-    column_order = [0, 4, 9, 6, 10, 1, 7, 8, 5, 11, 2, 3]
-    for i in range(12, len(df.columns)):
-        column_order.insert(3, i)  # Used to insert additional columns if more than 2 parameters used in paramValues.csv
+    r = re.compile("Conf_Int_*")
+    Conf_Int = list(filter(r.match, df.columns))[0]  # Find confidence interval level
+    column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev', 'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
 
-    df = df[df.columns[column_order]]  # Reorganise columns
+    crit_params = list(set(df.columns) ^ set(column_order))  # Find elements not in both lists
+
+    for crit_param in crit_params:
+        column_order.insert(1, crit_param)  # Insert critical parameters after index
+
+    df = df[column_order]  # Reorganise columns
 
     df["id"] = df.index
 
