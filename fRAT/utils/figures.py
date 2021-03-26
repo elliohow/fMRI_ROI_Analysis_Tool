@@ -227,7 +227,7 @@ class Figures:
 
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.histogram_df_setup(roi, combined_raw_df, list_rois, config))
+                combined_raw_dfs.append(cls.histogram_df_setup(roi, combined_raw_df, combined_df, list_rois, config))
 
             xlim = 0
             while True:
@@ -258,7 +258,7 @@ class Figures:
                     break
 
     @staticmethod
-    def histogram_df_setup(roi, combined_raw_df, list_rois, config):
+    def histogram_df_setup(roi, combined_raw_df, combined_df, list_rois, config):
         # Set up the df for each chosen roi
         thisroi = list_rois[roi]
 
@@ -271,13 +271,20 @@ class Figures:
 
         current_df = current_df.dropna()  # Drop na values using pandas function, which is faster than plotnines dropna functions
 
-        current_df['Mean'] = current_df.groupby([config.histogram_fig_x_facet, config.histogram_fig_y_facet])[
-            "voxel_value"].transform('mean')
-        current_df['Median'] = current_df.groupby([config.histogram_fig_x_facet, config.histogram_fig_y_facet])[
-            "voxel_value"].transform('median')
+        # Combine both dataframes to find mean and median statistics
+        combined_df = combined_df.rename(columns={"index": "ROI"})
+        current_df = current_df.merge(combined_df,
+                                      on=['ROI', config.histogram_fig_x_facet, config.histogram_fig_y_facet],
+                                      how='left')
 
-        current_df = pd.melt(current_df, id_vars=current_df.keys()[:-2], var_name="Statistic",
-                             value_vars=["Mean", "Median"], value_name="stat_value")  # Put df into correct format
+        # Keep only the necessary columns
+        keys = ['Hyperband', 'Inplane acceleration', 'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
+        for column in current_df.columns:
+            if column not in keys:
+                current_df = current_df.drop(columns=column)
+
+        current_df = pd.melt(current_df, id_vars=keys[:-2], var_name="Statistic",
+                             value_vars=["Mean", "Median"], value_name="stat_value")  # Put df into tidy format
 
         if config.histogram_show_mean and not config.histogram_show_median:
             current_df = current_df.loc[current_df["Statistic"] == "Mean"]
