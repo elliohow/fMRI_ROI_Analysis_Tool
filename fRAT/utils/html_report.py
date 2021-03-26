@@ -147,7 +147,8 @@ def doc_setup(page=None):
 
     with doc.head:
         link(rel='stylesheet', href=f'{folder}bootstrap.css')
-        script(type='text/javascript', src='script.js')
+        script(type='text/javascript', src=f'{folder}script.js')
+
 
     return doc
 
@@ -164,18 +165,34 @@ def save_page(doc, page):
 def navbar(index=False):
     with nav(cls="navbar navbar-expand-lg fixed-top navbar-dark bg-primary"):
         with div(cls='container'):
-            h1('fRAT report', style="font-size:30px", cls="navbar-brand")
+            span('fRAT report', style="font-size:30px", cls="navbar-brand")
+            span(id="output", style="font-size:15px", cls="navbar-brand")
 
-            if not index:
+            if index:
+                with div(cls='collapse navbar-collapse', id='navbarResponsive'):
+                    with ul(cls='navbar-nav'):
+                        li()  # Prevent flex from forcing folder name to the right hand side on index page
+
+                script("""
+                       var loc = window.location.pathname;
+                       document.getElementById('output').innerHTML = '/' + loc.split('/').slice(-2, -1);
+                       """)
+            else:
                 with div(cls='collapse navbar-collapse', id='navbarResponsive'):
                     with ul(cls='navbar-nav'):
                         li(a('Back to Figures', cls="nav-link", href=f'{os.getcwd()}/index.html', align='center'), cls='nav-item')
+
+                script("""
+                       var loc = window.location.pathname;
+                       document.getElementById('output').innerHTML = '/' + loc.split('/').slice(-3, -2);
+                       """)
 
 
 def main(orig_path):
     Utils.check_and_make_dir("fRAT_report")
     orig_path += "/utils"
     Utils.move_file('bootstrap.css', orig_path, 'fRAT_report/', copy=True, rename_copy=False)
+    Utils.move_file('script.js', orig_path, 'fRAT_report/', copy=True, rename_copy=False)
 
     create_index()
     fig_types = [f for f in glob(f"Figures/*")]
