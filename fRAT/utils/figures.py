@@ -266,13 +266,15 @@ class Figures:
             return pd.DataFrame()
         elif thisroi == "Overall":
             current_df = combined_raw_df.copy()
+            current_df['ROI'] = "Overall"
         else:
             current_df = combined_raw_df[combined_raw_df["ROI"] == thisroi].copy()
 
         current_df = current_df.dropna()  # Drop na values using pandas function, which is faster than plotnines dropna functions
 
         # Combine both dataframes to find mean and median statistics
-        combined_df = combined_df.rename(columns={"index": "ROI"})
+        combined_df = combined_df.rename(columns={"index": "ROI"})  # Rename column to maintain parity with combined_df column naming convention
+
         current_df = current_df.merge(combined_df,
                                       on=['ROI', config.histogram_fig_x_facet, config.histogram_fig_y_facet],
                                       how='left')

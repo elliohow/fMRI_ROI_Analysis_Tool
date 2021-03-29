@@ -180,7 +180,7 @@ def navbar(index=False):
             else:
                 with div(cls='collapse navbar-collapse', id='navbarResponsive'):
                     with ul(cls='navbar-nav'):
-                        li(a('Back to Figures', cls="nav-link", href=f'{os.getcwd()}/index.html', align='center'), cls='nav-item')
+                        li(a('Back to Figures', cls="nav-link", href=f'../index.html', align='center'), cls='nav-item')
 
                 script("""
                        var loc = window.location.pathname;

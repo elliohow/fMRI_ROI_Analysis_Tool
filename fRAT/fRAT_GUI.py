@@ -388,7 +388,6 @@ class Config_GUI:
             y_loc += 40
 
         elif info['subtype'] == 'Checkbutton':
-
             for value in text:
                 widget = self.checkbutton_create(f"{name}_{value}", info, y_loc)
                 [widget.configure(text=value) for widget in widget.values()]
@@ -608,6 +607,14 @@ def Button_handler(command):
     try:
         if command == 'Run_fRAT':
             Save_settings()
+
+            stale_pages = check_stale_state()
+            if stale_pages:
+                print(f"\nPlot settings for the following plots have not been updated to reflect new critical parameter settings: "
+                      f"\n * {stale_pages}"
+                      f"\nOpening these pages in the GUI will update these settings. Also make sure to update labels for these plots in their pages.\n")
+                return
+
             print('----- Running fRAT -----')
             fRAT()
 
@@ -629,6 +636,26 @@ def Button_handler(command):
             log = logging.getLogger(__name__)
             log.exception(err)
             sys.exit()
+
+
+def check_stale_state():
+    current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
+    dynamic_widgets = (Scatter_plot['table_cols'], Scatter_plot['table_rows'],
+                       Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
+                       Region_barchart['single_roi_fig_label_fill'], Region_barchart['single_roi_fig_x_axis'],
+                       Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'])
+    plot_pages = {0: 'Scatterplot', 1: 'Scatterplot',
+                  2: 'Brain table', 3: 'Brain table',
+                  4: 'Regional barchart', 5: 'Regional barchart',
+                  6: 'Regional histogram', 7: 'Regional histogram'}
+
+    stale_pages = []
+    for counter, widget in enumerate(dynamic_widgets):
+        if widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
+            stale_pages.append(plot_pages[counter])
+
+    if stale_pages:
+        return "\n * ".join(stale_pages)
 
 
 def Print_atlas_ROIs(selection):
