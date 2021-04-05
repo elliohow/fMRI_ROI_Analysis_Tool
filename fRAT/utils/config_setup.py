@@ -1,5 +1,5 @@
 """Configuration file"""
-pages = ['Settings', 'General', 'Analysis', 'Parsing', 'Plotting', 'Scatter_plot',
+pages = ['Settings', 'General', 'Analysis', 'Parsing', 'Plotting', 'Violin_plot',
          'Brain_table', 'Region_barchart', 'Region_histogram']
 
 '''General settings'''
@@ -53,9 +53,6 @@ Analysis = {
     'roi_stat_number': {'type': 'OptionMenu', 'Recommended': 'Mean',  'save_as': 'string',  'label': 'ROI statistic',
                         'Options': ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'],
                         'Description': 'Set the statistic to scale the brain figures by. Recommended: Mean.'},
-
-    'frac_inten': {'type': 'Scale', 'From': 0, 'To': 1, 'Resolution': 0.05, 'Recommended': 0.3, 'label': 'Fractional intensity',
-                   'Description': 'Fractional intensity threshold for BET. Default: 0.3'},  # TODO delete
 
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
@@ -123,7 +120,7 @@ Plotting = {
     'plot_scale': {'type': 'Entry', 'Recommended': 10, 'label': 'Figure scale',
                    'Description': 'Recommended value 10'},
 
-    'make_scatter_table': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make scatterplots',
+    'make_violin_plot': {'type': 'CheckButton', 'Recommended': 'true',  'label': 'Make violin plots',
                            'Description': 'True or False.'},
 
     'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make brain visualisations',
@@ -183,8 +180,8 @@ Brain_table = {
                          'DefaultNumber': 1, 'Description': ''}
 }
 
-'''Scatter plot settings'''
-Scatter_plot = {
+'''Violin plot settings'''
+Violin_plot = {
 
     'table_x_label': {'type': 'Entry', 'Recommended': 'tSNR mean', 'save_as': 'string',
                       'Description': ''},
@@ -192,8 +189,21 @@ Scatter_plot = {
     'table_y_label': {'type': 'Entry', 'Recommended': 'ROI', 'save_as': 'string',
                       'Description': ''},
 
-    'table_row_order': {'type': 'OptionMenu', 'Recommended': 'both', 'Options': ['roi', 'stat', 'both'], 'save_as': 'string',
-                        'Description': 'roi, stat or both. Recommended: both'},
+    'violin_show_data': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show data points',
+                         'Description': 'True or False.'},
+
+    'violin_jitter': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Jitter data points',
+                      'Description': 'True or False.'},
+
+    'violin_colour': {'type': 'Dynamic', 'Recommended': '#fc4e2a',
+                      'Options': 'Plotting["colorblind_friendly_plot_colours"]',
+                      'subtype': 'OptionMenu', 'save_as': 'string',
+                      'Description': 'Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.'},
+
+    'boxplot_colour': {'type': 'Dynamic', 'Recommended': '#feb24c',
+                      'Options': 'Plotting["colorblind_friendly_plot_colours"]',
+                      'subtype': 'OptionMenu', 'save_as': 'string',
+                      'Description': 'Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.'},
 
     'table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
                          'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,

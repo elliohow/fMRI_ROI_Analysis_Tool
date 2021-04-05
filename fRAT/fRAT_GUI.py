@@ -262,7 +262,7 @@ class Config_GUI:
                 if page == 'Settings':
                     continue
 
-                if page == 'Scatter_plot':
+                if page == 'Violin_plot':
                     break
 
                 self.index_setup(page, current_frame, y_loc, relx)
@@ -281,7 +281,7 @@ class Config_GUI:
             continue_loop = True
 
             for page in pages:
-                if page == 'Scatter_plot':
+                if page == 'Violin_plot':
                     continue_loop = False
                     y_loc = 10
                     relx = 0.03
@@ -640,7 +640,7 @@ def Button_handler(command):
 
 def check_stale_state():
     current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
-    dynamic_widgets = (Scatter_plot['table_cols'], Scatter_plot['table_rows'],
+    dynamic_widgets = (Violin_plot['table_cols'], Violin_plot['table_rows'],
                        Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
                        Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],
                        Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'])

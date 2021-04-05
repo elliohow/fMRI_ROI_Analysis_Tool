@@ -56,16 +56,14 @@ class Figures:
                 for img in indiv_brain_imgs:
                     Utils.move_file(img, os.getcwd(), indiv_brains_dir)
 
-        if config.make_scatter_table:
-            cls.scatterplot(combined_results_df)
+        if config.make_violin_plot:
+            cls.violin_plot(combined_results_df)
 
         if config.make_one_region_fig:
             cls.barchart_setup(combined_results_df, pool)
 
         if config.make_histogram:
             cls.histogram_setup(combined_results_df, pool)
-            
-        cls.violin_make(combined_results_df)
 
         if pool:
             pool.close()
@@ -73,6 +71,7 @@ class Figures:
 
     @classmethod
     def scatterplot(cls, df):
+        """Deprecated"""
         Utils.check_and_make_dir("Figures/Scatterplots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
@@ -94,7 +93,8 @@ class Figures:
                 roi_ord = pd.Categorical(df['index'],
                                          categories=df['index'].unique())  # Order rows based on first facet
             else:
-                roi_ord = pd.Categorical(df.groupby([config.table_cols, config.table_rows]).cumcount())  # Order each facet individually
+                roi_ord = pd.Categorical(
+                    df.groupby([config.table_cols, config.table_rows]).cumcount())  # Order each facet individually
 
             figure_table = (pltn.ggplot(df, pltn.aes(x="Mean", y=roi_ord))
                             + pltn.geom_point(na_rm=True, size=1)
@@ -275,14 +275,16 @@ class Figures:
         current_df = current_df.dropna()  # Drop na values using pandas function, which is faster than plotnines dropna functions
 
         # Combine both dataframes to find mean and median statistics
-        combined_df = combined_df.rename(columns={"index": "ROI"})  # Rename column to maintain parity with combined_df column naming convention
+        combined_df = combined_df.rename(
+            columns={"index": "ROI"})  # Rename column to maintain parity with combined_df column naming convention
 
         current_df = current_df.merge(combined_df,
                                       on=['ROI', config.histogram_fig_x_facet, config.histogram_fig_y_facet],
                                       how='left')
 
         # Keep only the necessary columns
-        keys = ['Hyperband', 'Inplane acceleration', 'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
+        keys = [config.histogram_fig_x_facet, config.histogram_fig_y_facet, 'ROI', 'voxel_value', 'Voxels', 'Mean',
+                'Median']
         for column in current_df.columns:
             if column not in keys:
                 current_df = current_df.drop(columns=column)
@@ -370,7 +372,7 @@ class Figures:
             return returned_xlim
 
     @classmethod
-    def violin_make(cls, df):
+    def violin_plot(cls, df):
         Utils.check_and_make_dir("Figures/Violin_plots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
@@ -386,28 +388,33 @@ class Figures:
         # How much to shift the violin, points and lines
         shift = 0.1
 
-        m1 = pltn.aes(x=pltn.stage('constant', after_scale='x+shift'))  # shift outward
-        m2 = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
+        right_shift = pltn.aes(x=pltn.stage('constant', after_scale='x+shift'))  # shift outward
+        left_shift = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
 
-        figure_table = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
-                        + pltn.geom_violin(m2, na_rm=True, style='left', fill=config.colorblind_friendly_plot_colours[2])
-                        + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=config.colorblind_friendly_plot_colours[1])
-                        + pltn.geom_jitter(width=0.04, height=0)
-                        + pltn.xlim(0.4, 1.4)  # TODO: improve boxplot, add standard colours, wider border around violin?, make jitter optional, option to choose to plot median instead of mean?
-                        + pltn.ylab(config.table_x_label)
-                        + pltn.xlab("")
-                        + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
-                                          drop=True, labeller="label_both")
-                        + pltn.theme_538()  # Set theme
-                        + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
-                                     panel_grid_major_x=pltn.themes.element_line(alpha=0),
-                                     panel_background=pltn.element_rect(fill="gray", alpha=0.1),
-                                     axis_text_x=pltn.element_blank(),
-                                     dpi=config.plot_dpi))
+        figure = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
+                  + pltn.geom_violin(left_shift, na_rm=True, style='left', fill=config.violin_colour)
+                  + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=config.boxplot_colour)
+                  + pltn.xlim(0.4, 1.4)  # TODO: wider border around violin?, option to choose to plot median instead of mean?
+                  + pltn.ylab(config.table_x_label)
+                  + pltn.xlab("")
+                  + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
+                                    drop=True, labeller="label_both")
+                  + pltn.theme_538()  # Set theme
+                  + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
+                               panel_grid_major_x=pltn.themes.element_line(alpha=0),
+                               panel_background=pltn.element_rect(fill="gray", alpha=0.1),
+                               axis_text_x=pltn.element_blank(),
+                               dpi=config.plot_dpi))
 
-        figure_table.save(f"Figures/Violin_plots/violinplot.png", height=config.plot_scale,
-                          width=config.plot_scale * 3,
-                          verbose=False, limitsize=False)
+        if config.violin_show_data:
+            if config.violin_jitter:
+                figure += pltn.geom_jitter(width=0.04, height=0)
+            else:
+                figure += pltn.geom_point()
+
+        figure.save(f"Figures/Violin_plots/violinplot.png", height=config.plot_scale,
+                    width=config.plot_scale * 3,
+                    verbose=False, limitsize=False)
 
     @staticmethod
     def find_axis_limit(thisroi, figure, axis):
@@ -455,7 +462,8 @@ class Figures:
         json_array = df['File_name'].unique()
 
         plot_values, axis_titles, current_params, col_nums, \
-        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df) # TODO: check if axis titles still need to be returned
+        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(
+            df)  # TODO: check if axis titles still need to be returned
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -498,10 +506,12 @@ class Figures:
                 ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
                 if row_nums[file_num] == 0:
-                    plt.title(config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]], fontsize=config.plot_font_size)
+                    plt.title(config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]],
+                              fontsize=config.plot_font_size)
 
                 if col_nums[file_num] == 0:
-                    plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]], fontsize=config.plot_font_size)
+                    plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
+                               fontsize=config.plot_font_size)
 
             cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
 

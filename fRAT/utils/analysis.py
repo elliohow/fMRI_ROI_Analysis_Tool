@@ -186,7 +186,7 @@ class Analysis:
         current_brain = self.fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
 
         # Brain extraction
-        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_", config.frac_inten)
+        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
 
         if config.anat_align:
             # Align to anatomical
@@ -256,7 +256,6 @@ class Analysis:
             object.brain = current_brain  # TODO comment this
 
         elif func == 'BET':
-            fslfunc.inputs.frac = config.frac_inten
             fslfunc.inputs.functional = True
 
         elif func == 'FLIRT':
