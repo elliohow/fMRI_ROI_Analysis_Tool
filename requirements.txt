@@ -50,7 +50,7 @@ pathos==0.2.6
 patsy==0.5.1
 Pillow==7.2.0
 plotly==4.14.3
-plotnine==0.7.1
+plotnine==0.8.0
 pox==0.2.8
 ppft==1.6.6.2
 prov==1.5.3

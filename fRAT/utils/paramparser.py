@@ -89,8 +89,9 @@ class ParamParser:
         table_row = table.loc[table["File name"] == json_file_name]
 
         param_nums = []
-        if table_row['Ignore file? (y for yes, otherwise blank)'].to_string(index=False).strip().lower() == 'y':
+        if table_row['Ignore file? (y for yes, otherwise blank)'].to_string(index=False).strip().lower() in ('y', 'yes', 'true'):
             return param_nums
+
         else:
             for key in config.parameter_dict:
                 try:

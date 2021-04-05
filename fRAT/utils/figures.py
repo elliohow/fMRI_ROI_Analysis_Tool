@@ -64,6 +64,8 @@ class Figures:
 
         if config.make_histogram:
             cls.histogram_setup(combined_results_df, pool)
+            
+        cls.violin_make(combined_results_df)
 
         if pool:
             pool.close()
@@ -366,6 +368,46 @@ class Figures:
             warnings.simplefilter(action='default', category=FutureWarning)
 
             return returned_xlim
+
+    @classmethod
+    def violin_make(cls, df):
+        Utils.check_and_make_dir("Figures/Violin_plots")
+        df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
+
+        df = df.groupby([config.table_cols, config.table_rows]).apply(
+            lambda x: x.sort_values(['Mean']))  # Group by parameters and sort
+        df = df.reset_index(drop=True)  # Reset index to remove grouping
+
+        if config.verbose:
+            print(f"Saving violin plot!")
+
+        df['constant'] = 1
+
+        # How much to shift the violin, points and lines
+        shift = 0.1
+
+        m1 = pltn.aes(x=pltn.stage('constant', after_scale='x+shift'))  # shift outward
+        m2 = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
+
+        figure_table = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
+                        + pltn.geom_violin(m2, na_rm=True, style='left', fill=config.colorblind_friendly_plot_colours[2])
+                        + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=config.colorblind_friendly_plot_colours[1])
+                        + pltn.geom_jitter(width=0.04, height=0)
+                        + pltn.xlim(0.4, 1.4)  # TODO: improve boxplot, add standard colours, wider border around violin?, make jitter optional, option to choose to plot median instead of mean?
+                        + pltn.ylab(config.table_x_label)
+                        + pltn.xlab("")
+                        + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
+                                          drop=True, labeller="label_both")
+                        + pltn.theme_538()  # Set theme
+                        + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
+                                     panel_grid_major_x=pltn.themes.element_line(alpha=0),
+                                     panel_background=pltn.element_rect(fill="gray", alpha=0.1),
+                                     axis_text_x=pltn.element_blank(),
+                                     dpi=config.plot_dpi))
+
+        figure_table.save(f"Figures/Violin_plots/violinplot.png", height=config.plot_scale,
+                          width=config.plot_scale * 3,
+                          verbose=False, limitsize=False)
 
     @staticmethod
     def find_axis_limit(thisroi, figure, axis):

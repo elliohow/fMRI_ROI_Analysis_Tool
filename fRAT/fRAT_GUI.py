@@ -642,7 +642,7 @@ def check_stale_state():
     current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
     dynamic_widgets = (Scatter_plot['table_cols'], Scatter_plot['table_rows'],
                        Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
-                       Region_barchart['single_roi_fig_label_fill'], Region_barchart['single_roi_fig_x_axis'],
+                       Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],
                        Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'])
     plot_pages = {0: 'Scatterplot', 1: 'Scatterplot',
                   2: 'Brain table', 3: 'Brain table',
