@@ -80,10 +80,11 @@ Base folder
 │   └── NIFTI/Analyze statistical map files
 │
 ├── anat (optional but recommended)
-│   └── anatomy file
+│   └── skull stripped anatomy file
 │
 ├── fslfast (optional but recommended)
-│   └── fslfast pve_1 output
+│   ├── fslfast pve_1 file
+│   └── (Other files output by fast can be placed in this folder, however will not be used by the fRAT)
 │
 ├── NIFTI/Analyze fMRI files
 └── paramValues.csv (created through GUI)
@@ -97,10 +98,10 @@ Base folder
 │   └── P2_MB1_S1P5_matchBW_tSNR.nii
 │
 ├── anat (optional but recommended)
-│   └── CS_MPRAGE.nii
+│   └── MPRAGE.nii
 │
 ├── fslfast (optional but recommended)
-│   └── bet_MPRAGE_pve_1.nii.gz
+│   └── MPRAGE_pve_1.nii.gz
 │
 ├── P1_MB3_S2_matchBW.nii
 ├── P2_MB1_S1P5_matchBW.nii
@@ -156,12 +157,13 @@ Output folder
   be successfully parsed from the file names.
 
 ### If aligning to anatomical (recommended):
-* A single (non-brain extracted) anatomical volume should be placed in a folder called "anat".
+* A single skull stripped anatomical volume should be placed in a folder called "anat".
 
 ### If aligning to FSL FAST segmentation (recommended):
 * FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be
   completed before running fRAT analysis.
-* Output of FAST should be placed in a folder called "fslfast", only the file with the suffix "pve_1" needs to be used.
+* Output of FAST should be placed in a folder called "fslfast". All files output by fast can be placed in this folder, 
+  however only the file with the suffix "pve_1" will be used.
 * FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
   be added in the future.
 

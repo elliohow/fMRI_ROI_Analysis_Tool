@@ -96,6 +96,8 @@ class ParamParser:
             for key in config.parameter_dict:
                 try:
                     param_nums.append(float(table_row[key]))
+                except ValueError:
+                    param_nums.append(table_row[key].to_string(index=False).strip())
                 except KeyError:
                     raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
                                     f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '

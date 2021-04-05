@@ -39,7 +39,7 @@ mizani==0.7.1
 multiprocess==0.70.10
 networkx==2.4
 neurdflib==5.0.1
-nibabel==2.5.1
+nibabel==3.2.1
 nilearn==0.6.1
 nipype==1.5.1
 numpy==1.17.4

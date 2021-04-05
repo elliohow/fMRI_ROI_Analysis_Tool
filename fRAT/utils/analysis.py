@@ -299,7 +299,7 @@ class Analysis:
 
     def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
         if config.verbose:
-            print(f'- Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
+            print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
         if config.grey_matter_segment == "freesurfer":
             source_loc = 'freesurfer/mri/native_segmented_brain.nii'  # Use anat aligned freesurfer segmentation
@@ -497,7 +497,7 @@ class Analysis:
 
         # Save JSON files
         if config.verbose:
-            print(f'- Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
+            print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
         with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
@@ -525,8 +525,8 @@ class Analysis:
             if config.verbose:
                 print('\n--- Atlas scaling ---')
         if config.verbose:
-            print(f'\n Creating NIFTI_ROI files for fMRI volume '
-                  f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
+            print(f'Creating NIFTI_ROI files for fMRI volume '
+                  f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.')
 
         brain_stat = nib.load(self.atlas_path)
         brain_stat = brain_stat.get_fdata()
