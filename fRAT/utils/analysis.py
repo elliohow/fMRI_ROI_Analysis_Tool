@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import simplejson as json
 import xmltodict
+from os.path import splitext
+from glob import glob
 from nipype.interfaces import fsl, freesurfer
 
 from .utils import Utils
@@ -54,8 +56,8 @@ class Analysis:
         self.label_list = labels
         self.atlas_path = atlas_path
 
-        self.no_ext_brain = atlas + "_" + os.path.splitext(self.brain)[0]
-        self.stat_brain = config.stat_map_folder + os.path.splitext(self.brain)[0] + config.stat_map_suffix
+        self.no_ext_brain = atlas + "_" + splitext(self.brain)[0]
+        self.stat_brain = config.stat_map_folder + splitext(self.brain)[0] + config.stat_map_suffix
 
         self.roiResults = ""
         self.roi_stat_list = ""
@@ -147,11 +149,9 @@ class Analysis:
             print('\nConverting anatomical file to MNI space.')
 
         anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
+        cls._anat_brain = f'{os.getcwd()}/anat/{anat}'
 
-        cls._anat_brain = cls.fsl_functions(cls, cls._save_location, os.path.splitext(anat)[0],
-                                            'BET', f'{os.getcwd()}/anat/{anat}', "bet_")
-
-        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, f"bet_{os.path.splitext(anat)[0]}",
+        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, anat.rsplit(".")[0],
                                                    'FLIRT', cls._anat_brain, 'to_mni_from_',
                                                    f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
@@ -167,14 +167,14 @@ class Analysis:
         config = cfg
 
         if config.verbose:
-            print(f'- Analysing brain {brain_number_current + 1}/{brain_number_total}: {self.brain}')
+            print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.brain}')
 
-        excluded_voxels = self.roi_flirt_transform()  # Convert MNI brain to native space
+        excluded_voxels = self.roi_flirt_transform(brain_number_current, brain_number_total)  # Convert MNI brain to native space
         self.roi_stats(brain_number_current, brain_number_total, excluded_voxels)  # Calculate and save statistics
 
         return self
 
-    def roi_flirt_transform(self):
+    def roi_flirt_transform(self, brain_number_current, brain_number_total):
         """Function which uses NiPype to transform the chosen atlas into native space."""
         pack_vars = [self, self._save_location, self.no_ext_brain]
 
@@ -207,7 +207,8 @@ class Analysis:
 
         if config.grey_matter_segment is not None:
             # Convert segmentation to fMRI native space
-            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain)
+            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
+                                                             brain_number_current, brain_number_total)
 
             return self.find_gm_from_segment(segmentation_to_fmri)
 
@@ -228,7 +229,7 @@ class Analysis:
         warnings.filterwarnings('default')  # Reactivate warnings
 
         if config.bootstrap:
-            self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum)  # Bootstrapping
+            self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total)  # Bootstrapping
 
         self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
 
@@ -296,9 +297,9 @@ class Analysis:
 
         return current_brain
 
-    def segmentation_to_fmri(self, anat_aligned_mat, current_brain):
+    def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
         if config.verbose:
-            print(f'- Aligning {config.grey_matter_segment} segmentation to fMRI volume: {self.brain}')
+            print(f'- Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
         if config.grey_matter_segment == "freesurfer":
             source_loc = 'freesurfer/mri/native_segmented_brain.nii'  # Use anat aligned freesurfer segmentation
@@ -306,9 +307,7 @@ class Analysis:
             interp = 'nearestneighbor'
 
         elif config.grey_matter_segment == "fslfast":
-            anat_brain_no_folder = os.path.split(self._anat_brain)[-1]
-            anat_brain_base = os.path.splitext(os.path.splitext(anat_brain_no_folder)[0])[0]
-            source_loc = f'fslfast/{anat_brain_base}_pve_1.nii.gz'
+            source_loc = glob(f"fslfast/*_pve_1*")[0]
             prefix = 'fslfast_to_'
             interp = 'trilinear'
 
@@ -449,10 +448,11 @@ class Analysis:
 
         return roiResults
 
-    def roi_stats_bootstrap(self, roiTempStore, roiResults, roiNum):
+    def roi_stats_bootstrap(self, roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
         for counter, roi in enumerate(list(range(0, roiNum + 1))):
             if config.verbose:
-                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1}: {self.brain}.")
+                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
+                      f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
 
             if counter < roiNum:
                 roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
@@ -497,7 +497,7 @@ class Analysis:
 
         # Save JSON files
         if config.verbose:
-            print(f'- Saving JSON files for brain {brain_number_current + 1}/{brain_number_total}: {self.brain}')
+            print(f'- Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
         with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
@@ -525,10 +525,8 @@ class Analysis:
             if config.verbose:
                 print('\n--- Atlas scaling ---')
         if config.verbose:
-            print('\n Creating NIFTI_ROI files for {brain}: {brain_num_cur}/{brain_num_tot}.\n'.format(
-                brain_num_cur=brain_number_current + 1,
-                brain_num_tot=brain_number_total,
-                brain=self.brain))
+            print(f'\n Creating NIFTI_ROI files for fMRI volume '
+                  f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.\n')
 
         brain_stat = nib.load(self.atlas_path)
         brain_stat = brain_stat.get_fdata()
