@@ -283,8 +283,9 @@ class Figures:
                                       how='left')
 
         # Keep only the necessary columns
-        keys = [config.histogram_fig_x_facet, config.histogram_fig_y_facet, 'ROI', 'voxel_value', 'Voxels', 'Mean',
-                'Median']
+        keys = [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
+                'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
+
         for column in current_df.columns:
             if column not in keys:
                 current_df = current_df.drop(columns=column)
@@ -392,9 +393,9 @@ class Figures:
         left_shift = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
 
         figure = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
-                  + pltn.geom_violin(left_shift, na_rm=True, style='left', fill=config.violin_colour)
-                  + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=config.boxplot_colour)
-                  + pltn.xlim(0.4, 1.4)  # TODO: wider border around violin?, option to choose to plot median instead of mean?
+                  + pltn.geom_violin(left_shift, na_rm=True, style='left', fill=config.violin_colour, size=0.6)
+                  + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=config.boxplot_colour, size=0.6)
+                  + pltn.xlim(0.4, 1.4)
                   + pltn.ylab(config.table_x_label)
                   + pltn.xlab("")
                   + pltn.facet_grid('{rows}~{cols}'.format(rows=config.table_rows, cols=config.table_cols),
