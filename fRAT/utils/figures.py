@@ -8,6 +8,7 @@ import numpy as np
 import nibabel as nib
 import pandas as pd
 import plotnine as pltn
+import simplejson as json
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from nilearn import plotting
@@ -609,8 +610,10 @@ class Figures:
     @staticmethod
     def make_raw_df(jsons, combined_df):
         combined_raw_df = pd.DataFrame()
+
         for json_file in jsons:
-            current_json = pd.read_json(f"{os.getcwd()}/Raw_results/{json_file}")
+            with open(f"{os.getcwd()}/Raw_results/{json_file}", 'r') as f:
+                current_json = Utils.dict_to_dataframe(json.load(f))
 
             json_file_name = json_file.rsplit("_raw.json")[0]
 

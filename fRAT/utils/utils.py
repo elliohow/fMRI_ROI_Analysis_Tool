@@ -9,6 +9,7 @@ from tkinter import Tk, filedialog
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
 import multiprocess as mp
+import pandas as pd
 import warnings
 from types import SimpleNamespace
 
@@ -52,6 +53,18 @@ class Utils:
                 files.extend(these_files)
 
         return files
+
+    @staticmethod
+    def dataframe_to_dict(dataframe):
+        roidict = {}
+        for column in dataframe.columns:
+            roidict[column] = dataframe[column].dropna().to_numpy().tolist()
+
+        return roidict
+
+    @staticmethod
+    def dict_to_dataframe(roidict):
+        return pd.DataFrame.from_dict(roidict, orient='index').transpose()
 
     @staticmethod
     def file_browser(title='', chdir=False):

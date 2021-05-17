@@ -488,6 +488,9 @@ class Analysis:
         # Remove rows where all columns have NaNs (essential to keep file size down)
         raw_results = raw_results.dropna(axis=0, how='all')
 
+        # Convert to dict and get rid of row numbers to significantly decrease file size
+        roidict = Utils.dataframe_to_dict(raw_results)
+
         summary_results_path = f"{self._brain_directory}/{self._save_location}Summarised_results/"
         Utils.check_and_make_dir(summary_results_path)
 
@@ -501,7 +504,7 @@ class Analysis:
         with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
         with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
-            json.dump(raw_results.to_dict(), file, indent=2, ignore_nan=True)
+            json.dump(roidict, file, indent=2)
 
     @staticmethod
     def file_cleanup(file_list, save_location):
