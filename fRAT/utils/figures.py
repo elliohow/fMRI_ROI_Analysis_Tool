@@ -199,15 +199,11 @@ class Figures:
             thisroi += '_same_ylim'
 
         returned_ylim = 0
-        if config.use_same_axis_limits in ('Same limits', 'Create both') and ylimit == 0:
+        if ylimit == 0:
             returned_ylim = find_ylim_function(thisroi, figure, 'yaxis')
-
-        if config.use_same_axis_limits == 'Same limits' and ylimit == 0:
-            return returned_ylim
+            folder = 'Different_yaxis'
         elif ylimit != 0:
             folder = 'Same_yaxis'
-        else:
-            folder = 'Different_yaxis'
 
         save_function(figure, thisroi, config, folder, 'barchart')
 
@@ -354,15 +350,11 @@ class Figures:
                 figure += pltn.xlim(-1, None)
 
             returned_xlim = 0
-            if config.use_same_axis_limits in ('Same limits', 'Create both') and xlimit == 0:
+            if xlimit == 0:
                 returned_xlim = find_xlim_function(thisroi, figure, 'xaxis')
-
-            if config.use_same_axis_limits == 'Same limits' and xlimit == 0:
-                return returned_xlim
+                folder = 'Different_xaxis'
             elif xlimit != 0:
                 folder = 'Same_xaxis'
-            else:
-                folder = 'Different_xaxis'
 
             # Suppress Pandas warning about alignment of non-concatenation axis
             warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -436,7 +428,6 @@ class Figures:
 
     @staticmethod
     def figure_save(figure, thisroi, config, folder, chart_type):
-
         # Format file name correctly
         replacements = [
             (r'\([^()]*\)', ""),  # Remove anything between parenthesis
