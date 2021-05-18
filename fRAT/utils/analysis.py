@@ -63,8 +63,7 @@ class Analysis:
         self.roi_stat_list = ""
         self.file_list = []
         self.atlas_scale_filename = ['Voxels', 'Mean', 'Standard_Deviation',
-                                     '%s_Confidence_Interval' % self._conf_level_list[int(config.conf_level_number)][0],
-                                     'Min', 'Max']
+                                     'Confidence_Interval', 'Min', 'Max']
 
         # Copying class attributes here is a workaround for dill, which can't access modified class attributes for
         # imported modules.

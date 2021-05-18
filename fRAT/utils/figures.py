@@ -36,9 +36,9 @@ class Figures:
             pool = None
 
         if config.make_brain_table:
-            brain_plot_opts_exts = ["_Mean.nii.gz",
-                                    "_Mean_within_roi_scaled.nii.gz",
-                                    "_Mean_mixed_roi_scaled.nii.gz",
+            brain_plot_opts_exts = [f"_{config.roi_stat_ext}.nii.gz",
+                                    f"_{config.roi_stat_ext}_within_roi_scaled.nii.gz",
+                                    f"_{config.roi_stat_ext}_mixed_roi_scaled.nii.gz",
                                     "all"]
             brain_plot_base_ext = brain_plot_opts_exts[config.brain_fig_file]
 
@@ -480,7 +480,7 @@ class Figures:
                 base_ext_clean += "_same_scale"
 
             if config.verbose:
-                print(f"Saving {base_ext_clean} table!")
+                print(f"Saving {base_ext_clean} table.")
 
             for file_num, json in enumerate(json_array):
                 brain_img, indiv_brain_imgs, dims = cls.create_indiv_brain_img(json, base_ext_clean, base_extension,
