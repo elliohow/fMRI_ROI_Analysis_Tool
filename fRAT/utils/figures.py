@@ -474,9 +474,9 @@ class Figures:
             vmax_storage = []
 
         while True:
-            if base_extension != "_Mean.nii.gz":
+            if base_extension != f"_{base_ext_clean}.nii.gz":
                 vmax = 100
-            elif base_extension == "_Mean.nii.gz" and vmax is not None:
+            elif base_extension == f"_{base_ext_clean}.nii.gz" and vmax is not None:
                 base_ext_clean += "_same_scale"
 
             if config.verbose:
