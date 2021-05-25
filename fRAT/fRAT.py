@@ -84,9 +84,10 @@ def analysis(combined_results_created, config):
     if config.grey_matter_segment == 'freesurfer':
         Analysis.freesurfer_to_anat()
 
-    pool = None
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
+    else:
+        pool = None
 
     brain_list = run_analysis(brain_list, config, pool)
     atlas_scale(brain_list, config, pool)

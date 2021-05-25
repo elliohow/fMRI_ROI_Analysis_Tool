@@ -50,10 +50,6 @@ Analysis = {
                                  ],
                      'Description': ''},
 
-    'roi_stat_number': {'type': 'OptionMenu', 'Recommended': 'Mean',  'save_as': 'string',  'label': 'ROI statistic',
-                        'Options': ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'],
-                        'Description': 'Set the statistic to scale the brain figures by. Recommended: Mean.'},
-
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
 
@@ -151,9 +147,6 @@ Brain_table = {
     'brain_fig_value_max': {'type': 'Entry', 'Recommended': None,
                             'Description': 'Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar.\n'
                                            'Recommended value: None. Note: will default to 100 for scaled maps.'},
-
-    'brain_fig_file': {'type': 'OptionMenu', 'Recommended': 'Produce all three figures', 'Options': ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'],
-                               'save_as': 'string', 'Description': ''},
 
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
                            'Description': 'Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58'},

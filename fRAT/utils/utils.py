@@ -175,15 +175,9 @@ class Utils:
                 config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
                                             'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
 
-                config.roi_stat_ext = config.statistic_options  # TODO: fix this option
-
                 conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
                 config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
                 config.conf_level_number = conf_level_options.index(config.conf_level_number)
-
-                brain_plot_opts = ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)',
-                                   'Produce all three figures']
-                config.brain_fig_file = brain_plot_opts.index(config.brain_fig_file)
 
                 config.parameter_dict = {config.parameter_dict1[i]:
                                              config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}

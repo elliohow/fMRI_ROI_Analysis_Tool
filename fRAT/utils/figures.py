@@ -36,26 +36,7 @@ class Figures:
             pool = None
 
         if config.make_brain_table:
-            brain_plot_opts_exts = [f"_{config.roi_stat_ext}.nii.gz",
-                                    f"_{config.roi_stat_ext}_within_roi_scaled.nii.gz",
-                                    f"_{config.roi_stat_ext}_mixed_roi_scaled.nii.gz",
-                                    "all"]
-            brain_plot_base_ext = brain_plot_opts_exts[config.brain_fig_file]
-
-            indiv_brains_dir = f"{os.getcwd()}/Figures/Brain_images"
-            Utils.check_and_make_dir(indiv_brains_dir)
-
-            if brain_plot_base_ext == "all":
-                for base_extension in brain_plot_opts_exts[0:-1]:
-                    indiv_brain_imgs = cls.brain_grid(combined_results_df, base_extension)
-
-                    for img in indiv_brain_imgs:
-                        Utils.move_file(img, os.getcwd(), indiv_brains_dir)
-            else:
-                indiv_brain_imgs = cls.brain_grid(combined_results_df, brain_plot_base_ext)
-
-                for img in indiv_brain_imgs:
-                    Utils.move_file(img, os.getcwd(), indiv_brains_dir)
+            cls.brain_grid(combined_results_df, config)
 
         if config.make_violin_plot:
             cls.violin_plot(combined_results_df)
@@ -69,6 +50,25 @@ class Figures:
         if pool:
             pool.close()
             pool.join()
+
+    @classmethod
+    def brain_grid(cls, combined_results_df, config):
+        indiv_brains_dir = f"{os.getcwd()}/Figures/Brain_images"
+        Utils.check_and_make_dir(indiv_brains_dir)
+
+        for statistic in config.statistic_options:
+            brain_plot_exts = [f"_{statistic}.nii.gz",
+                               f"_{statistic}_within_roi_scaled.nii.gz",
+                               f"_{statistic}_mixed_roi_scaled.nii.gz"]
+
+            for base_extension in brain_plot_exts:
+                indiv_brain_imgs = cls.brain_grid_setup(combined_results_df, base_extension, statistic)
+
+                if config.verbose:
+                    print("\n")
+
+                for img in indiv_brain_imgs:
+                    Utils.move_file(img, os.getcwd(), indiv_brains_dir)
 
     @classmethod
     def scatterplot(cls, df):
@@ -447,16 +447,14 @@ class Figures:
             print(f"Saved {thisroi}_{chart_type}.png")
 
     @classmethod
-    def brain_grid(cls, df, base_extension):
-        Utils.check_and_make_dir("Figures/Brain_grids")
+    def brain_grid_setup(cls, df, base_extension, statistic):
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
         json_array = df['File_name'].unique()
 
         plot_values, axis_titles, current_params, col_nums, \
-        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(
-            df)  # TODO: check if axis titles still need to be returned
+        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)  # TODO: check if axis titles still need to be returned
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -474,65 +472,75 @@ class Figures:
             vmax_storage = []
 
         while True:
-            if base_extension != f"_{config.roi_stat_ext}.nii.gz":
+            if base_extension != f"_{statistic}.nii.gz":
                 vmax = 100
-            elif base_extension == f"_{config.roi_stat_ext}.nii.gz" and vmax is not None:
+
+            elif base_extension == f"_{statistic}.nii.gz" and vmax is not None:
                 base_ext_clean += "_same_scale"
 
             if config.verbose:
                 print(f"Saving {base_ext_clean} table.")
 
-            for file_num, json in enumerate(json_array):
-                brain_img, indiv_brain_imgs, dims = cls.create_indiv_brain_img(json, base_ext_clean, base_extension,
-                                                                               vmax, vmax_storage, indiv_brain_imgs)
+            indiv_brain_imgs = cls.brain_grid_table_make(axis_titles, base_ext_clean, base_extension, cell_nums,
+                                                         col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
+                                                         statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
 
-                # Import saved image into subplot
-                img = mpimg.imread(brain_img)
-                plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
-                plt.imshow(img)
-
-                ax = plt.gca()
-                ax.set_yticks([])  # Remove y-axis ticks
-                ax.axes.yaxis.set_ticklabels([])  # Remove y-axis labels
-
-                ax.set_xticks([])  # Remove x-axis ticks
-                ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
-
-                if row_nums[file_num] == 0:
-                    plt.title(config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]],
-                              fontsize=config.plot_font_size)
-
-                if col_nums[file_num] == 0:
-                    plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
-                               fontsize=config.plot_font_size)
-
-            cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
-
-            if config.brain_tight_layout:
-                plt.tight_layout()
-
-            plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
-            plt.close()
-
-            if base_extension != f"_{config.roi_stat_ext}.nii.gz" or config.brain_fig_value_max is not None:
+            if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean or config.brain_fig_value_max is not None:
                 break
+
             else:
                 # Find highest ROI value seen to create figures with the same scale
                 vmax_storage = sorted(vmax_storage)[-1]
-                vmax = config.brain_fig_value_max = vmax_storage[0]
+                vmax = vmax_storage[0]
 
-                print(f'Maximum ROI value of: {round(vmax_storage[0])} seen in file: {vmax_storage[1]}. '
-                      f'Creating figures with this colourbar limit.')
+                if config.verbose:
+                    print(f'Maximum ROI value of: {round(vmax_storage[0])} seen in file: {vmax_storage[1]}. '
+                          f'Creating figures with this colourbar limit.')
 
         return indiv_brain_imgs
 
     @classmethod
-    def create_indiv_brain_img(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs):
+    def brain_grid_table_make(cls, axis_titles, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
+                              json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
+                              y_axis_size):
+        for file_num, json in enumerate(json_array):
+            brain_img, indiv_brain_imgs, dims = cls.create_indiv_brain_img(json, base_ext_clean, base_extension,
+                                                                           vmax, vmax_storage, indiv_brain_imgs,
+                                                                           statistic)
+
+            # Import saved image into subplot
+            img = mpimg.imread(brain_img)
+            plt.subplot(y_axis_size, x_axis_size, cell_nums[file_num] + 1)
+            plt.imshow(img)
+
+            ax = plt.gca()
+            ax.set_yticks([])  # Remove y-axis ticks
+            ax.axes.yaxis.set_ticklabels([])  # Remove y-axis labels
+
+            ax.set_xticks([])  # Remove x-axis ticks
+            ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
+
+            if row_nums[file_num] == 0:
+                plt.title(config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]],
+                          fontsize=config.plot_font_size)
+
+            if col_nums[file_num] == 0:
+                plt.ylabel(config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
+                           fontsize=config.plot_font_size)
+        cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
+        if config.brain_tight_layout:
+            plt.tight_layout()
+        plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
+        plt.close()
+        return indiv_brain_imgs
+
+    @classmethod
+    def create_indiv_brain_img(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs, statistic):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
 
-        if base_extension == f"_{config.roi_stat_ext}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
+        if base_extension == f"_{statistic}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
             # Calculate colour bar limit if not manually set
             brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
             brain = brain.get_fdata()
