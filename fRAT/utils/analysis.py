@@ -19,6 +19,7 @@ config = None
 
 class Analysis:
     file_list = []
+    save_location = ""
 
     _roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
     _conf_level_list = [('80', 1.28),
@@ -42,7 +43,6 @@ class Analysis:
                          ('Thalamus/Thalamus-maxprob-thr0-1mm.nii.gz', 'Thalamus.xml')]
 
     _brain_directory = ""
-    _save_location = ""
     _fsl_path = ""
     _anat_brain = ""
     _anat_brain_to_mni = ""
@@ -62,13 +62,11 @@ class Analysis:
         self.roiResults = ""
         self.roi_stat_list = ""
         self.file_list = []
-        self.atlas_scale_filename = ['Voxels', 'Mean', 'Standard_Deviation',
-                                     'Confidence_Interval', 'Min', 'Max']
 
         # Copying class attributes here is a workaround for dill, which can't access modified class attributes for
         # imported modules.
         self._brain_directory = self._brain_directory
-        self._save_location = self._save_location
+        self.save_location = self.save_location
         self._fsl_path = self._fsl_path
         self._atlas_label_path = self._atlas_label_path
         self._atlas_name = self._atlas_name
@@ -117,7 +115,7 @@ class Analysis:
         if config.verbose:
             print('Using the ' + Analysis._atlas_name + ' atlas.')
 
-        Analysis._save_location = Analysis._atlas_name + "_ROI_report/"
+        Analysis.save_location = Analysis._atlas_name + "_ROI_report/"
 
         # Find all nifti and analyze files
         Analysis.brain_file_list = Utils.find_files(Analysis._brain_directory, "hdr", "nii.gz", "nii")
@@ -126,10 +124,10 @@ class Analysis:
             raise NameError("No files found.")
 
         # Make folder to save ROI_report if not already created
-        Utils.check_and_make_dir(Analysis._brain_directory + "/" + Analysis._save_location)
+        Utils.check_and_make_dir(Analysis._brain_directory + "/" + Analysis.save_location)
 
         Utils.move_file('config_log.toml', Analysis._brain_directory,
-                        Analysis._save_location)  # Move config file to analysis folder
+                        Analysis.save_location)  # Move config file to analysis folder
 
         # Extract labels from selected FSL atlas
         Analysis.roi_label_list()
@@ -150,7 +148,7 @@ class Analysis:
         anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
         cls._anat_brain = f'{os.getcwd()}/anat/{anat}'
 
-        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls._save_location, anat.rsplit(".")[0],
+        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls.save_location, anat.rsplit(".")[0],
                                                    'FLIRT', cls._anat_brain, 'to_mni_from_',
                                                    f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
@@ -175,7 +173,7 @@ class Analysis:
 
     def roi_flirt_transform(self, brain_number_current, brain_number_total):
         """Function which uses NiPype to transform the chosen atlas into native space."""
-        pack_vars = [self, self._save_location, self.no_ext_brain]
+        pack_vars = [self, self.save_location, self.no_ext_brain]
 
         if config.motion_correct:
             # Motion correction
@@ -234,10 +232,10 @@ class Analysis:
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
 
-        self.file_cleanup(self.file_list, self._save_location) # Clean up files
+        self.file_cleanup(self)  # Clean up files
 
     @staticmethod
-    def fsl_functions(object, save_location, no_ext_brain, func, input, prefix, *argv):
+    def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         """Run an FSL function using NiPype."""
         fslfunc = getattr(fsl, func)()
         fslfunc.inputs.in_file = input
@@ -252,7 +250,7 @@ class Analysis:
 
         # Arguments dependent on FSL function used
         if func == 'MCFLIRT':
-            object.brain = current_brain  # TODO comment this
+            obj.brain = current_brain  # TODO comment this
 
         elif func == 'BET':
             fslfunc.inputs.functional = True
@@ -264,7 +262,7 @@ class Analysis:
 
         elif func == 'ConvertXFM':
             if len(argv) > 0 and argv[0] == 'concat_xfm':
-                fslfunc.inputs.in_file2 = object._anat_brain_to_mni
+                fslfunc.inputs.in_file2 = obj._anat_brain_to_mni
                 fslfunc.inputs.concat_xfm = True
             else:
                 fslfunc.inputs.invert_xfm = True
@@ -282,13 +280,13 @@ class Analysis:
         fslfunc.run()
 
         if func in ('FLIRT', 'ApplyXFM'):
-            object.file_list.extend([current_brain, current_mat])
+            obj.file_list.extend([current_brain, current_mat])
 
         elif func == 'BET':
-            object.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
+            obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
 
         else:
-            object.file_list.append(current_brain)
+            obj.file_list.append(current_brain)
 
         if func == 'FLIRT':
             return current_mat
@@ -310,11 +308,11 @@ class Analysis:
             interp = 'trilinear'
 
         # Save inverse of fMRI to anat
-        inverse_mat = self.fsl_functions(self, self._save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
+        inverse_mat = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
                                          'inverse_anat_to_')
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = self.fsl_functions(self, self._save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
+        segmentation_to_fmri = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
                                                   prefix, inverse_mat, current_brain, interp)
 
         return segmentation_to_fmri
@@ -379,7 +377,7 @@ class Analysis:
         # Load original brain (with statistical map)
         stat_brain = nib.load(self.stat_brain)
         # Load atlas brain (which has been converted into native space)
-        mni_brain = nib.load(self._save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz')
+        mni_brain = nib.load(self.save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz')
 
         stat_brain = stat_brain.get_fdata()
         mni_brain = mni_brain.get_fdata()
@@ -490,10 +488,10 @@ class Analysis:
         # Convert to dict and get rid of row numbers to significantly decrease file size
         roidict = Utils.dataframe_to_dict(raw_results)
 
-        summary_results_path = f"{self._brain_directory}/{self._save_location}Summarised_results/"
+        summary_results_path = f"{self._brain_directory}/{self.save_location}Summarised_results/"
         Utils.check_and_make_dir(summary_results_path)
 
-        raw_results_path = f"{self._brain_directory}/{self._save_location}Raw_results/"
+        raw_results_path = f"{self._brain_directory}/{self.save_location}Raw_results/"
         Utils.check_and_make_dir(raw_results_path)
 
         # Save JSON files
@@ -506,27 +504,26 @@ class Analysis:
             json.dump(roidict, file, indent=2)
 
     @staticmethod
-    def file_cleanup(file_list, save_location):
-        """Clean up unnecessary output."""
+    def file_cleanup(obj):
+        """Clean up unnecessary output from either instance of class, or class itself."""
         if config.file_cleanup == 'delete':
-            for file in file_list:
+            for file in obj.file_list:
                 os.remove(file)
 
         elif config.file_cleanup == 'move':
-            Utils.check_and_make_dir(f"{save_location}Intermediate_files")
+            Utils.check_and_make_dir(f"{obj.save_location}Intermediate_files")
 
-            for file in file_list:
-                file = file.replace(save_location, "")  # Remove folder from start of file name
-                Utils.move_file(file, save_location, f"{save_location}Intermediate_files")
+            for file in obj.file_list:
+                file = file.replace(obj.save_location, "")  # Remove folder from start of file name
+                Utils.move_file(file, obj.save_location, f"{obj.save_location}Intermediate_files")
 
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, config):
+        obj.file_list = []
+
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
-        if brain_number_current == 0:
-            if config.verbose:
-                print('\n--- Atlas scaling ---')
         if config.verbose:
-            print(f'Creating NIFTI_ROI files for fMRI volume '
+            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.')
 
         brain_stat = nib.load(self.atlas_path)
@@ -536,8 +533,9 @@ class Analysis:
         mixed_roi_stat = deepcopy(brain_stat)
 
         np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
-        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.roiResults[config.roi_stat_number, :])]
-        global_scaled_stat = [(y / max(max_roi_stat)) * 100 for y in self.roiResults[config.roi_stat_number, :]]
+        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.roiResults[statistic_num, :])]
+        # Find maximum statistic value (excluding No ROI and overall category)
+        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.roiResults[statistic_num, :]]
 
         roi_stat_brain_size = brain_stat.shape
 
@@ -552,32 +550,32 @@ class Analysis:
                         within_roi_stat[x][y][z] = np.nan
                         mixed_roi_stat[x][y][z] = np.nan
                     else:
-                        brain_stat[x][y][z] = self.roiResults[config.roi_stat_number, roi_row]
+                        brain_stat[x][y][z] = self.roiResults[statistic_num, roi_row]
                         within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
                         mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
 
         # Convert atlas to NIFTI and save it
         affine = np.eye(4)
-        scale_stat = [
+        scale_stats = [
                 (brain_stat,
-                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}.nii.gz"),
+                 f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}.nii.gz"),
                 (within_roi_stat,
-                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}_within_roi_scaled.nii.gz"),
+                 f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
                 (mixed_roi_stat,
-                 f"{self.no_ext_brain}_{self.atlas_scale_filename[config.roi_stat_number]}_mixed_roi_scaled.nii.gz")
+                 f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}_mixed_roi_scaled.nii.gz")
                     ]
 
         scaled_brains = []
 
-        for i in scale_stat:
-            scaled_brain = nib.Nifti1Image(i[0], affine)
-            scaled_brain.to_filename(f"{self._save_location}{i[1]}")
+        for scale_stat in scale_stats:
+            scaled_brain = nib.Nifti1Image(scale_stat[0], affine)
+            scaled_brain.to_filename(f"{self.save_location}{scale_stat[1]}")
 
-            scaled_brains.append(i[1])
+            scaled_brains.append(scale_stat[1])
 
         for brain in scaled_brains:
-            Utils.move_file(brain, f"{os.getcwd()}/{self._save_location}",
-                            f"{os.getcwd()}/{self._save_location}NIFTI_ROI")
+            Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
+                            f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
     @classmethod
     def roi_label_list(cls):

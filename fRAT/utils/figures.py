@@ -474,9 +474,9 @@ class Figures:
             vmax_storage = []
 
         while True:
-            if base_extension != f"_{base_ext_clean}.nii.gz":
+            if base_extension != f"_{config.roi_stat_ext}.nii.gz":
                 vmax = 100
-            elif base_extension == f"_{base_ext_clean}.nii.gz" and vmax is not None:
+            elif base_extension == f"_{config.roi_stat_ext}.nii.gz" and vmax is not None:
                 base_ext_clean += "_same_scale"
 
             if config.verbose:
@@ -514,7 +514,7 @@ class Figures:
             plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=config.plot_dpi, bbox_inches='tight')
             plt.close()
 
-            if base_extension != "_Mean.nii.gz" or config.brain_fig_value_max is not None:
+            if base_extension != f"_{config.roi_stat_ext}.nii.gz" or config.brain_fig_value_max is not None:
                 break
             else:
                 # Find highest ROI value seen to create figures with the same scale
@@ -532,12 +532,15 @@ class Figures:
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
 
-        if base_extension == "_Mean.nii.gz" and base_ext_clean.find("_same_scale") == -1:
+        if base_extension == f"_{config.roi_stat_ext}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
             # Calculate colour bar limit if not manually set
             brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
             brain = brain.get_fdata()
 
             vmax = np.nanmax(brain)
+
+            # BE CAREFUL: changes to the vmax_storage list applies outside of the function.
+            # If this isn't changed later it is definitely due to efficiency not laziness.
             vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
 
         plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",

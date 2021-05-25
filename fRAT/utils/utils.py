@@ -172,11 +172,10 @@ class Utils:
                                  'striatum-structural', 'Talairach-labels', 'Thalamus']
                 config.atlas_number = atlas_options.index(config.atlas_number)
 
-                roi_stat_options = ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval',
-                                    'Minimum value', 'Maximum value'] # TODO: More efficient way to write this
-                roi_stat_exts = ['Voxels', 'Mean', 'Standard_Deviation', 'Confidence_Interval', 'Min', 'Max']
-                config.roi_stat_number = roi_stat_options.index(config.roi_stat_number)
-                config.roi_stat_ext = roi_stat_exts[config.roi_stat_number]
+                config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
+                                            'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
+
+                config.roi_stat_ext = config.statistic_options  # TODO: fix this option
 
                 conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
                 config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
