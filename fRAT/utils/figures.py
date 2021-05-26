@@ -37,59 +37,23 @@ class Figures:
             if cls.config.verbose:
                 print(f'\n--- Brain grid creation ---')
 
-            BrainGrid.brain_grid(combined_results_df)
+            BrainGrid.make(combined_results_df)
 
         if cls.config.make_violin_plot:
             if cls.config.verbose:
                 print(f'\n--- Violin plot creation ---')
 
-            ViolinPlot.violin_plot(combined_results_df)
+            ViolinPlot.make(combined_results_df)
 
         if cls.config.make_one_region_fig:
-            Barchart.barchart_setup(combined_results_df, pool)
+            Barchart.setup(combined_results_df, pool)
 
         if cls.config.make_histogram:
-            Histogram.histogram_setup(combined_results_df, pool)
+            Histogram.setup(combined_results_df, pool)
 
         if pool:
             pool.close()
             pool.join()
-
-    @staticmethod
-    def find_axis_limit(thisroi, figure, axis):
-        # Find what the current axis limits will be
-        fig = figure.draw()
-        axes = fig.axes
-
-        if axis == 'xaxis':
-            lim = axes[0].get_xlim()
-
-        elif axis == 'yaxis':
-            lim = axes[0].get_ylim()
-
-        lim = (*lim, thisroi)
-
-        return lim
-
-    @staticmethod
-    def figure_save(figure, thisroi, folder, chart_type, config):
-        # Format file name correctly
-        replacements = [
-            (r'\([^()]*\)', ""),  # Remove anything between parenthesis
-            (r'[^a-zA-Z\d:]', "_"),  # Remove non-alphanumeric characters
-            (r'_{2,}', "_")  # Replace multiple underscores with one
-        ]
-        thisroi = thisroi.replace("\'", "")  # Remove apostrophes
-        for old, new in replacements:
-            thisroi = re.sub(old, new, thisroi)
-
-        Utils.check_and_make_dir(f"Figures/{chart_type.title()}s/{folder}/")
-        figure.save(f"Figures/{chart_type.title()}s/{folder}/{thisroi}_{chart_type}.png",
-                    height=config.plot_scale, width=config.plot_scale * 3,
-                    verbose=False, limitsize=False)
-
-        if config.verbose:
-            print(f"Saved {thisroi}_{chart_type}.png")
 
     @classmethod
     def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
@@ -136,10 +100,46 @@ class Figures:
 
         return chosen_rois
 
+    @staticmethod
+    def find_axis_limit(thisroi, figure, axis):
+        # Find what the current axis limits will be
+        fig = figure.draw()
+        axes = fig.axes
+
+        if axis == 'xaxis':
+            lim = axes[0].get_xlim()
+
+        elif axis == 'yaxis':
+            lim = axes[0].get_ylim()
+
+        lim = (*lim, thisroi)
+
+        return lim
+
+    @staticmethod
+    def figure_save(figure, thisroi, folder, chart_type, config):
+        # Format file name correctly
+        replacements = [
+            (r'\([^()]*\)', ""),  # Remove anything between parenthesis
+            (r'[^a-zA-Z\d:]', "_"),  # Remove non-alphanumeric characters
+            (r'_{2,}', "_")  # Replace multiple underscores with one
+        ]
+        thisroi = thisroi.replace("\'", "")  # Remove apostrophes
+        for old, new in replacements:
+            thisroi = re.sub(old, new, thisroi)
+
+        Utils.check_and_make_dir(f"Figures/{chart_type.title()}s/{folder}/")
+        figure.save(f"Figures/{chart_type.title()}s/{folder}/{thisroi}_{chart_type}.png",
+                    height=config.plot_scale, width=config.plot_scale * 3,
+                    verbose=False, limitsize=False)
+
+        if config.verbose:
+            print(f"Saved {thisroi}_{chart_type}.png")
+
 
 class BrainGrid(Figures):
     @classmethod
-    def brain_grid(cls, combined_results_df):
+    def make(cls, combined_results_df):
         indiv_brains_dir = f"{os.getcwd()}/Figures/Brain_images"
         Utils.check_and_make_dir(indiv_brains_dir)
 
@@ -151,7 +151,7 @@ class BrainGrid(Figures):
                                f"_{statistic}_mixed_roi_scaled.nii.gz"]
 
             for base_extension in brain_plot_exts:
-                indiv_brain_imgs = cls.brain_grid_setup(combined_results_df, base_extension, statistic)
+                indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic)
 
                 for img in indiv_brain_imgs:
                     Utils.move_file(img, os.getcwd(), indiv_brains_dir)
@@ -160,7 +160,7 @@ class BrainGrid(Figures):
                 print("\n")
 
     @classmethod
-    def brain_grid_setup(cls, df, base_extension, statistic):
+    def setup(cls, df, base_extension, statistic):
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
@@ -194,9 +194,9 @@ class BrainGrid(Figures):
             if cls.config.verbose:
                 print(f"Saving {base_ext_clean} table.")
 
-            indiv_brain_imgs = cls.brain_grid_table_make(axis_titles, base_ext_clean, base_extension, cell_nums,
-                                                         col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
-                                                         statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
+            indiv_brain_imgs = cls.make_table(axis_titles, base_ext_clean, base_extension, cell_nums,
+                                              col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
+                                              statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
 
             if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean or cls.config.brain_fig_value_max is not None:
                 break
@@ -213,13 +213,13 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def brain_grid_table_make(cls, axis_titles, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
-                              json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
-                              y_axis_size):
+    def make_table(cls, axis_titles, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
+                   json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
+                   y_axis_size):
         for file_num, json in enumerate(json_array):
-            brain_img, indiv_brain_imgs, dims = cls.create_indiv_brain_img(json, base_ext_clean, base_extension,
-                                                                           vmax, vmax_storage, indiv_brain_imgs,
-                                                                           statistic)
+            brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
+                                                                    vmax, vmax_storage, indiv_brain_imgs,
+                                                                    statistic)
 
             # Import saved image into subplot
             img = mpimg.imread(brain_img)
@@ -252,7 +252,7 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def create_indiv_brain_img(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs, statistic):
+    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs, statistic):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
@@ -360,7 +360,7 @@ class BrainGrid(Figures):
 
 class ViolinPlot(Figures):
     @classmethod
-    def violin_plot(cls, df):
+    def make(cls, df):
         Utils.check_and_make_dir("Figures/Violin_plots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
@@ -407,7 +407,7 @@ class ViolinPlot(Figures):
 
 class Barchart(Figures):
     @classmethod
-    def barchart_setup(cls, df, pool):
+    def setup(cls, df, pool):
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
@@ -419,7 +419,7 @@ class Barchart(Figures):
 
         ylim = 0
         while True:
-            iterable = zip(itertools.repeat(cls.barchart_make), chosen_rois, itertools.repeat(df),
+            iterable = zip(itertools.repeat(cls.make), chosen_rois, itertools.repeat(df),
                            itertools.repeat(list_rois), itertools.repeat(ylim), itertools.repeat(cls.figure_save),
                            itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
 
@@ -441,7 +441,7 @@ class Barchart(Figures):
                 break
 
     @staticmethod
-    def barchart_make(roi, df, list_rois, ylimit, save_function, find_ylim_function, config):
+    def make(roi, df, list_rois, ylimit, save_function, find_ylim_function, config):
         thisroi = list_rois[roi]
 
         current_df = df.loc[df['index'] == thisroi]
@@ -500,7 +500,7 @@ class Barchart(Figures):
 
 class Histogram(Figures):
     @classmethod
-    def histogram_setup(cls, combined_df, pool):
+    def setup(cls, combined_df, pool):
         Utils.check_and_make_dir("Figures/Histograms")
         list_rois = list(combined_df['index'].unique())
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
@@ -516,11 +516,11 @@ class Histogram(Figures):
 
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.histogram_df_setup(roi, combined_raw_df, combined_df, list_rois))
+                combined_raw_dfs.append(cls.df_setup(roi, combined_raw_df, combined_df, list_rois))
 
             xlim = 0
             while True:
-                iterable = zip(itertools.repeat(cls.histogram_make), chosen_rois, combined_raw_dfs,
+                iterable = zip(itertools.repeat(cls.make), chosen_rois, combined_raw_dfs,
                                itertools.repeat(list_rois), itertools.repeat(xlim), itertools.repeat(cls.figure_save),
                                itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
 
@@ -546,7 +546,7 @@ class Histogram(Figures):
                     break
 
     @classmethod
-    def histogram_df_setup(cls, roi, combined_raw_df, combined_df, list_rois):
+    def df_setup(cls, roi, combined_raw_df, combined_df, list_rois):
         # Set up the df for each chosen roi
         thisroi = list_rois[roi]
 
@@ -587,7 +587,7 @@ class Histogram(Figures):
         return current_df
 
     @staticmethod
-    def histogram_make(roi, combined_raw_df, list_rois, xlimit, save_function, find_xlim_function, config):
+    def make(roi, combined_raw_df, list_rois, xlimit, save_function, find_xlim_function, config):
         if combined_raw_df.empty:
             if config.verbose:
                 print('INFO: Histograms cannot be made for the No ROI category.')
