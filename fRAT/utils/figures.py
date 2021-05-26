@@ -144,6 +144,8 @@ class BrainGrid(Figures):
         Utils.check_and_make_dir(indiv_brains_dir)
 
         for statistic in cls.config.statistic_options:
+            Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
+
             brain_plot_exts = [f"_{statistic}.nii.gz",
                                f"_{statistic}_within_roi_scaled.nii.gz",
                                f"_{statistic}_mixed_roi_scaled.nii.gz"]
@@ -244,7 +246,7 @@ class BrainGrid(Figures):
         if cls.config.brain_tight_layout:
             plt.tight_layout()
 
-        plt.savefig(f"Figures/Brain_grids/{base_ext_clean}.png", dpi=cls.config.plot_dpi, bbox_inches='tight')
+        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.png", dpi=cls.config.plot_dpi, bbox_inches='tight')
         plt.close()
 
         return indiv_brain_imgs
