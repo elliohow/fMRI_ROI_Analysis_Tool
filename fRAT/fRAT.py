@@ -61,7 +61,7 @@ def plotting(combined_results_created, config, orig_path):
         ParamParser.run_parse(config)
 
     # Plotting
-    Figures.Make_figures(config)
+    Figures.figures(config)
 
     # Create html report
     html_report.main(str(orig_path))
