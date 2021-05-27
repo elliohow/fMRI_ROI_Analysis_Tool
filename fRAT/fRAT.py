@@ -81,9 +81,6 @@ def analysis(combined_results_created, config):
         for brain in brain_list:
             brain.save_class_variables()
 
-    if config.grey_matter_segment == 'freesurfer':
-        Analysis.freesurfer_to_anat()
-
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
     else:

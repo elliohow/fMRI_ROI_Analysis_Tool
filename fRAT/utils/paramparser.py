@@ -44,14 +44,7 @@ class ParamParser:
 
         combined_dataframe = pd.DataFrame()
 
-        if config.verify_param_method == "table":
-            if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
-                table = pd.read_csv("paramValues.csv")  # Load param table
-            else:
-                try:
-                    table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
-                except FileNotFoundError:
-                    raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+        table = cls.load_paramValues_file(config)
 
         for json in json_array:
             if json == "combined_results.json":
@@ -74,6 +67,18 @@ class ParamParser:
             combined_dataframe.to_json("Summarised_results/combined_results.json", orient='records', indent=2)
 
     @classmethod
+    def load_paramValues_file(cls, config):
+        if config.verify_param_method == "table":
+            if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
+                table = pd.read_csv("paramValues.csv")  # Load param table
+            else:
+                try:
+                    table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
+                except FileNotFoundError:
+                    raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+        return table
+
+    @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
         # Find atlas used during analysis to remove text from the start of the json file name
         try:
@@ -87,17 +92,18 @@ class ParamParser:
         json_file_name = os.path.splitext(json_file_name)[0]  # Remove file extension
 
         table_row = table.loc[table["File name"] == json_file_name]
+        table_row.columns = [x.lower() for x in table_row.columns]  # Convert to lower case for comparison to key later
 
         param_nums = []
-        if table_row['Ignore file? (y for yes, otherwise blank)'].to_string(index=False).strip().lower() in ('y', 'yes', 'true'):
+        if table_row['ignore file? (y for yes, otherwise blank)'].to_string(index=False).strip().lower() in ('y', 'yes', 'true'):
             return param_nums
 
         else:
             for key in config.parameter_dict:
                 try:
-                    param_nums.append(float(table_row[key]))
+                    param_nums.append(float(table_row[key.lower()]))
                 except ValueError:
-                    param_nums.append(table_row[key].to_string(index=False).strip())
+                    param_nums.append(table_row[key.lower()].to_string(index=False).strip())
                 except KeyError:
                     raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
                                     f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '

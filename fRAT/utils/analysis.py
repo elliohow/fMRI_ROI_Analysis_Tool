@@ -79,7 +79,6 @@ class Analysis:
     @staticmethod
     def setup_analysis(cfg):
         """Set up environment and find files before running analysis."""
-
         global config
         config = cfg
 
@@ -110,6 +109,9 @@ class Analysis:
             os.chdir(Analysis._brain_directory)
         except FileNotFoundError:
             raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
+
+        if config.verify_param_method == 'table' and config.run_steps == 'all':
+            verify_paramValues()
 
         Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]
         if config.verbose:
@@ -145,7 +147,13 @@ class Analysis:
         if config.verbose:
             print('\nConverting anatomical file to MNI space.')
 
-        anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")[0]
+        anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")
+
+        if len(anat) > 1:
+            raise FileExistsError('Multiple files found in anat folder.')
+        else:
+            anat = anat[0]
+
         cls._anat_brain = f'{os.getcwd()}/anat/{anat}'
 
         cls._anat_brain_to_mni = cls.fsl_functions(cls, cls.save_location, anat.rsplit(".")[0],
@@ -546,3 +554,16 @@ class Analysis:
             cls._labelArray.append(roiLabelLine['#text'])
 
         cls._labelArray.append('Overall')
+
+
+def verify_paramValues():
+    """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
+    from .paramparser import ParamParser
+
+    table = [x.lower() for x in ParamParser.load_paramValues_file(config)][1:-1]
+
+    for key in config.parameter_dict.keys():
+        if key.lower() not in table:
+            raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
+                            f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
+                            f'paramValues.csv headers.')
