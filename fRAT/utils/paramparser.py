@@ -80,15 +80,6 @@ class ParamParser:
 
     @classmethod
     def parse_params_from_table_file(cls, json_file_name, table):
-        # Find atlas used during analysis to remove text from the start of the json file name
-        try:
-            config_log = Utils.load_config(os.getcwd(), 'config_log.toml', save=False)
-        except FileNotFoundError:
-            raise FileNotFoundError('fRAT analysis folder not selected, could not find config_log.toml')
-
-        atlas_name = os.path.splitext(Analysis._atlas_label_list[config_log.atlas_number][1])[0] + "_"
-
-        json_file_name = json_file_name[len(atlas_name):]  # Remove atlas name prefix from file name
         json_file_name = os.path.splitext(json_file_name)[0]  # Remove file extension
 
         table_row = table.loc[table["File name"] == json_file_name]
@@ -206,7 +197,7 @@ class ParamParser:
         json_file_list = [os.path.basename(f) for f in glob(f"{json_directory}/Summarised_results/*.json")]
 
         if len(json_file_list) == 0:
-            raise NameError('No json files found.')
+            raise NameError('Folder selection error. Could not find json files in the "Summarised_results" directory.')
         else:
             return json_file_list
 

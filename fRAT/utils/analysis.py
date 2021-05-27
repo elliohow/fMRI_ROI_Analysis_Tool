@@ -51,12 +51,12 @@ class Analysis:
     _atlas_name = ""
     _labelArray = []
 
-    def __init__(self, brain, atlas="", atlas_path="", labels=""):
+    def __init__(self, brain, atlas_path="", labels=""):
         self.brain = brain
         self.label_list = labels
         self.atlas_path = atlas_path
 
-        self.no_ext_brain = atlas + "_" + splitext(self.brain)[0]
+        self.no_ext_brain = splitext(self.brain)[0]
         self.stat_brain = config.stat_map_folder + splitext(self.brain)[0] + config.stat_map_suffix
 
         self.roiResults = ""
@@ -117,7 +117,10 @@ class Analysis:
         if config.verbose:
             print('Using the ' + Analysis._atlas_name + ' atlas.')
 
-        Analysis.save_location = Analysis._atlas_name + "_ROI_report/"
+        if config.output_folder == 'DEFAULT':
+            Analysis.save_location = f'{Analysis._atlas_name}_ROI_report/'
+        else:
+            Analysis.save_location = f'{config.output_folder}/'
 
         # Find all nifti and analyze files
         Analysis.brain_file_list = Utils.find_files(Analysis._brain_directory, "hdr", "nii.gz", "nii")
@@ -137,8 +140,7 @@ class Analysis:
         brain_class_list = []
         for brain in Analysis.brain_file_list:
             # Initialise Analysis class for each file found
-            brain_class_list.append(Analysis(brain, atlas=Analysis._atlas_name, atlas_path=Analysis.atlas_path,
-                                             labels=Analysis._labelArray))
+            brain_class_list.append(Analysis(brain, atlas_path=Analysis.atlas_path, labels=Analysis._labelArray))
 
         return brain_class_list
 
@@ -205,7 +207,7 @@ class Analysis:
             mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
                                      f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
         # Get inverse of matrix
-        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat')
+        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
 
         # Apply inverse of matrix to chosen atlas to convert it into standard space
         self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain, 'nearestneighbour')
