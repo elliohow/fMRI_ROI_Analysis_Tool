@@ -8,14 +8,19 @@
   <body>
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-primary">
       <div class="container">
-        <h1 class="navbar-brand" style="font-size:30px">fRAT report</h1>
+        <span class="navbar-brand" style="font-size:30px">fRAT report</span>
+        <span class="navbar-brand" id="output" style="font-size:15px"></span>
         <div class="collapse navbar-collapse" id="navbarResponsive">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a align="center" class="nav-link" href="/Users/lpxeh10/Documents/Repositories/brain_roi_analysis_tool/example_data/HarvardOxford-Cortical_ROI_report/index.html">Back to Figures</a>
+              <a align="center" class="nav-link" href="../index.html">Back to Figures</a>
             </li>
           </ul>
         </div>
+        <script>
+                       var loc = window.location.pathname;
+                       document.getElementById('output').innerHTML = '/' + loc.split('/').slice(-3, -2);
+                       </script>
       </div>
     </nav>
     <div class="container">

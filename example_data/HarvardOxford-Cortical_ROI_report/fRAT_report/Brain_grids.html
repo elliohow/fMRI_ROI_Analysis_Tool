@@ -8,68 +8,51 @@
   <body>
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-primary">
       <div class="container">
-        <h1 class="navbar-brand" style="font-size:30px">fRAT report</h1>
+        <span class="navbar-brand" style="font-size:30px">fRAT report</span>
+        <span class="navbar-brand" id="output" style="font-size:15px"></span>
         <div class="collapse navbar-collapse" id="navbarResponsive">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a align="center" class="nav-link" href="/Users/lpxeh10/Documents/Repositories/brain_roi_analysis_tool/example_data/HarvardOxford-Cortical_ROI_report/index.html">Back to Figures</a>
+              <a align="center" class="nav-link" href="../index.html">Back to Figures</a>
             </li>
           </ul>
         </div>
+        <script>
+                       var loc = window.location.pathname;
+                       document.getElementById('output').innerHTML = '/' + loc.split('/').slice(-3, -2);
+                       </script>
       </div>
     </nav>
     <div class="container">
       <div id="content"><br><br><br><br><br>
-        <h2>Brain grids</h2><br>
+        <h2>Brain_grids</h2><br>
         <table>
           <tbody>
             <tr>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_same_scale.png">
-                  <h4>Mean same scale</h4>
-                </a>
-              </td>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_same_scale.png">
-                  <img src="../Figures/Brain_grids/Mean_same_scale.png" width="700">
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_mixed_roi_scaled.png">
-                  <h4>Mean mixed ROI scaled</h4>
-                </a>
-              </td>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_mixed_roi_scaled.png">
-                  <img src="../Figures/Brain_grids/Mean_mixed_roi_scaled.png" width="700">
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_within_roi_scaled.png">
-                  <h4>Mean within ROI scaled</h4>
-                </a>
-              </td>
-              <td>
-                <a href="../Figures/Brain_grids/Mean_within_roi_scaled.png">
-                  <img src="../Figures/Brain_grids/Mean_within_roi_scaled.png" width="700">
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <a href="../Figures/Brain_grids/Mean.png">
-                  <h4>Mean</h4>
-                </a>
-              </td>
-              <td>
-                <a href="../Figures/Brain_grids/Mean.png">
-                  <img src="../Figures/Brain_grids/Mean.png" width="700">
-                </a>
-              </td>
+              <a href="Brain_grids_Mean.html">
+                <h4>Mean</h4>
+              </a>
+              <a href="Brain_grids_Confidence_interval.html">
+                <h4>Confidence interval</h4>
+              </a>
+              <a href="Brain_grids_Median.html">
+                <h4>Median</h4>
+              </a>
+              <a href="Brain_grids_Maximum.html">
+                <h4>Maximum</h4>
+              </a>
+              <a href="Brain_grids_Excluded_voxels_amount.html">
+                <h4>Excluded voxels amount</h4>
+              </a>
+              <a href="Brain_grids_Standard_deviation.html">
+                <h4>Standard deviation</h4>
+              </a>
+              <a href="Brain_grids_Minimum.html">
+                <h4>Minimum</h4>
+              </a>
+              <a href="Brain_grids_Voxel_amount.html">
+                <h4>Voxel amount</h4>
+              </a>
             </tr>
           </tbody>
         </table>

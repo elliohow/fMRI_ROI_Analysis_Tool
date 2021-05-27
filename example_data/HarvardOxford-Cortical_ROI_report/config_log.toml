@@ -10,50 +10,52 @@ file_cleanup = 'move'                                                           
 
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
-roi_stat_number = 'Mean'                                                          # Set the statistic to scale the brain figures by. Recommended: Mean. Options: ['Voxel number', 'Mean', 'Standard Deviation', 'Confidence Interval', 'Minimum value', 'Maximum value'].
-frac_inten = 0.4                                                                  # Fractional intensity threshold for BET. Default: 0.4
+output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
 motion_correct = false                                                            # true or false. Note: This will inflate values such as tSNR.
 anat_align = true                                                                 # true or false. Recommended: true.
-grey_matter_segment = 'fslfast'                                                   # "fslfast" or "None".  Note: Requires anatomical align be true to function. Options: ['fslfast', 'None'].
+grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: Requires anatomical align be true to function.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
-bootstrap = false                                                                 # true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
+bootstrap = false                                                                 # True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 # Parsing
 verify_param_method = 'table'                                                     # "table", "name" or "manual".  How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime. Options: ['table', 'name', 'manual'].
-parameter_dict1 = ['MBd', 'SENSE']                                                # Comma-separated list of parameter names to be parsed for and plotted
+parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted
 parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 
 # Plotting
 plot_dpi = 200                                                                    # Recommended value 600
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
-make_scatter_table = true                                                         # true or false.
-make_brain_table = true                                                           # true or false.
-make_one_region_fig = true                                                        # true or false.
-make_histogram = true                                                             # true or false.
+make_violin_plot = true                                                           # True or False.
+make_brain_table = true                                                           # True or False.
+make_one_region_fig = true                                                        # True or False.
+make_histogram = true                                                             # True or False.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = 'Runtime'                                                     # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
-use_same_axis_limits = 'Create both'                                              # "Same limits", "Different limits" or "Both".  Choose whether to create figures with the same x/y limits. Options: ['Same limits', 'Different limits', 'Create both'].
 
-# Scatter_plot
+# Violin_plot
 table_x_label = 'tSNR mean'                                                       # 
 table_y_label = 'ROI'                                                             # 
-table_row_order = 'both'                                                          # roi, stat or both. Recommended: both Options: ['roi', 'stat', 'both'].
+violin_show_data = true                                                           # True or False.
+violin_jitter = true                                                              # True or False.
+violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
+boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 table_cols = 'MB'                                                                 # 
 table_rows = 'SENSE'                                                              # 
 
 # Brain_table
-brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
+brain_tight_layout = false                                                        # True or False. Use a tight layout when laying out the figure. Recommended: false
 brain_fig_value_min = 0                                                           # Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black. Recommended value: 0
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
-brain_fig_file = 'Produce all three figures'                                      #  Options: ['Mean', 'Mean (within roi scaled)', 'Mean (mixed roi scaled)', 'Produce all three figures'].
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
+brain_table_col_labels = 'MB'                                                     # Label for columns.
+brain_table_row_labels = 'SENSE'                                                  # Label for rows.
 brain_table_cols = 'MB'                                                           # 
 brain_table_rows = 'SENSE'                                                        # 
 
@@ -69,9 +71,9 @@ histogram_binwidth = 5                                                          
 histogram_fig_label_x = 'temporal Signal to Noise Ratio'                          # 
 histogram_fig_label_y = 'Frequency'                                               # 
 histogram_stat_line_size = 1.5                                                    # 
-histogram_show_mean = true                                                        # true or false.
-histogram_show_median = true                                                      # true or false.
-histogram_show_legend = true                                                      # true or false.
+histogram_show_mean = true                                                        # True or False.
+histogram_show_median = true                                                      # True or False.
+histogram_show_legend = true                                                      # True or False.
 histogram_fig_x_facet = 'MB'                                                      # 
 histogram_fig_y_facet = 'SENSE'                                                   # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.

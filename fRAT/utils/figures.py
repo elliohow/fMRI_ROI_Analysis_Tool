@@ -143,6 +143,8 @@ class BrainGrid(Figures):
         indiv_brains_dir = f"{os.getcwd()}/Figures/Brain_images"
         Utils.check_and_make_dir(indiv_brains_dir)
 
+        Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids")
+
         for statistic in cls.config.statistic_options:
             Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
 
