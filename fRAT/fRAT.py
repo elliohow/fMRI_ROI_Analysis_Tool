@@ -144,8 +144,8 @@ def atlas_scale(brain_list, config, pool):
 
 
 def config_check(config):
-    if config.grey_matter_segment is not None and not config.anat_align:
-        raise ImportError(f'grey_matter_segment is not None but anat_align is set to False. '
+    if config.grey_matter_segment and not config.anat_align:
+        raise ImportError(f'grey_matter_segment is True but anat_align is set to False. '
                           f'grey_matter_segment requires anat_align to be true to function.')
 
 

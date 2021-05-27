@@ -196,6 +196,9 @@ class Analysis:
         current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
 
         if config.anat_align:
+            if config.verbose:
+                print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
+
             # Align to anatomical
             anat_aligned_mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain,  "to_anat_from_", self._anat_brain)
 
@@ -212,7 +215,7 @@ class Analysis:
         # Apply inverse of matrix to chosen atlas to convert it into standard space
         self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain, 'nearestneighbour')
 
-        if config.grey_matter_segment is not None:
+        if config.grey_matter_segment:
             # Convert segmentation to fMRI native space
             segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
                                                              brain_number_current, brain_number_total)
@@ -307,10 +310,13 @@ class Analysis:
         if config.verbose:
             print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
-        if config.grey_matter_segment == "fslfast":
+        try:
             source_loc = glob(f"fslfast/*_pve_1*")[0]
-            prefix = 'fslfast_to_'
-            interp = 'trilinear'
+        except IndexError:
+            source_loc = glob(f"fslfast/*")[0]
+
+        prefix = 'fslfast_to_'
+        interp = 'trilinear'
 
         # Save inverse of fMRI to anat
         inverse_mat = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
@@ -327,12 +333,8 @@ class Analysis:
         segment_brain = nib.load(native_space_segment)
         segment_brain = segment_brain.get_fdata().flatten()
 
-        # Make a list that will return 0 for each voxel that is not csf or wm
-        idxCSF_or_WM = np.full([segment_brain.shape[0]], 0)
-
-        if config.grey_matter_segment == 'fslfast':
-            # If voxel has a value below the threshold then set to 1
-            idxCSF_or_WM = (segment_brain < config.fslfast_min_prob).astype(int)
+        # If voxel has a value below the threshold then set to 1
+        idxCSF_or_WM = (segment_brain < config.fslfast_min_prob).astype(int)
 
         return idxCSF_or_WM
 
@@ -366,7 +368,7 @@ class Analysis:
     @staticmethod
     def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, excluded_voxels):
         for counter, roi in enumerate(idxMNI):
-            if config.grey_matter_segment is None or excluded_voxels[counter] == 0:
+            if not config.grey_matter_segment or excluded_voxels[counter] == 0:
                 roiTempStore[int(roi), counter] = idxBrain[counter]
 
             else:

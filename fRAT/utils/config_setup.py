@@ -68,9 +68,9 @@ Analysis = {
     'anat_align': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Align to anatomical volume',
                    'Description': 'true or false. Recommended: true.'},
 
-    'grey_matter_segment': {'type': 'OptionMenu', 'Recommended': 'fslfast', 'label': 'Grey matter segmentation',
-                            'Options': ['fslfast', 'None'], 'save_as': 'string',
-                            'Description': '"fslfast" or "None". \nNote: Requires anatomical align be true to function.'},
+    'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Grey matter segmentation',
+                            'Description': 'true or false. Recommended: true. '
+                                           '\nNote: Requires anatomical align be true to function.'},
 
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
