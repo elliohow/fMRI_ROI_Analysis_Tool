@@ -44,7 +44,8 @@ class ParamParser:
 
         combined_dataframe = pd.DataFrame()
 
-        table = cls.load_paramValues_file(config)
+        if config.verify_param_method == 'table':
+            table = cls.load_paramValues_file(config)
 
         for json in json_array:
             if json == "combined_results.json":
@@ -68,14 +69,13 @@ class ParamParser:
 
     @classmethod
     def load_paramValues_file(cls, config):
-        if config.verify_param_method == "table":
-            if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
-                table = pd.read_csv("paramValues.csv")  # Load param table
-            else:
-                try:
-                    table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
-                except FileNotFoundError:
-                    raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+        if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
+            table = pd.read_csv("paramValues.csv")  # Load param table
+        else:
+            try:
+                table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
+            except FileNotFoundError:
+                raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
         return table
 
     @classmethod

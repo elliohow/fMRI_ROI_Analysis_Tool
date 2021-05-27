@@ -110,7 +110,7 @@ class Analysis:
         except FileNotFoundError:
             raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
 
-        if config.verify_param_method == 'table' and config.run_steps == 'all':
+        if config.verify_param_method == 'table':
             verify_paramValues()
 
         Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]

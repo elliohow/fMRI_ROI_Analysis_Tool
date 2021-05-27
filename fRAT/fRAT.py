@@ -18,14 +18,13 @@ def fRAT():
     if config.verbose and config.run_steps == 'all':
         print(f"\n--- Running all steps ---")
 
-    combined_results_created = False
     # Run the analysis
     if config.run_steps in ("analyse", "all"):
-        combined_results_created = analysis(combined_results_created, config)
+        analysis(config)
 
     # Plot the results
     if config.run_steps in ("plot", "all"):
-        plotting(combined_results_created, config, orig_path)
+        plotting(config, orig_path)
 
     os.chdir(orig_path)  # Reset path
 
@@ -53,12 +52,12 @@ def argparser(config):
         config.output_folder_loc = args.output_loc
 
 
-def plotting(combined_results_created, config, orig_path):
+def plotting(config, orig_path):
     if config.verbose:
         print('\n----------------\n--- Plotting ---\n----------------')
-    if not combined_results_created:
-        # Parameter Parsing
-        ParamParser.run_parse(config)
+
+    # Parameter Parsing
+    ParamParser.run_parse(config)
 
     # Plotting
     Figures.figures(config)
@@ -69,7 +68,7 @@ def plotting(combined_results_created, config, orig_path):
         print('\nCreated html report')
 
 
-def analysis(combined_results_created, config):
+def analysis(config):
     if config.verbose:
         print('\n----------------\n--- Analysis ---\n----------------')
 
@@ -89,25 +88,10 @@ def analysis(combined_results_created, config):
     brain_list = run_analysis(brain_list, config, pool)
     atlas_scale(brain_list, config, pool)
 
-    return handle_paramvalues_file(combined_results_created, config)
-
-
-def handle_paramvalues_file(combined_results_created, config):
-    # Move csv file containing parameter info
-    try:
+    if config.verify_param_method == 'table':
         Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis.save_location}", copy=True)
 
-    except FileNotFoundError:
-        if config.verify_param_method == 'table' and config.run_steps == 'all':  # TODO: raise this error earlier so a long analysis isn't interrupted before plotting
-            raise
-
-    else:
-        if config.verify_param_method == 'table':
-            # Create combined_results.json
-            ParamParser.run_parse(config)
-            combined_results_created = True
-
-    return combined_results_created
+    return
 
 
 def run_analysis(brain_list, config, pool):
