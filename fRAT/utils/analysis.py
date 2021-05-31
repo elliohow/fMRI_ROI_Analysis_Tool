@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import simplejson as json
 import xmltodict
+import bootstrapped.bootstrap as bs
+import bootstrapped.stats_functions as bs_stats
 from os.path import splitext
 from glob import glob
 from nipype.interfaces import fsl
@@ -92,7 +94,6 @@ class Analysis:
 
         if config.brain_file_loc in ("", " "):
             print('Select the directory of the raw MRI/fMRI brains.')
-
             Analysis._brain_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
 
         else:
@@ -114,13 +115,15 @@ class Analysis:
             verify_paramValues()
 
         Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]
-        if config.verbose:
-            print('Using the ' + Analysis._atlas_name + ' atlas.')
 
         if config.output_folder == 'DEFAULT':
             Analysis.save_location = f'{Analysis._atlas_name}_ROI_report/'
         else:
             Analysis.save_location = f'{config.output_folder}/'
+
+        if config.verbose:
+            print(f'Using the {Analysis._atlas_name} atlas.'
+                  f'\n Saving output in directory: {Analysis.save_location}')
 
         # Find all nifti and analyze files
         Analysis.brain_file_list = Utils.find_files(Analysis._brain_directory, "hdr", "nii.gz", "nii")
@@ -239,7 +242,7 @@ class Analysis:
         warnings.filterwarnings('default')  # Reactivate warnings
 
         if config.bootstrap:
-            self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total)  # Bootstrapping
+            roiResults = self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total)  # Bootstrapping
 
         self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
 
@@ -409,20 +412,22 @@ class Analysis:
 
         return roiResults
 
-    def roi_stats_bootstrap(self, roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
+    @staticmethod
+    def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
         for counter, roi in enumerate(list(range(0, roiNum + 1))):
             if config.verbose:
                 print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
                       f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
 
             if counter < roiNum:
-                roiResults[1, roi], roiResults[3, roi] = Utils.calculate_confidence_interval(roiTempStore,
+                roiResults[1, roi], roiResults[3, roi] = calculate_confidence_interval(roiTempStore,
                                                                                              config.bootstrap_alpha,
                                                                                              roi=roi)
             else:
                 # Calculate overall statistics
-                roiResults[1, -1], roiResults[3, -1] = Utils.calculate_confidence_interval(roiTempStore[1:, :],
+                roiResults[1, -1], roiResults[3, -1] = calculate_confidence_interval(roiTempStore[1:, :],
                                                                                            config.bootstrap_alpha)
+        return roiResults
 
     def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
         headers = ['Voxels', 'Mean', 'Std_dev',
@@ -558,6 +563,23 @@ class Analysis:
             cls._labelArray.append(roiLabelLine['#text'])
 
         cls._labelArray.append('Overall')
+
+
+def calculate_confidence_interval(data, alpha, roi=None):
+    warnings.filterwarnings(action='ignore', category=PendingDeprecationWarning)  # Silences a deprecation warning from bootstrapping library using outdated numpy matrix instead of numpy array
+
+    if roi is None:
+        data = data.flatten()
+        values = np.array([x for x in data if str(x) != 'nan'])
+    else:
+        values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
+
+    results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
+    conf_int = (results.upper_bound - results.lower_bound) / 2
+
+    warnings.simplefilter(action='default', category=PendingDeprecationWarning)
+
+    return results.value, conf_int
 
 
 def verify_paramValues():

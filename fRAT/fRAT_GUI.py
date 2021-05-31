@@ -17,6 +17,7 @@ import sys
 import logging
 import xmltodict
 from pathlib import Path
+from PIL import ImageTk, Image
 
 from fRAT import fRAT
 from printResults import printResults
@@ -25,8 +26,7 @@ from utils import *
 from utils.config_setup import *
 
 w = None
-
-from PIL import ImageTk, Image
+VERSION = "0.14.0"
 
 
 def start_gui():
@@ -93,32 +93,32 @@ class Config_GUI:
             self.Atlas_frame_draw(self.Setting_frame)
             self.Run_frame_draw(self.Setting_frame)
 
-    def load_initial_values(self):
+    @staticmethod
+    def load_initial_values():
         with open('config.toml', 'r') as f:
-            for page in pages:
-                if page == 'Settings':
+            for line in f.readlines():
+                if line[0] == '#':
+                    curr_page = re.split('# |\n', line)[1]
+
+                elif curr_page == 'fRAT Info':
                     continue
 
-                for line in f.readlines():
-                    if line[0] == '#':
-                        curr_page = re.split('# |\n', line)[1]
+                elif line is not '\n':
+                    setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
 
-                    elif line is not '\n':
-                        setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
+                    try:
+                        if setting[1] in ['true', 'false']:
+                            setting[1] = setting[1].title()
 
-                        try:
-                            if setting[1] in ['true', 'false']:
-                                setting[1] = setting[1].title()
+                        setting[1] = ast.literal_eval(setting[1])
 
-                            setting[1] = ast.literal_eval(setting[1])
+                        if isinstance(setting[1], tuple):
+                            setting[1] = list(setting[1])
 
-                            if isinstance(setting[1], tuple):
-                                setting[1] = list(setting[1])
+                    except (ValueError, SyntaxError):
+                        pass
 
-                        except (ValueError, SyntaxError):
-                            pass
-
-                        eval(curr_page)[setting[0]]['Current'] = setting[1]
+                    eval(curr_page)[setting[0]]['Current'] = setting[1]
 
     def refresh_frame(self):
         """ refresh the content of the label every second """
@@ -688,9 +688,15 @@ def Print_atlas_ROIs(selection):
 
 def Save_settings():
     with open(f'{Path(os.path.abspath(__file__)).parents[0]}/config.toml', 'w') as f:
+
+        f.write(f"# fRAT Info\n")
+        f.write(f"version = '{VERSION}'\n")
+        f.write("\n")
+
         for page in pages:
             if page == 'Settings':
                 continue
+
             f.write(f"# {page}\n")
 
             for key in eval(page).keys():

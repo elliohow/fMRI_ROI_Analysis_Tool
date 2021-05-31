@@ -15,16 +15,19 @@ def fRAT():
     config, orig_path = load_config()
     argparser(config)
 
-    if config.verbose and config.run_steps == 'all':
+    if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics == 'all':
         print(f"\n--- Running all steps ---")
 
     # Run the analysis
-    if config.run_steps in ("analyse", "all"):
+    if config.run_analysis:
         analysis(config)
 
     # Plot the results
-    if config.run_steps in ("plot", "all"):
+    if config.run_plotting:
         plotting(config, orig_path)
+
+    if config.run_statistics:
+        statistics()
 
     os.chdir(orig_path)  # Reset path
 
@@ -74,6 +77,10 @@ def analysis(config):
 
     # Run class setup
     brain_list = Analysis.setup_analysis(config)
+
+    if config.verbose:
+        print('\n--- Running analysis ---')
+
     if config.anat_align:
         Analysis.anat_setup()
 

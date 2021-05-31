@@ -9,8 +9,8 @@ import nibabel as nib
 import pandas as pd
 import plotnine as pltn
 import simplejson as json
-from matplotlib import pyplot as plt
 from nilearn import plotting
+from matplotlib import pyplot as plt
 from PIL import Image
 
 from .utils import Utils

@@ -4,10 +4,15 @@ pages = ['Settings', 'General', 'Analysis', 'Parsing', 'Plotting', 'Violin_plot'
 
 '''General settings'''
 General = {
-    'run_steps': {'type': 'OptionMenu', 'Recommended': 'all', 'Options': ['all', 'analyse', 'plot'],
-                  'save_as': 'string',
-                  'Description': '"all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps.',
-                  'label': 'Stage(s)'},
+    'run_analysis': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false. Can skip this step if json files have already been created.',
+                     'label': 'Run analysis'},
+
+    'run_plotting': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false.', 'label': 'Run plotting'},
+
+    'run_statistics': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false.', 'label': 'Run statistics'},
 
     'verbose': {'type': 'CheckButton', 'Recommended': 'true',
                 'Description': 'true or false.', 'label': 'Verbose fRAT stages'},

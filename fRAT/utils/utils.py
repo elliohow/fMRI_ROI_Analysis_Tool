@@ -3,11 +3,8 @@ import os
 import shutil
 import toml
 import re
-import numpy as np
 from glob import glob
 from tkinter import Tk, filedialog
-import bootstrapped.bootstrap as bs
-import bootstrapped.stats_functions as bs_stats
 import multiprocess as mp
 import pandas as pd
 import warnings
@@ -91,21 +88,6 @@ class Utils:
         with open(directory + '/config_log.toml', 'w') as f, open(f'config.toml', 'r') as r:
             for line in r:
                 f.write(line)
-
-    @staticmethod
-    def calculate_confidence_interval(data, alpha, roi=None):
-        warnings.filterwarnings('ignore', category=PendingDeprecationWarning)  # Silences a deprecation warning from bootstrapping library using outdated numpy matrix instead of numpy array
-
-        if roi is None:
-            data = data.flatten()
-            values = np.array([x for x in data if str(x) != 'nan'])
-        else:
-            values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
-
-        results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
-        conf_int = (results.upper_bound - results.lower_bound) / 2
-
-        return results.value, conf_int
 
     @staticmethod
     def move_file(name, original_dir, new_dir, copy=False, rename_copy=True):

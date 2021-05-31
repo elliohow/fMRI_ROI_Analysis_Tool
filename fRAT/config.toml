@@ -1,5 +1,10 @@
+# fRAT Info
+version = '0.14.0'
+
 # General
-run_steps = 'all'                                                                 # "all", "analyse", or "plot". "analyse" to only run analysis steps, "plot" if json files have already been created or "all" to run all steps. Options: ['all', 'analyse', 'plot'].
+run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
+run_plotting = true                                                               # true or false.
+run_statistics = true                                                             # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing to use during analysis? Recommended: true
