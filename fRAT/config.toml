@@ -2,15 +2,15 @@
 version = '0.14.0'
 
 # General
-run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
-run_plotting = false                                                              # true or false.
+run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
+run_plotting = true                                                               # true or false.
 run_statistics = true                                                             # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing to use during analysis? Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-output_folder_loc = '/Users/lpxeh10/Desktop/GE/Testing folder non-bootstrapped'   # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+output_folder_loc = ''                                                            # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 # Analysis
@@ -29,7 +29,7 @@ binary_params = ['']                                                            
 
 # Parsing
 verify_param_method = 'table'                                                     # "table", "name" or "manual".  How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime. Options: ['table', 'name', 'manual'].
-parameter_dict1 = ['inplane acceleration', 'Hyperband']                           # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
+parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
 parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 
 # Plotting
@@ -37,9 +37,9 @@ plot_dpi = 200                                                                  
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
 make_violin_plot = true                                                           # True or False.
-make_brain_table = false                                                          # True or False.
-make_one_region_fig = false                                                       # True or False.
-make_histogram = false                                                            # True or False.
+make_brain_table = true                                                           # True or False.
+make_one_region_fig = true                                                        # True or False.
+make_histogram = true                                                             # True or False.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = 'Runtime'                                                     # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
@@ -50,8 +50,8 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # True or False.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'Hyperband'                                                          # 
-table_rows = 'inplane acceleration'                                               # 
+table_cols = 'MB'                                                                 # 
+table_rows = 'SENSE'                                                              # 
 
 # Brain_table
 brain_tight_layout = false                                                        # True or False. Use a tight layout when laying out the figure. Recommended: false
@@ -61,15 +61,15 @@ brain_x_coord = 91                                                              
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
 brain_table_col_labels = 'MB'                                                     # Label for columns.
 brain_table_row_labels = 'SENSE'                                                  # Label for rows.
-brain_table_cols = 'inplane acceleration'                                         # 
-brain_table_rows = 'Hyperband'                                                    # 
+brain_table_cols = 'MB'                                                           # 
+brain_table_rows = 'SENSE'                                                        # 
 
 # Region_barchart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'inplane acceleration'                                    # 
-single_roi_fig_colour = 'Hyperband'                                               # 
+single_roi_fig_x_axis = 'MB'                                                      # 
+single_roi_fig_colour = 'SENSE'                                                   # 
 
 # Region_histogram
 histogram_binwidth = 5                                                            # 
@@ -79,7 +79,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # True or False.
 histogram_show_median = true                                                      # True or False.
 histogram_show_legend = true                                                      # True or False.
-histogram_fig_x_facet = 'inplane acceleration'                                    # 
-histogram_fig_y_facet = 'Hyperband'                                               # 
+histogram_fig_x_facet = 'MB'                                                      # 
+histogram_fig_y_facet = 'SENSE'                                                   # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 
