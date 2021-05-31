@@ -5,18 +5,22 @@ from statsmodels.formula.api import ols
 
 from .utils import Utils
 from .figures import Histogram
+from .paramparser import ParamParser
 
+def main(config):
+    if config.verbose:
+        print('\n------------------\n--- Statistics ---\n------------------')
 
-def main():
-    raw_results = load_raw_data()
+    ParamParser.chdir_to_output_directory('Statistics', config)
+    raw_results = load_raw_data(config)
     ROI_dict = split_raw_df(raw_results)
     statistics(ROI_dict)
 
 
-def load_raw_data():
+def load_raw_data(config):
     combined_results = pd.read_json("Summarised_results/combined_results.json")
     jsons = Utils.find_files("Raw_results", "json")
-    combined_raw_df = Histogram.make_raw_df(jsons, combined_results)
+    combined_raw_df = Histogram.make_raw_df(config, jsons, combined_results)
 
     return combined_raw_df
 
@@ -33,7 +37,7 @@ def split_raw_df(raw_results):
 
 def statistics(ROI_dict):
     for ROI in ROI_dict:
-        model = ols('voxel_value ~ C(hyperband) + C(inplane_acceleration)', data=ROI_dict[ROI]).fit()
+        model = ols('voxel_value ~ C(hyperband) + C(inplane_acceleration) + C(hyperband):C(inplane_acceleration)', data=ROI_dict[ROI]).fit()
         results = sm.stats.anova_lm(model, typ=2)
         # TODO: Testing interaction effect creates error, find out why
         if np.isnan(results['PR(>F)'][1]) or results['PR(>F)'][1] != 0.0:

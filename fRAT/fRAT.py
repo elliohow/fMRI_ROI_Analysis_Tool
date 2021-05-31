@@ -27,7 +27,7 @@ def fRAT():
         plotting(config, orig_path)
 
     if config.run_statistics:
-        statistics()
+        statistics(config)
 
     os.chdir(orig_path)  # Reset path
 

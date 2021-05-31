@@ -109,10 +109,15 @@ Parsing = {
                             'save_as': 'string',
                             'label': 'Parameter verification method',
                             'Description': '"table", "name" or "manual". '
-                                           '\nHow to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime.'},
+                                           '\nHow to find parameter values: "table" finds values from spreadsheet '
+                                           'document, "name" finds values from file name, "manual" allows you to '
+                                           'manually input parameters at runtime.'},
 
     'parameter_dict1': {'type': 'Entry', 'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
-                        'Description': 'Comma-separated list of parameter names to be parsed for and plotted'},
+                        'Description': 'Comma-separated list of parameter names to be parsed for and plotted. '
+                                       '\n As these critical parameters will also be used when labelling the rows and '
+                                       'columns of both the violin plots and histograms, they should be written as '
+                                       'you want them to appear in these figures.'},
 
     'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list',
                         'label': 'Critical parameter abbreviation',

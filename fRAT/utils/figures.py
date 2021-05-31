@@ -136,6 +136,35 @@ class Figures:
         if config.verbose:
             print(f"Saved {thisroi}_{chart_type}.png")
 
+    @staticmethod
+    def make_raw_df(config, jsons, combined_df):
+        combined_raw_df = pd.DataFrame()
+
+        for json_file in jsons:
+            with open(f"{os.getcwd()}/Raw_results/{json_file}", 'r') as f:
+                current_json = Utils.dict_to_dataframe(json.load(f))
+
+            json_file_name = json_file.rsplit("_raw.json")[0]
+
+            current_json["File_name"] = json_file_name
+
+            # Find parameter values for each file_name
+            combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
+
+            try:
+                current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet].iloc[0]
+                current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet].iloc[0]
+            except IndexError:
+                continue
+
+            combined_raw_df = combined_raw_df.append(current_json)
+
+        combined_raw_df = combined_raw_df.melt(
+            id_vars=[config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"],
+            var_name='ROI', value_name='voxel_value')
+
+        return combined_raw_df
+
 
 class BrainGrid(Figures):
     @classmethod
@@ -514,7 +543,7 @@ class Histogram(Figures):
                 print(f'\n--- Histogram creation ---')
 
             jsons = Utils.find_files("Raw_results", "json")
-            combined_raw_df = cls.make_raw_df(jsons, combined_df)
+            combined_raw_df = cls.make_raw_df(cls.config, jsons, combined_df)
 
             combined_raw_dfs = []
             for roi in chosen_rois:
@@ -655,33 +684,3 @@ class Histogram(Figures):
             warnings.simplefilter(action='default', category=FutureWarning)
 
             return returned_xlim
-
-    @classmethod
-    def make_raw_df(cls, jsons, combined_df):
-        combined_raw_df = pd.DataFrame()
-
-        for json_file in jsons:
-            with open(f"{os.getcwd()}/Raw_results/{json_file}", 'r') as f:
-                current_json = Utils.dict_to_dataframe(json.load(f))
-
-            json_file_name = json_file.rsplit("_raw.json")[0]
-
-            current_json["File_name"] = json_file_name
-
-            # Find parameter values for each file_name
-            combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
-
-            try:
-                current_json[cls.config.histogram_fig_x_facet] = combined_df_search[cls.config.histogram_fig_x_facet].iloc[0]
-                current_json[cls.config.histogram_fig_y_facet] = combined_df_search[cls.config.histogram_fig_y_facet].iloc[0]
-            except IndexError:
-                continue
-
-            combined_raw_df = combined_raw_df.append(current_json)
-
-        combined_raw_df = combined_raw_df.melt(
-            id_vars=[cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet, "File_name"],
-            var_name='ROI', value_name='voxel_value')
-
-        return combined_raw_df
-

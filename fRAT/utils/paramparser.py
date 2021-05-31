@@ -173,26 +173,7 @@ class ParamParser:
 
     @staticmethod
     def json_search():
-        if config.run_analysis:
-            from utils.analysis import Analysis
-            json_directory = os.getcwd() + f"/{Analysis.save_location}"
-
-            os.chdir(json_directory)
-
-        elif config.output_folder_loc in ("", " "):
-            print('Select the directory output by the fRAT.')
-            json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
-
-        else:
-            json_directory = config.output_folder_loc
-
-            try:
-                os.chdir(json_directory)
-            except FileNotFoundError:
-                raise FileNotFoundError('Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
-
-            if config.verbose:
-                print(f'Output folder selection: {config.output_folder_loc}.')
+        json_directory = ParamParser.chdir_to_output_directory('Plotting', config)
 
         json_file_list = [os.path.basename(f) for f in glob(f"{json_directory}/Summarised_results/*.json")]
 
@@ -200,6 +181,36 @@ class ParamParser:
             raise NameError('Folder selection error. Could not find json files in the "Summarised_results" directory.')
         else:
             return json_file_list
+
+    @staticmethod
+    def chdir_to_output_directory(current_step, config):
+        if current_step in ('Plotting', 'Statistics') and config.run_analysis:
+            from utils.analysis import Analysis
+            json_directory = f'{os.getcwd()}/{Analysis.save_location}'
+
+            os.chdir(json_directory)
+
+        elif current_step == 'Statistics' and config.run_plotting:
+            return
+
+        elif config.output_folder_loc in ("", " "):
+            print('Select the directory output by the fRAT.')
+            json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
+
+        else:
+            json_directory = config.output_folder_loc
+            config.output_folder_loc = json_directory
+
+            try:
+                os.chdir(json_directory)
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    'Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
+
+            if config.verbose:
+                print(f'Output folder selection: {config.output_folder_loc}.')
+
+        return json_directory
 
     @classmethod
     def construct_combined_json(cls, dataframe, json, parameters):
