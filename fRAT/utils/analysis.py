@@ -575,7 +575,7 @@ def calculate_confidence_interval(data, alpha, roi=None):
         values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
     results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
-    conf_int = (results.upper_bound - results.lower_bound) / 2
+    conf_int = (results.upper_bound - results.lower_bound) / 2  # TODO: URGENT CHANGE THIS
 
     warnings.simplefilter(action='default', category=PendingDeprecationWarning)
 

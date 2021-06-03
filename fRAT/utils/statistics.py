@@ -39,10 +39,15 @@ def statistics(ROI_dict):
     for ROI in ROI_dict:
         model = ols('voxel_value ~ C(hyperband) + C(inplane_acceleration) + C(hyperband):C(inplane_acceleration)', data=ROI_dict[ROI]).fit()
         results = sm.stats.anova_lm(model, typ=2)
-        # TODO: Testing interaction effect creates error, find out why
+
         if np.isnan(results['PR(>F)'][1]) or results['PR(>F)'][1] != 0.0:
             print(ROI, np.format_float_positional(results['PR(>F)'][1]))
     # TODO: consider adding ROI as a variable
+    # TODO: Remove and raise warning if interaction effect calculation not possible
+    # Drop rows this way: df_new = raw_results.drop(raw_results[(raw_results['inplane acceleration'] == 1) & (raw_results['Hyperband'] == 1)].index)
+    # TODO: move from r style formula to more readable style
+    # TODO: C means categorical
+
 
 
 if __name__ == '__main__':

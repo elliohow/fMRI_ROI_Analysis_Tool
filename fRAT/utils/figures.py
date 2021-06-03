@@ -150,8 +150,9 @@ class Figures:
 
             # Find parameter values for each file_name
             combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
+            combined_df_search.columns = [x.lower() for x in combined_df_search.columns]
 
-            try:
+            try:  # TODO: remove references to histogram to make it more generalisable
                 current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet].iloc[0]
                 current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet].iloc[0]
             except IndexError:
