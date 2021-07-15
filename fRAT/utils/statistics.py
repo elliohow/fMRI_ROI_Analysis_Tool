@@ -48,7 +48,8 @@ def statistics(ROI_dict):
     # TODO: move from r style formula to more readable style
     # TODO: C means categorical
 
-
+def k_means():
+    pass
 
 if __name__ == '__main__':
     main()

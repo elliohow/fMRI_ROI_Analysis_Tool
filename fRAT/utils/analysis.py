@@ -371,7 +371,7 @@ class Analysis:
     @staticmethod
     def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, excluded_voxels):
         for counter, roi in enumerate(idxMNI):
-            if not config.grey_matter_segment or excluded_voxels[counter] == 0:
+            if not config.grey_matter_segment or excluded_voxels[counter] == 0: # TODO: is this line correct
                 roiTempStore[int(roi), counter] = idxBrain[counter]
 
             else:
@@ -550,8 +550,8 @@ class Analysis:
     @classmethod
     def roi_label_list(cls):
         """Extract labels from specified FSL atlas XML file."""
-        cls.atlas_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(config.atlas_number)][0]
-        cls._atlas_label_path = cls._fsl_path + '/data/atlases/' + cls._atlas_label_list[int(config.atlas_number)][1]
+        cls.atlas_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][0]}'
+        cls._atlas_label_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][1]}'
 
         with open(cls._atlas_label_path) as fd:
             atlas_label_dict = xmltodict.parse(fd.read())
