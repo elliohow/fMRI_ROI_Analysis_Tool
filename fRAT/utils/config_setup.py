@@ -80,6 +80,9 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
+    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
+                             'Description': 'true or false. Recommended: true.'},
+
     'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string',
                         'label': 'Statistical map folder',
                         'Description': 'Folder name which contains the statistical map files. Example: QA_report/'},

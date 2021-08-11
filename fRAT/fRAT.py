@@ -15,6 +15,9 @@ def fRAT():
     config, orig_path = load_config()
     argparser(config)
 
+    # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
+    # sys.exit()
+    
     if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics == 'all':
         print(f"\n--- Running all steps ---")
 
@@ -93,12 +96,31 @@ def analysis(config):
         pool = None
 
     brain_list = run_analysis(brain_list, config, pool)
+    calculate_flirt_cost(brain_list, config)
     atlas_scale(brain_list, config, pool)
 
     if config.verify_param_method == 'table':
         Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis.save_location}", copy=True)
 
     return
+
+
+def calculate_flirt_cost(brain_list, config):
+    costs = [['File', 'anat_cost_value', 'mni_cost_value']]
+
+    if config.anat_align:
+        anat_to_mni_cost = Analysis.calculate_anat_flirt_cost_function()
+        costs.append([Analysis._anat_brain_no_ext, 0, anat_to_mni_cost])
+
+    for brain in brain_list:
+        brain.calculate_fMRI_flirt_cost_function()
+        costs.append([brain.no_ext_brain, brain.anat_cost, brain.mni_cost])
+
+    df = pd.DataFrame(costs[1:], columns=costs[0])
+    with open(f"{Analysis.save_location}cost_function.json", 'w') as file:
+        json.dump(df.to_dict(), file, indent=2)
+
+    # TODO: Calculate movement using mcflirt
 
 
 def run_analysis(brain_list, config, pool):

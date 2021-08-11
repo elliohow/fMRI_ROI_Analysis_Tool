@@ -166,6 +166,12 @@ Output folder
   however only the file with the suffix "pve_1" will be used.
 * FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
   be added in the future.
+* As FAST requires a skull stripped anatomical volume, it is highly recommended that the accuracy of this skull 
+  stripping is assessed before running FAST. Overly conservative skull stripping can lead to skull being retained in the
+  resulting image, which FAST may then misidentify as grey matter. Conversely, overly liberal skull stripping can lead to
+  parts of the brain being removed, meaning that these voxels will also not be included in any ROIs.
+* Consider using [optiBET](https://montilab.psych.ucla.edu/fmri-wiki/optibet/) if having issues with standard skull
+  stripping methods as this method has produced the best results so far. Although be aware it can take a while to run.
 
 ### Shell scripts
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations

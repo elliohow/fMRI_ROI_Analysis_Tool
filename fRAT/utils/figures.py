@@ -2,6 +2,7 @@ import itertools
 import os
 import re
 import warnings
+from glob import glob
 
 import matplotlib.image as mpimg
 import numpy as np
@@ -685,3 +686,61 @@ class Histogram(Figures):
             warnings.simplefilter(action='default', category=FutureWarning)
 
             return returned_xlim
+
+
+class CompareOutputs(Figures):
+    current_df = None
+
+    @classmethod
+    def run(cls, config):
+        df, labels = cls.setup_df(config)
+        cls.Make_scatter(df, labels, config)
+
+    @classmethod
+    def setup_df(cls, config):
+        dfs = {}
+        labels = []
+        for x in range(2):
+            directory = Utils.file_browser(title='Select the directory output by the fRAT')
+
+            with open(f"{directory}/Summarised_results/combined_results.json", "r") as results:
+                data = json.load(results)
+                dfs[x] = pd.DataFrame(data)
+                labels.append(os.path.basename(directory))
+
+                rois = sorted({d['index'] for d in data})  # Using set returns only unique values
+            # TODO: run a check to make sure same ROIs, check they have same critical parameters and same parameter space
+        dfm = dfs[0].merge(dfs[1], how='outer', on=['index', config.histogram_fig_y_facet, config.histogram_fig_x_facet])
+
+        return dfm, labels
+
+
+    @classmethod
+    def Make_scatter(cls, df, labels, config):
+        figure = (
+            pltn.ggplot(df, pltn.aes(x="Mean_x", y="Mean_y"))
+            + pltn.theme_538()
+            + pltn.geom_point()
+            + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
+                              drop=True, labeller="label_both")
+            + pltn.geom_smooth(method='lm')
+            + pltn.labs(x=labels[1], y=labels[0])  # TODO Check these labels are the right way round
+            + pltn.theme(
+            panel_grid_minor_x=pltn.themes.element_line(alpha=0),
+            panel_grid_major_x=pltn.themes.element_line(alpha=1),
+            panel_grid_major_y=pltn.element_line(alpha=0),
+            plot_background=pltn.element_rect(fill="white"),
+            panel_background=pltn.element_rect(fill="gray", alpha=0.1),
+            axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
+            axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
+            strip_text_x=pltn.element_text(weight='bold', size=10, color='black'),
+            strip_text_y=pltn.element_text(weight='bold', size=10, color='black'),
+            axis_text_x=pltn.element_text(size=10, color='black'),
+            axis_text_y=pltn.element_text(size=10, color='black'),
+            dpi=config.plot_dpi
+        )
+        )
+
+        figure.save(f"TEST.png", height=config.plot_scale,
+                    width=config.plot_scale * 3,
+                    verbose=False, limitsize=False)
