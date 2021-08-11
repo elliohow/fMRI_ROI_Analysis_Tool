@@ -106,17 +106,26 @@ def analysis(config):
 
 
 def calculate_flirt_cost(brain_list, config):
-    costs = [['File', 'anat_cost_value', 'mni_cost_value']]
+    cost_func_vals = []
 
     if config.anat_align:
+        if config.verbose:
+            print(f'Calculating cost function value for anatomical file: {Analysis._anat_brain}')
+
         anat_to_mni_cost = Analysis.calculate_anat_flirt_cost_function()
-        costs.append([Analysis._anat_brain_no_ext, 0, anat_to_mni_cost])
+        cost_func_vals.append([Analysis._anat_brain_no_ext, 0, anat_to_mni_cost])
 
-    for brain in brain_list:
+    for counter, brain in enumerate(brain_list):
+        if config.verbose:
+            print(f'Calculating cost function value for {counter + 1}/{len(brain_list)}: {brain.brain}')
+
         brain.calculate_fMRI_flirt_cost_function()
-        costs.append([brain.no_ext_brain, brain.anat_cost, brain.mni_cost])
+        cost_func_vals.append([brain.no_ext_brain, brain.anat_cost, brain.mni_cost])
 
-    df = pd.DataFrame(costs[1:], columns=costs[0])
+    if config.verbose:
+        print(f'Saving cost function dataframe as cost_function.json')
+
+    df = pd.DataFrame(cost_func_vals, columns=['File', 'anat_cost_value', 'mni_cost_value'])
     with open(f"{Analysis.save_location}cost_function.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 

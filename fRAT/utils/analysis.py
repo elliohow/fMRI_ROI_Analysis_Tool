@@ -185,9 +185,10 @@ class Analysis:
         if config.verbose:
             print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.brain}')
 
-        excluded_voxels = self.roi_flirt_transform(brain_number_current,
-                                                   brain_number_total)  # Convert MNI brain to native space
-        self.roi_stats(brain_number_current, brain_number_total, excluded_voxels)  # Calculate and save statistics
+        GM_bool = self.roi_flirt_transform(brain_number_current,
+                                                    brain_number_total)  # Convert MNI brain to native space
+
+        self.roi_stats(brain_number_current, brain_number_total, GM_bool)  # Calculate and save statistics
 
         return self
 
@@ -281,9 +282,11 @@ class Analysis:
             segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
                                                              brain_number_current, brain_number_total)
 
-            return self.find_gm_from_segment(segmentation_to_fmri)
+            grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
 
-    def roi_stats(self, brain_number_current, brain_number_total, excluded_voxels):
+            return grey_matter_bool
+
+    def roi_stats(self, brain_number_current, brain_number_total, GM_bool):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
 
@@ -291,8 +294,9 @@ class Analysis:
         roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
 
         # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
-        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain,
-                                                              excluded_voxels)
+        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults,
+                                                              idxMNI, idxBrain,
+                                                              GM_bool)
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
@@ -392,14 +396,14 @@ class Analysis:
         return segmentation_to_fmri
 
     @staticmethod
-    def find_gm_from_segment(native_space_segment):  # TODO: Check this is right (URGENT)
+    def find_gm_from_segment(native_space_segment):
         segment_brain = nib.load(native_space_segment)
         segment_brain = segment_brain.get_fdata().flatten()
 
         # If voxel has a value below the threshold then set to 1
-        idxCSF_or_WM = (segment_brain < config.fslfast_min_prob).astype(int)
+        grey_matter_bool = (segment_brain >= config.fslfast_min_prob).astype(int)
 
-        return idxCSF_or_WM
+        return grey_matter_bool
 
     def roi_stats_setup(self):
         # Load original brain (with statistical map)
@@ -429,14 +433,16 @@ class Analysis:
         return roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum
 
     @staticmethod
-    def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, excluded_voxels):
+    def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, GM_bool):
         for counter, roi in enumerate(idxMNI):
-            if not config.grey_matter_segment or excluded_voxels[counter] == 0:  # TODO: is this line correct
+            if not config.grey_matter_segment or GM_bool[counter] == 1:
                 roiTempStore[int(roi), counter] = idxBrain[counter]
 
             else:
                 roiTempStore[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
-                roiResults[7, int(roi)] += 1
+
+                if int(roi) != 0:  # If ROI is not 'No ROI'
+                    roiResults[7, int(roi)] += 1
 
         return roiTempStore, roiResults
 
