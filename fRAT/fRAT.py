@@ -79,13 +79,13 @@ def analysis(config):
         print('\n----------------\n--- Analysis ---\n----------------')
 
     # Run class setup
-    brain_list = Analysis.setup_analysis(config)
+    brain_list = Environment.setup_analysis(config)
 
     if config.verbose:
         print('\n--- Running analysis ---')
 
     if config.anat_align:
-        Analysis.anat_setup()
+        Environment.anat_setup()
 
         for brain in brain_list:
             brain.save_class_variables()
@@ -100,7 +100,7 @@ def analysis(config):
     atlas_scale(brain_list, config, pool)
 
     if config.verify_param_method == 'table':
-        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis.save_location}", copy=True)
+        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment.save_location}", copy=True)
 
     return
 
@@ -110,10 +110,10 @@ def calculate_flirt_cost(brain_list, config):
 
     if config.anat_align:
         if config.verbose:
-            print(f'Calculating cost function value for anatomical file: {Analysis._anat_brain}')
+            print(f'Calculating cost function value for anatomical file: {Environment._anat_brain}')
 
-        anat_to_mni_cost = Analysis.calculate_anat_flirt_cost_function()
-        cost_func_vals.append([Analysis._anat_brain_no_ext, 0, anat_to_mni_cost])
+        anat_to_mni_cost = Environment.calculate_anat_flirt_cost_function()
+        cost_func_vals.append([Environment._anat_brain_no_ext, 0, anat_to_mni_cost])
 
     for counter, brain in enumerate(brain_list):
         if config.verbose:
@@ -126,7 +126,7 @@ def calculate_flirt_cost(brain_list, config):
         print(f'Saving cost function dataframe as cost_function.json')
 
     df = pd.DataFrame(cost_func_vals, columns=['File', 'anat_cost_value', 'mni_cost_value'])
-    with open(f"{Analysis.save_location}cost_function.json", 'w') as file:
+    with open(f"{Environment.save_location}cost_function.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 
     # TODO: Calculate movement using mcflirt
@@ -143,7 +143,7 @@ def run_analysis(brain_list, config, pool):
         brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
     if config.anat_align:
-        Analysis.file_cleanup(Analysis)
+        Environment.file_cleanup(Environment)
 
     return brain_list
 
@@ -155,7 +155,7 @@ def atlas_scale(brain_list, config, pool):
         print('\n--- Atlas scaling ---')
 
     # Make directory to store scaled brains
-    Utils.check_and_make_dir(f"{os.getcwd()}/{Analysis.save_location}NIFTI_ROI")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{Environment.save_location}NIFTI_ROI")
 
     for statistic_number in range(len(brain_list[0].roiResults)):
         roi_stats = deepcopy(brain_list[0].roiResults[statistic_number, :])

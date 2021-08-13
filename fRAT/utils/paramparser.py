@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from .utils import Utils
-from .analysis import Analysis
+from .analysis import Environment
 
 
 config = None
@@ -185,8 +185,8 @@ class ParamParser:
     @staticmethod
     def chdir_to_output_directory(current_step, config):
         if current_step in ('Plotting', 'Statistics') and config.run_analysis:
-            from utils.analysis import Analysis
-            json_directory = f'{os.getcwd()}/{Analysis.save_location}'
+            from utils.analysis import Environment
+            json_directory = f'{os.getcwd()}/{Environment.save_location}'
 
             os.chdir(json_directory)
 

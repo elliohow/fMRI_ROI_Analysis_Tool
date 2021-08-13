@@ -21,7 +21,7 @@ from .utils import Utils
 config = None
 
 
-class Analysis:
+class Environment:
     file_list = []
     save_location = ""
 
@@ -48,14 +48,102 @@ class Analysis:
 
     _brain_directory = ""
     _fsl_path = ""
-    _anat_brain = ""
-    _anat_brain_no_ext = ""
-    _anat_brain_to_mni = ""
     atlas_path = ""
     _atlas_label_path = ""
     _atlas_name = ""
     _labelArray = []
 
+    @classmethod
+    def setup_analysis(cls, cfg):
+        """Set up environment and find files before running analysis."""
+        global config
+        config = cfg
+
+        try:
+            cls._fsl_path = os.environ['FSLDIR']
+        except OSError:
+            raise Exception('FSL environment variable not set.')
+
+        if config.verbose:
+            print('\n--- Environment Setup ---')
+
+        if config.brain_file_loc in ("", " "):
+            print('Select the directory of the raw MRI/fMRI brains.')
+            cls._brain_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
+
+        else:
+            cls._brain_directory = config.brain_file_loc
+
+            if config.verbose:
+                print(f'Gathering brain files from {config.brain_file_loc}.')
+
+        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it
+        # will be harder to find
+        Utils.save_config(cls._brain_directory)
+
+        try:
+            os.chdir(cls._brain_directory)
+        except FileNotFoundError:
+            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
+
+        if config.verify_param_method and config.run_plotting == 'table':
+            verify_paramValues()
+
+        cls._atlas_name = os.path.splitext(cls._atlas_label_list[int(config.atlas_number)][1])[0]
+
+        if config.output_folder == 'DEFAULT':
+            cls.save_location = f'{cls._atlas_name}_ROI_report/'
+        else:
+            cls.save_location = f'{config.output_folder}/'
+
+        if config.verbose:
+            print(f'Using the {cls._atlas_name} atlas.'
+                  f'\n Saving output in directory: {cls.save_location}')
+
+        # Find all nifti and analyze files
+        cls.brain_file_list = Utils.find_files(cls._brain_directory, "hdr", "nii.gz", "nii")
+
+        if len(cls.brain_file_list) == 0:
+            raise NameError("No files found.")
+
+        # Make folder to save ROI_report if not already created
+        Utils.check_and_make_dir(cls._brain_directory + "/" + cls.save_location)
+
+        Utils.move_file('config_log.toml', cls._brain_directory,
+                        cls.save_location)  # Move config file to analysis folder
+
+        # Extract labels from selected FSL atlas
+        cls.roi_label_list()
+
+        brain_class_list = []
+        for brain in cls.brain_file_list:
+            # Initialise Analysis class for each file found
+            brain_class_list.append(Brain(brain, atlas_path=cls.atlas_path, labels=cls._labelArray))
+
+        return brain_class_list
+
+    @classmethod
+    def roi_label_list(cls):
+        """Extract labels from specified FSL atlas XML file."""
+        cls.atlas_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][0]}'
+        cls._atlas_label_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][1]}'
+
+        with open(cls._atlas_label_path) as fd:
+            atlas_label_dict = xmltodict.parse(fd.read())
+
+        cls._labelArray = []
+        cls._labelArray.append('No ROI')
+
+        for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
+            cls._labelArray.append(roiLabelLine['#text'])
+
+        cls._labelArray.append('Overall')
+
+
+class Participant():
+    pass
+
+class Brain(Environment):
     def __init__(self, brain, atlas_path="", labels=""):
         self.brain = brain
         self.label_list = labels
@@ -83,78 +171,9 @@ class Analysis:
         # These are imported later on using the save_class_variables function
         self._anat_brain = ""
         self._anat_brain_to_mni = ""
+        self._anat_brain_no_ext = ""
 
-    @staticmethod
-    def setup_analysis(cfg):
-        """Set up environment and find files before running analysis."""
-        global config
-        config = cfg
-
-        try:
-            Analysis._fsl_path = os.environ['FSLDIR']
-        except OSError:
-            raise Exception('FSL environment variable not set.')
-
-        if config.verbose:
-            print('\n--- Environment Setup ---')
-
-        if config.brain_file_loc in ("", " "):
-            print('Select the directory of the raw MRI/fMRI brains.')
-            Analysis._brain_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
-
-        else:
-            Analysis._brain_directory = config.brain_file_loc
-
-            if config.verbose:
-                print(f'Gathering brain files from {config.brain_file_loc}.')
-
-        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it
-        # will be harder to find
-        Utils.save_config(Analysis._brain_directory)
-
-        try:
-            os.chdir(Analysis._brain_directory)
-        except FileNotFoundError:
-            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
-
-        if config.verify_param_method and config.run_plotting == 'table':
-            verify_paramValues()
-
-        Analysis._atlas_name = os.path.splitext(Analysis._atlas_label_list[int(config.atlas_number)][1])[0]
-
-        if config.output_folder == 'DEFAULT':
-            Analysis.save_location = f'{Analysis._atlas_name}_ROI_report/'
-        else:
-            Analysis.save_location = f'{config.output_folder}/'
-
-        if config.verbose:
-            print(f'Using the {Analysis._atlas_name} atlas.'
-                  f'\n Saving output in directory: {Analysis.save_location}')
-
-        # Find all nifti and analyze files
-        Analysis.brain_file_list = Utils.find_files(Analysis._brain_directory, "hdr", "nii.gz", "nii")
-
-        if len(Analysis.brain_file_list) == 0:
-            raise NameError("No files found.")
-
-        # Make folder to save ROI_report if not already created
-        Utils.check_and_make_dir(Analysis._brain_directory + "/" + Analysis.save_location)
-
-        Utils.move_file('config_log.toml', Analysis._brain_directory,
-                        Analysis.save_location)  # Move config file to analysis folder
-
-        # Extract labels from selected FSL atlas
-        Analysis.roi_label_list()
-
-        brain_class_list = []
-        for brain in Analysis.brain_file_list:
-            # Initialise Analysis class for each file found
-            brain_class_list.append(Analysis(brain, atlas_path=Analysis.atlas_path, labels=Analysis._labelArray))
-
-        return brain_class_list
-
-    @classmethod
-    def anat_setup(cls):
+    def anat_setup(self):
         if config.verbose:
             print('\nConverting anatomical file to MNI space.')
 
@@ -165,45 +184,23 @@ class Analysis:
         else:
             anat = anat[0]
 
-        cls._anat_brain = f'{os.getcwd()}/anat/{anat}'
-        cls._anat_brain_no_ext = anat.rsplit(".")[0]
-        cls._anat_brain_to_mni = cls.fsl_functions(cls, cls.save_location, cls._anat_brain_no_ext,
-                                                   'FLIRT', cls._anat_brain, 'to_mni_from_',
-                                                   f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+        self._anat_brain = f'{os.getcwd()}/anat/{anat}'
+        self._anat_brain_no_ext = anat.rsplit(".")[0]
+        self._anat_brain_to_mni = self.fsl_functions(self, self.save_location, self._anat_brain_no_ext,
+                                                     'FLIRT', self._anat_brain, 'to_mni_from_',
+                                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
-    def save_class_variables(self):
-        # Due to dill errors with saving class variables of imported classes, this function is used to save the class
-        # variable as an instance variable, however it needs to be called after brain extraction of the anatomical
-        # instantiation, which is why it isn't saved during instantiation.
-        self._anat_brain = Analysis._anat_brain
-        self._anat_brain_to_mni = Analysis._anat_brain_to_mni
-
-    def run_analysis(self, brain_number_current, brain_number_total, cfg):
-        global config
-        config = cfg
-
-        if config.verbose:
-            print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.brain}')
-
-        GM_bool = self.roi_flirt_transform(brain_number_current,
-                                                    brain_number_total)  # Convert MNI brain to native space
-
-        self.roi_stats(brain_number_current, brain_number_total, GM_bool)  # Calculate and save statistics
-
-        return self
-
-    @classmethod
-    def calculate_anat_flirt_cost_function(cls):
-        fslfunc = fsl.FLIRT(in_file=cls._anat_brain,
-                            schedule=f'{cls._fsl_path}/etc/flirtsch/measurecost1.sch',
+    def calculate_anat_flirt_cost_function(self):
+        fslfunc = fsl.FLIRT(in_file=self._anat_brain,
+                            schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
         # Calculate MNI cost function value
-        mni_cost = cls.run_flirt_cost_function(fslfunc,
-                                                     f'{cls._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                     f'{cls.save_location}Intermediate_files/to_mni_from_{cls._anat_brain_no_ext}.mat',
-                                                     f'{cls.save_location}Intermediate_files/{cls._anat_brain_no_ext}_mni_redundant.nii.gz',
-                                                     f'{cls.save_location}Intermediate_files/{cls._anat_brain_no_ext}_mni_redundant.mat')
+        mni_cost = self.run_flirt_cost_function(fslfunc,
+                                                f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                                f'{self.save_location}Intermediate_files/to_mni_from_{self._anat_brain_no_ext}.mat',
+                                                f'{self.save_location}Intermediate_files/{self._anat_brain_no_ext}_mni_redundant.nii.gz',
+                                                f'{self.save_location}Intermediate_files/{self._anat_brain_no_ext}_mni_redundant.mat')
 
         return mni_cost
 
@@ -241,78 +238,6 @@ class Analysis:
         os.remove(matrix_file)
 
         return cost_func
-
-    def roi_flirt_transform(self, brain_number_current, brain_number_total):
-        """Function which uses NiPype to transform the chosen atlas into native space."""
-        pack_vars = [self, self.save_location, self.no_ext_brain]
-
-        if config.motion_correct:
-            # Motion correction
-            self.fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
-
-        # Turn 4D scan into 3D
-        current_brain = self.fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
-
-        # Brain extraction
-        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
-
-        if config.anat_align:
-            if config.verbose:
-                print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
-
-            # Align to anatomical
-            anat_aligned_mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self._anat_brain)
-
-            # Combine fMRI-anat and anat-mni matrices
-            mat = self.fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
-
-        else:
-            # Align to MNI
-            mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
-                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
-        # Get inverse of matrix
-        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
-
-        # Apply inverse of matrix to chosen atlas to convert it into native space
-        self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain,
-                           'nearestneighbour')
-
-        if config.grey_matter_segment:
-            # Convert segmentation to fMRI native space
-            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
-                                                             brain_number_current, brain_number_total)
-
-            grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
-
-            return grey_matter_bool
-
-    def roi_stats(self, brain_number_current, brain_number_total, GM_bool):
-        """Function which uses the output from the roi_flirt_transform function to collate the statistical information
-        per ROI."""
-
-        # Load brains and pre-initialise arrays
-        roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
-
-        # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
-        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults,
-                                                              idxMNI, idxBrain,
-                                                              GM_bool)
-
-        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
-
-        roiResults = self.calculate_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
-
-        warnings.filterwarnings('default')  # Reactivate warnings
-
-        if config.bootstrap:
-            roiResults = self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
-                                                  brain_number_total)  # Bootstrapping
-
-        self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
-
-        self.roiResults = roiResults  # Retain variable for atlas_scale function
-
-        self.file_cleanup(self)  # Clean up files
 
     @staticmethod
     def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
@@ -373,37 +298,96 @@ class Analysis:
 
         return current_brain
 
-    def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
+    def run_analysis(self, brain_number_current, brain_number_total, cfg):
+        global config
+        config = cfg
+
         if config.verbose:
-            print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
+            print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.brain}')
 
-        try:
-            source_loc = glob(f"fslfast/*_pve_1*")[0]
-        except IndexError:
-            source_loc = glob(f"fslfast/*")[0]
+        GM_bool = self.roi_flirt_transform(brain_number_current,
+                                           brain_number_total)  # Convert MNI brain to native space
 
-        prefix = 'fslfast_to_'
-        interp = 'trilinear'
+        self.roi_stats(brain_number_current, brain_number_total, GM_bool)  # Calculate and save statistics
 
-        # Save inverse of fMRI to anat
-        inverse_mat = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
-                                         'inverse_anat_to_')
-
-        # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
-                                                  prefix, inverse_mat, current_brain, interp)
-
-        return segmentation_to_fmri
+        return self
 
     @staticmethod
-    def find_gm_from_segment(native_space_segment):
-        segment_brain = nib.load(native_space_segment)
-        segment_brain = segment_brain.get_fdata().flatten()
+    def file_cleanup(obj):
+        """Clean up unnecessary output from either instance of class, or class itself."""
+        if config.file_cleanup == 'delete':
+            for file in obj.file_list:
+                os.remove(file)
 
-        # If voxel has a value below the threshold then set to 1
-        grey_matter_bool = (segment_brain >= config.fslfast_min_prob).astype(int)
+        elif config.file_cleanup == 'move':
+            Utils.check_and_make_dir(f"{obj.save_location}Intermediate_files")
 
-        return grey_matter_bool
+            for file in obj.file_list:
+                file = file.replace(obj.save_location, "")  # Remove folder from start of file name
+                Utils.move_file(file, obj.save_location, f"{obj.save_location}Intermediate_files")
+
+        obj.file_list = []
+
+    @staticmethod
+    def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
+        for counter, roi in enumerate(list(range(0, roiNum + 1))):
+            if config.verbose:
+                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
+                      f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
+
+            if counter < roiNum:
+                roiResults[1, roi], roiResults[3, roi] = calculate_confidence_interval(roiTempStore,
+                                                                                       config.bootstrap_alpha,
+                                                                                       roi=roi)
+            else:
+                # Calculate overall statistics
+                roiResults[1, -1], roiResults[3, -1] = calculate_confidence_interval(roiTempStore[1:, :],
+                                                                                     config.bootstrap_alpha)
+        return roiResults
+
+    def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
+        headers = ['Voxels', 'Mean', 'Std_dev',
+                   f'Conf_Int_{self._conf_level_list[int(config.conf_level_number)][0]}',
+                   'Median', 'Min', 'Max', 'Excluded_Voxels']
+
+        # Reorganise matrix to later remove nan rows
+        roiTempStore = roiTempStore.transpose()
+        i = np.arange(roiTempStore.shape[1])
+        # Find indices of nans and put them at the end of each column
+        a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
+        # Reorganise matrix with nans at end
+        roiTempStore[:] = roiTempStore[a, i]
+
+        # Save results as dataframe
+        results = pd.DataFrame(data=roiResults,
+                               index=headers,
+                               columns=self.label_list)
+        raw_results = pd.DataFrame(data=roiTempStore,
+                                   columns=self.label_list[:-1])
+
+        # Remove the required rows from the dataframe
+        raw_results = raw_results.drop(raw_results.columns[0], axis=1)
+
+        # Remove rows where all columns have NaNs (essential to keep file size down)
+        raw_results = raw_results.dropna(axis=0, how='all')
+
+        # Convert to dict and get rid of row numbers to significantly decrease file size
+        roidict = Utils.dataframe_to_dict(raw_results)
+
+        summary_results_path = f"{self._brain_directory}/{self.save_location}Summarised_results/"
+        Utils.check_and_make_dir(summary_results_path)
+
+        raw_results_path = f"{self._brain_directory}/{self.save_location}Raw_results/"
+        Utils.check_and_make_dir(raw_results_path)
+
+        # Save JSON files
+        if config.verbose:
+            print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
+
+        with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
+            json.dump(results.to_dict(), file, indent=2)
+        with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
+            json.dump(roidict, file, indent=2)
 
     def roi_stats_setup(self):
         # Load original brain (with statistical map)
@@ -489,82 +473,109 @@ class Analysis:
 
         return roiResults
 
-    @staticmethod
-    def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
-        for counter, roi in enumerate(list(range(0, roiNum + 1))):
-            if config.verbose:
-                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
-                      f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
-
-            if counter < roiNum:
-                roiResults[1, roi], roiResults[3, roi] = calculate_confidence_interval(roiTempStore,
-                                                                                       config.bootstrap_alpha,
-                                                                                       roi=roi)
-            else:
-                # Calculate overall statistics
-                roiResults[1, -1], roiResults[3, -1] = calculate_confidence_interval(roiTempStore[1:, :],
-                                                                                     config.bootstrap_alpha)
-        return roiResults
-
-    def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
-        headers = ['Voxels', 'Mean', 'Std_dev',
-                   f'Conf_Int_{self._conf_level_list[int(config.conf_level_number)][0]}',
-                   'Median', 'Min', 'Max', 'Excluded_Voxels']
-
-        # Reorganise matrix to later remove nan rows
-        roiTempStore = roiTempStore.transpose()
-        i = np.arange(roiTempStore.shape[1])
-        # Find indices of nans and put them at the end of each column
-        a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
-        # Reorganise matrix with nans at end
-        roiTempStore[:] = roiTempStore[a, i]
-
-        # Save results as dataframe
-        results = pd.DataFrame(data=roiResults,
-                               index=headers,
-                               columns=self.label_list)
-        raw_results = pd.DataFrame(data=roiTempStore,
-                                   columns=self.label_list[:-1])
-
-        # Remove the required rows from the dataframe
-        raw_results = raw_results.drop(raw_results.columns[0], axis=1)
-
-        # Remove rows where all columns have NaNs (essential to keep file size down)
-        raw_results = raw_results.dropna(axis=0, how='all')
-
-        # Convert to dict and get rid of row numbers to significantly decrease file size
-        roidict = Utils.dataframe_to_dict(raw_results)
-
-        summary_results_path = f"{self._brain_directory}/{self.save_location}Summarised_results/"
-        Utils.check_and_make_dir(summary_results_path)
-
-        raw_results_path = f"{self._brain_directory}/{self.save_location}Raw_results/"
-        Utils.check_and_make_dir(raw_results_path)
-
-        # Save JSON files
+    def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
         if config.verbose:
-            print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
+            print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
-        with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
-            json.dump(results.to_dict(), file, indent=2)
-        with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
-            json.dump(roidict, file, indent=2)
+        try:
+            source_loc = glob(f"fslfast/*_pve_1*")[0]
+        except IndexError:
+            source_loc = glob(f"fslfast/*")[0]
+
+        prefix = 'fslfast_to_'
+        interp = 'trilinear'
+
+        # Save inverse of fMRI to anat
+        inverse_mat = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
+                                         'inverse_anat_to_')
+
+        # Apply inverse of matrix to chosen segmentation to convert it into native space
+        segmentation_to_fmri = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
+                                                  prefix, inverse_mat, current_brain, interp)
+
+        return segmentation_to_fmri
 
     @staticmethod
-    def file_cleanup(obj):
-        """Clean up unnecessary output from either instance of class, or class itself."""
-        if config.file_cleanup == 'delete':
-            for file in obj.file_list:
-                os.remove(file)
+    def find_gm_from_segment(native_space_segment):
+        segment_brain = nib.load(native_space_segment)
+        segment_brain = segment_brain.get_fdata().flatten()
 
-        elif config.file_cleanup == 'move':
-            Utils.check_and_make_dir(f"{obj.save_location}Intermediate_files")
+        # If voxel has a value below the threshold then set to 1
+        grey_matter_bool = (segment_brain >= config.fslfast_min_prob).astype(int)
 
-            for file in obj.file_list:
-                file = file.replace(obj.save_location, "")  # Remove folder from start of file name
-                Utils.move_file(file, obj.save_location, f"{obj.save_location}Intermediate_files")
+        return grey_matter_bool
 
-        obj.file_list = []
+    def roi_flirt_transform(self, brain_number_current, brain_number_total):
+        """Function which uses NiPype to transform the chosen atlas into native space."""
+        pack_vars = [self, self.save_location, self.no_ext_brain]
+
+        if config.motion_correct:
+            # Motion correction
+            self.fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
+
+        # Turn 4D scan into 3D
+        current_brain = self.fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
+
+        # Brain extraction
+        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
+
+        if config.anat_align:
+            if config.verbose:
+                print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
+
+            # Align to anatomical
+            anat_aligned_mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self._anat_brain)
+
+            # Combine fMRI-anat and anat-mni matrices
+            mat = self.fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
+
+        else:
+            # Align to MNI
+            mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
+                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+        # Get inverse of matrix
+        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
+
+        # Apply inverse of matrix to chosen atlas to convert it into native space
+        self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain,
+                           'nearestneighbour')
+
+        if config.grey_matter_segment:
+            # Convert segmentation to fMRI native space
+            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
+                                                             brain_number_current, brain_number_total)
+
+            grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
+
+            return grey_matter_bool
+
+    def roi_stats(self, brain_number_current, brain_number_total, GM_bool):
+        """Function which uses the output from the roi_flirt_transform function to collate the statistical information
+        per ROI."""
+
+        # Load brains and pre-initialise arrays
+        roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
+
+        # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
+        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults,
+                                                              idxMNI, idxBrain,
+                                                              GM_bool)
+
+        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+
+        roiResults = self.calculate_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
+
+        warnings.filterwarnings('default')  # Reactivate warnings
+
+        if config.bootstrap:
+            roiResults = self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
+                                                  brain_number_total)  # Bootstrapping
+
+        self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
+
+        self.roiResults = roiResults  # Retain variable for atlas_scale function
+
+        self.file_cleanup(self)  # Clean up files
 
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
@@ -624,22 +635,12 @@ class Analysis:
             Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
-    @classmethod
-    def roi_label_list(cls):
-        """Extract labels from specified FSL atlas XML file."""
-        cls.atlas_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][0]}'
-        cls._atlas_label_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][1]}'
-
-        with open(cls._atlas_label_path) as fd:
-            atlas_label_dict = xmltodict.parse(fd.read())
-
-        cls._labelArray = []
-        cls._labelArray.append('No ROI')
-
-        for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
-            cls._labelArray.append(roiLabelLine['#text'])
-
-        cls._labelArray.append('Overall')
+    # def save_class_variables(self):
+    #     # Due to dill errors with saving class variables of imported classes, this function is used to save the class
+    #     # variable as an instance variable, however it needs to be called after brain extraction of the anatomical
+    #     # instantiation, which is why it isn't saved during instantiation.
+    #     self._anat_brain = Participant._anat_brain
+    #     self._anat_brain_to_mni = Participant._anat_brain_to_mni
 
 
 def calculate_confidence_interval(data, alpha, roi=None):
@@ -658,7 +659,6 @@ def calculate_confidence_interval(data, alpha, roi=None):
     warnings.simplefilter(action='default', category=PendingDeprecationWarning)
 
     return results.value, conf_int
-
 
 def verify_paramValues():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
