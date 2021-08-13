@@ -1,3 +1,4 @@
+import itertools
 import os
 import re
 import sys
@@ -23,35 +24,33 @@ config = None
 
 class Environment:
     file_list = []
-    save_location = ""
-
-    _roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
-    _conf_level_list = [('80', 1.28),
-                        ('85', 1.44),
-                        ('90', 1.64),
-                        ('95', 1.96),
-                        ('98', 2.33),
-                        ('99', 2.58)]
-    _atlas_label_list = [('Cerebellum/Cerebellum-MNIflirt-maxprob-thr0-1mm.nii.gz', 'Cerebellum_MNIflirt.xml'),
-                         ('Cerebellum/Cerebellum-MNIfnirt-maxprob-thr0-1mm.nii.gz', 'Cerebellum_MNIfnirt.xml'),
-                         ('HarvardOxford/HarvardOxford-cort-maxprob-thr0-1mm.nii.gz', 'HarvardOxford-Cortical.xml'),
-                         ('HarvardOxford/HarvardOxford-sub-maxprob-thr0-1mm.nii.gz', 'HarvardOxford-Subcortical.xml'),
-                         ('JHU/JHU-ICBM-labels-1mm.nii.gz', 'JHU-labels.xml'),
-                         ('JHU/JHU-ICBM-tracts-maxprob-thr0-1mm.nii.gz', 'JHU-tracts.xml'),
-                         ('Juelich/Juelich-maxprob-thr0-1mm.nii.gz', 'Juelich.xml'),
-                         ('MNI/MNI-maxprob-thr0-1mm.nii.gz', 'MNI.xml'),
-                         ('SMATT/SMATT-labels-1mm.nii.gz', 'SMATT.xml'),
-                         ('STN/STN-maxprob-thr0-0.5mm.nii.gz', 'STN.xml'),
-                         ('Striatum/striatum-structural-1mm.nii.gz', 'Striatum-Structural.xml'),
-                         ('Talairach/Talairach-labels-1mm.nii.gz', 'Talairach.xml'),
-                         ('Thalamus/Thalamus-maxprob-thr0-1mm.nii.gz', 'Thalamus.xml')]
-
-    _brain_directory = ""
-    _fsl_path = ""
-    atlas_path = ""
-    _atlas_label_path = ""
-    _atlas_name = ""
-    _labelArray = []
+    save_location = None
+    roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
+    conf_level_list = [('80', 1.28),
+                       ('85', 1.44),
+                       ('90', 1.64),
+                       ('95', 1.96),
+                       ('98', 2.33),
+                       ('99', 2.58)]
+    atlas_label_list = [('Cerebellum/Cerebellum-MNIflirt-maxprob-thr0-1mm.nii.gz', 'Cerebellum_MNIflirt.xml'),
+                        ('Cerebellum/Cerebellum-MNIfnirt-maxprob-thr0-1mm.nii.gz', 'Cerebellum_MNIfnirt.xml'),
+                        ('HarvardOxford/HarvardOxford-cort-maxprob-thr0-1mm.nii.gz', 'HarvardOxford-Cortical.xml'),
+                        ('HarvardOxford/HarvardOxford-sub-maxprob-thr0-1mm.nii.gz', 'HarvardOxford-Subcortical.xml'),
+                        ('JHU/JHU-ICBM-labels-1mm.nii.gz', 'JHU-labels.xml'),
+                        ('JHU/JHU-ICBM-tracts-maxprob-thr0-1mm.nii.gz', 'JHU-tracts.xml'),
+                        ('Juelich/Juelich-maxprob-thr0-1mm.nii.gz', 'Juelich.xml'),
+                        ('MNI/MNI-maxprob-thr0-1mm.nii.gz', 'MNI.xml'),
+                        ('SMATT/SMATT-labels-1mm.nii.gz', 'SMATT.xml'),
+                        ('STN/STN-maxprob-thr0-0.5mm.nii.gz', 'STN.xml'),
+                        ('Striatum/striatum-structural-1mm.nii.gz', 'Striatum-Structural.xml'),
+                        ('Talairach/Talairach-labels-1mm.nii.gz', 'Talairach.xml'),
+                        ('Thalamus/Thalamus-maxprob-thr0-1mm.nii.gz', 'Thalamus.xml')]
+    base_directory = None
+    fsl_path = None
+    atlas_path = None
+    atlas_label_path = None
+    atlas_name = None
+    labelArray = []
 
     @classmethod
     def setup_analysis(cls, cfg):
@@ -59,244 +58,257 @@ class Environment:
         global config
         config = cfg
 
-        try:
-            cls._fsl_path = os.environ['FSLDIR']
-        except OSError:
-            raise Exception('FSL environment variable not set.')
-
         if config.verbose:
             print('\n--- Environment Setup ---')
 
-        if config.brain_file_loc in ("", " "):
-            print('Select the directory of the raw MRI/fMRI brains.')
-            cls._brain_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
-
-        else:
-            cls._brain_directory = config.brain_file_loc
-
-            if config.verbose:
-                print(f'Gathering brain files from {config.brain_file_loc}.')
-
-        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it
-        # will be harder to find
-        Utils.save_config(cls._brain_directory)
-
-        try:
-            os.chdir(cls._brain_directory)
-        except FileNotFoundError:
-            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
+        cls.setup_environment(config)
 
         if config.verify_param_method and config.run_plotting == 'table':
-            verify_paramValues()
+            verify_param_values()  # TODO: check this works with participant folders
 
-        cls._atlas_name = os.path.splitext(cls._atlas_label_list[int(config.atlas_number)][1])[0]
-
-        if config.output_folder == 'DEFAULT':
-            cls.save_location = f'{cls._atlas_name}_ROI_report/'
-        else:
-            cls.save_location = f'{config.output_folder}/'
-
-        if config.verbose:
-            print(f'Using the {cls._atlas_name} atlas.'
-                  f'\n Saving output in directory: {cls.save_location}')
-
-        # Find all nifti and analyze files
-        cls.brain_file_list = Utils.find_files(cls._brain_directory, "hdr", "nii.gz", "nii")
-
-        if len(cls.brain_file_list) == 0:
-            raise NameError("No files found.")
-
-        # Make folder to save ROI_report if not already created
-        Utils.check_and_make_dir(cls._brain_directory + "/" + cls.save_location)
-
-        Utils.move_file('config_log.toml', cls._brain_directory,
-                        cls.save_location)  # Move config file to analysis folder
+        cls.setup_save_location(config)
 
         # Extract labels from selected FSL atlas
         cls.roi_label_list()
 
-        brain_class_list = []
-        for brain in cls.brain_file_list:
-            # Initialise Analysis class for each file found
-            brain_class_list.append(Brain(brain, atlas_path=cls.atlas_path, labels=cls._labelArray))
+        participant_list = cls.setup_participants()
 
-        return brain_class_list
+        return participant_list
+
+    @classmethod
+    def setup_participants(cls):
+        participant_dirs = cls.find_participant_dirs()
+
+        participant_list = set()
+        for participant_dir in participant_dirs:
+            # Initialise participants
+            participant_list.add(Participant(participant_dir, cls.base_directory, cls.save_location))
+
+        for participant in participant_list:
+            participant.setup()
+
+        return participant_list
+
+    @classmethod
+    def find_participant_dirs(cls):
+        participant_dirs = [dir for dir in glob("*") if re.search("^p[0-9]+", dir)]
+
+        if config.verbose:
+            print(f'Found {len(participant_dirs)} participant folders.')
+            
+        return participant_dirs
+
+    @classmethod
+    def setup_save_location(cls, config):
+        cls.atlas_name = os.path.splitext(cls.atlas_label_list[int(config.atlas_number)][1])[0]
+        
+        if config.output_folder == 'DEFAULT':
+            cls.save_location = f'{cls.atlas_name}_ROI_report/'
+        else:
+            cls.save_location = f'{config.output_folder}/'
+            
+        if config.verbose:
+            print(f'Using the {cls.atlas_name} atlas.'
+                  f'\n Saving output in directory: {cls.save_location}')
+
+        # Make folder to save ROI_report if not already created
+        Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}")
+
+        # Move config file to analysis folder
+        Utils.move_file('config_log.toml', cls.base_directory, cls.save_location)
+
+    @classmethod
+    def setup_environment(cls, config):
+        try:
+            cls.fsl_path = os.environ['FSLDIR']
+        except OSError:
+            raise Exception('FSL environment variable not set.')
+
+        if config.brain_file_loc in ("", " "):
+            print('Select the directory of the raw MRI/fMRI brains.')
+            cls.base_directory = Utils.file_browser(title='Select the directory of the raw MRI/fMRI brains')
+
+        else:
+            cls.base_directory = config.brain_file_loc
+
+            if config.verbose:
+                print(f'Gathering brain files from {config.brain_file_loc}.')
+
+        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
+        Utils.save_config(cls.base_directory)
+
+        try:
+            os.chdir(cls.base_directory)
+        except FileNotFoundError:
+            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
 
     @classmethod
     def roi_label_list(cls):
         """Extract labels from specified FSL atlas XML file."""
-        cls.atlas_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][0]}'
-        cls._atlas_label_path = f'{cls._fsl_path}/data/atlases/{cls._atlas_label_list[int(config.atlas_number)][1]}'
+        cls.atlas_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][0]}'
+        cls.atlas_label_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][1]}'
 
-        with open(cls._atlas_label_path) as fd:
+        with open(cls.atlas_label_path) as fd:
             atlas_label_dict = xmltodict.parse(fd.read())
 
-        cls._labelArray = []
-        cls._labelArray.append('No ROI')
+        cls.labelArray = []
+        cls.labelArray.append('No ROI')
 
         for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
-            cls._labelArray.append(roiLabelLine['#text'])
+            cls.labelArray.append(roiLabelLine['#text'])
 
-        cls._labelArray.append('Overall')
+        cls.labelArray.append('Overall')
 
 
-class Participant():
-    pass
-
-class Brain(Environment):
-    def __init__(self, brain, atlas_path="", labels=""):
-        self.brain = brain
-        self.label_list = labels
-        self.atlas_path = atlas_path
-
-        self.no_ext_brain = splitext(self.brain)[0]
-        self.stat_brain = config.stat_map_folder + splitext(self.brain)[0] + config.stat_map_suffix
-
-        self.roiResults = ""
-        self.roi_stat_list = ""
-        self.file_list = []
-
-        self.mni_cost = 0
+class Participant:
+    def __init__(self, participant, base_directory, save_location):
+        self.participant_name = participant
+        self.participant_path = f"{base_directory}/{participant}"
+        self.save_location = f"{self.participant_path}/{save_location}"
         self.anat_cost = 0
+        self.brains = None
+        self.file_list = []
+        self.anat_brain = None
+        self.anat_brain_to_mni = None
+        self.anat_brain_no_ext = None
 
-        # Copying class attributes here is a workaround for dill, which can't access modified class attributes for
-        # imported modules.
-        self._brain_directory = self._brain_directory
-        self.save_location = self.save_location
-        self._fsl_path = self._fsl_path
-        self._atlas_label_path = self._atlas_label_path
-        self._atlas_name = self._atlas_name
-        self._labelArray = self._labelArray
+    def setup(self):
+        self.find_fmri_files()
 
-        # These are imported later on using the save_class_variables function
-        self._anat_brain = ""
-        self._anat_brain_to_mni = ""
-        self._anat_brain_no_ext = ""
+        # Make folder to save ROI_report if not already created
+        Utils.check_and_make_dir(self.save_location)
+
+        if config.anat_align:
+            self.anat_setup()
+
+        # Initialise brain class for each file found
+        self.initialise_brains()
+
+    def run_analysis(self, pool):
+        if config.verbose:
+            print(f'\nAnalysing fMRI files for participant: {self.participant_name}\n')
+
+        # Set arguments to pass to run_analysis function
+        iterable = zip(self.brains, itertools.repeat("run_analysis"), range(len(self.brains)),
+                       itertools.repeat(len(self.brains)), itertools.repeat(config))
+
+        if config.multicore_processing:
+            pool.starmap(Utils.instance_method_handler, iterable)
+        else:
+            list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+        if config.anat_align:
+            self.file_cleanup()
+
+    def find_fmri_files(self):
+        # Find all nifti and analyze files
+        self.brains = Utils.find_files(f"{self.participant_path}/fmri", "hdr", "nii.gz", "nii")
+
+        if len(self.brains) == 0:
+            raise NameError("No files found.")
+
+    def initialise_brains(self):
+        for counter, brain in enumerate(self.brains):
+            self.brains[counter] = Brain(f"{self.participant_path}/fmri/{brain}",
+                                         self.participant_path,
+                                         self.save_location,
+                                         self.anat_brain,
+                                         self.anat_brain_to_mni)
 
     def anat_setup(self):
         if config.verbose:
-            print('\nConverting anatomical file to MNI space.')
+            print(f'\nConverting anatomical file to MNI space for participant: {self.participant_name}')
 
-        anat = Utils.find_files(f'{os.getcwd()}/anat/', "hdr", "nii.gz", "nii")
+        anat = Utils.find_files(f'{self.participant_path}/anat/', "hdr", "nii.gz", "nii")
 
         if len(anat) > 1:
             raise FileExistsError('Multiple files found in anat folder.')
         else:
             anat = anat[0]
 
-        self._anat_brain = f'{os.getcwd()}/anat/{anat}'
-        self._anat_brain_no_ext = anat.rsplit(".")[0]
-        self._anat_brain_to_mni = self.fsl_functions(self, self.save_location, self._anat_brain_no_ext,
-                                                     'FLIRT', self._anat_brain, 'to_mni_from_',
-                                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+        self.anat_brain = f'{self.participant_path}/anat/{anat}'
+        self.anat_brain_no_ext = anat.rsplit(".")[0]
+        self.anat_brain_to_mni = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
+                                                'FLIRT', self.anat_brain, 'to_mni_from_',
+                                                f'{Environment.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
     def calculate_anat_flirt_cost_function(self):
-        fslfunc = fsl.FLIRT(in_file=self._anat_brain,
-                            schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
+        fslfunc = fsl.FLIRT(in_file=self.anat_brain,
+                            schedule=f'{Environment.fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
         # Calculate MNI cost function value
-        mni_cost = self.run_flirt_cost_function(fslfunc,
-                                                f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                f'{self.save_location}Intermediate_files/to_mni_from_{self._anat_brain_no_ext}.mat',
-                                                f'{self.save_location}Intermediate_files/{self._anat_brain_no_ext}_mni_redundant.nii.gz',
-                                                f'{self.save_location}Intermediate_files/{self._anat_brain_no_ext}_mni_redundant.mat')
+        mni_cost = run_flirt_cost_function(fslfunc,
+                                                f'{Environment.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                                f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
+                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
+                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat')
 
         return mni_cost
 
-    def calculate_fMRI_flirt_cost_function(self):
-        fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/bet_{self.brain}.gz',
+    def file_cleanup(self):
+        """Clean up unnecessary output from either instance of class, or class itself."""
+        if config.file_cleanup == 'delete':
+            for file in self.file_list:
+                os.remove(file)
+
+        elif config.file_cleanup == 'move':
+            for file in self.file_list:
+                file = file.replace(self.save_location, "")  # Remove folder from start of file name
+                Utils.move_file(file, self.save_location, f"{self.save_location}Intermediate_files")
+
+        self.file_list = []
+
+
+class Brain:
+    def __init__(self, brain, participant_folder, save_location, anat_brain, anat_brain_to_mni):
+        self.brain = brain
+        self.save_location = save_location
+        self.anat_brain = anat_brain
+        self.anat_brain_to_mni = anat_brain_to_mni
+        self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
+        self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
+        self.roiResults = ""
+        self.roi_stat_list = ""
+        self.file_list = []
+
+        # Copying class attributes here is a workaround for dill, which can't access modified class attributes for imported modules.
+        self._brain_directory = Environment.base_directory
+        self._fsl_path = Environment.fsl_path
+        self._atlas_label_path = Environment.atlas_label_path
+        self._atlas_name = Environment.atlas_name
+        self._labelArray = Environment.labelArray
+        self.atlas_path = Environment.atlas_path
+
+    def calculate_fMRI_flirt_cost_function(self, brain_number_current, brain_number_total, config):
+        if config.verbose:
+            print(f'Calculating cost function value for {brain_number_current + 1}/{brain_number_total}: '
+                  f'{self.no_ext_brain}')
+
+        fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/bet_{self.no_ext_brain}.nii.gz',
                             schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
+        anat_cost, mni_cost = 0, 0
+
         if config.anat_align:  # Calculate anatomical cost function value
-            self.anat_cost = self.run_flirt_cost_function(fslfunc,
-                                                          self._anat_brain,
+            anat_cost = run_flirt_cost_function(fslfunc,
+                                                          self.anat_brain,
                                                           f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
                                                           f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
-                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat')
+                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
+                                                     config)
 
         else:
             # Calculate MNI cost function value
-            self.mni_cost = self.run_flirt_cost_function(fslfunc,
+            mni_cost = run_flirt_cost_function(fslfunc,
                                                          f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
                                                          f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
                                                          f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
-                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat')
+                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
+                                                    config)
 
-    @staticmethod
-    def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file):
-        fslfunc.inputs.reference = ref
-        fslfunc.inputs.args = f"-init {init}"  # args used as in_matrix_file method not working
-        fslfunc.inputs.out_file = out_file
-        fslfunc.inputs.out_matrix_file = matrix_file
-        output = fslfunc.run()
-        cost_func = float(re.search("[0-9]*\.[0-9]+", output.runtime.stdout)[0])
-
-        # Clean up files
-        os.remove(out_file)
-        os.remove(matrix_file)
-
-        return cost_func
-
-    @staticmethod
-    def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
-        """Run an FSL function using NiPype."""
-        fslfunc = getattr(fsl, func)()
-        fslfunc.inputs.in_file = input
-        fslfunc.inputs.output_type = 'NIFTI_GZ'
-
-        if func == 'ConvertXFM':
-            suffix = '.mat'
-        else:
-            suffix = '.nii.gz'
-
-        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
-
-        # Arguments dependent on FSL function used
-        if func == 'MCFLIRT':
-            obj.brain = current_brain  # TODO comment this and how it effects other parts of the program
-
-        elif func == 'BET':
-            fslfunc.inputs.functional = True
-
-        elif func == 'FLIRT':
-            fslfunc.inputs.reference = argv[0]
-            fslfunc.inputs.dof = config.dof
-            current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
-
-        elif func == 'ConvertXFM':
-            if len(argv) > 0 and argv[0] == 'concat_xfm':
-                fslfunc.inputs.in_file2 = obj._anat_brain_to_mni
-                fslfunc.inputs.concat_xfm = True
-            else:
-                fslfunc.inputs.invert_xfm = True
-
-        elif func == 'ApplyXFM':
-            fslfunc.inputs.apply_xfm = True
-            fslfunc.inputs.in_matrix_file = argv[0]
-            fslfunc.inputs.reference = argv[1]
-            fslfunc.inputs.interp = argv[2]
-            current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
-
-        if config.verbose_cmd_line_args:
-            print(fslfunc.cmdline)
-
-        fslfunc.run()
-
-        if func in ('FLIRT', 'ApplyXFM'):
-            obj.file_list.extend([current_brain, current_mat])
-
-        elif func == 'BET':
-            obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
-
-        else:
-            obj.file_list.append(current_brain)
-
-        if func == 'FLIRT':
-            return current_mat
-
-        return current_brain
+        return self.no_ext_brain, anat_cost, mni_cost
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -312,21 +324,20 @@ class Brain(Environment):
 
         return self
 
-    @staticmethod
-    def file_cleanup(obj):
+    def file_cleanup(self):
         """Clean up unnecessary output from either instance of class, or class itself."""
         if config.file_cleanup == 'delete':
-            for file in obj.file_list:
+            for file in self.file_list:
                 os.remove(file)
 
         elif config.file_cleanup == 'move':
-            Utils.check_and_make_dir(f"{obj.save_location}Intermediate_files")
+            Utils.check_and_make_dir(f"{self.save_location}Intermediate_files")
 
-            for file in obj.file_list:
-                file = file.replace(obj.save_location, "")  # Remove folder from start of file name
-                Utils.move_file(file, obj.save_location, f"{obj.save_location}Intermediate_files")
+            for file in self.file_list:
+                file = file.replace(self.save_location, "")  # Remove folder from start of file name
+                Utils.move_file(file, self.save_location, f"{self.save_location}Intermediate_files")
 
-        obj.file_list = []
+        self.file_list = []
 
     @staticmethod
     def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
@@ -347,7 +358,7 @@ class Brain(Environment):
 
     def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
         headers = ['Voxels', 'Mean', 'Std_dev',
-                   f'Conf_Int_{self._conf_level_list[int(config.conf_level_number)][0]}',
+                   f'Conf_Int_{Environment.conf_level_list[int(config.conf_level_number)][0]}',
                    'Median', 'Min', 'Max', 'Excluded_Voxels']
 
         # Reorganise matrix to later remove nan rows
@@ -361,9 +372,9 @@ class Brain(Environment):
         # Save results as dataframe
         results = pd.DataFrame(data=roiResults,
                                index=headers,
-                               columns=self.label_list)
+                               columns=self._labelArray)
         raw_results = pd.DataFrame(data=roiTempStore,
-                                   columns=self.label_list[:-1])
+                                   columns=self._labelArray[:-1])
 
         # Remove the required rows from the dataframe
         raw_results = raw_results.drop(raw_results.columns[0], axis=1)
@@ -374,26 +385,26 @@ class Brain(Environment):
         # Convert to dict and get rid of row numbers to significantly decrease file size
         roidict = Utils.dataframe_to_dict(raw_results)
 
-        summary_results_path = f"{self._brain_directory}/{self.save_location}Summarised_results/"
+        summary_results_path = f"{self.save_location}Summarised_results/"
         Utils.check_and_make_dir(summary_results_path)
 
-        raw_results_path = f"{self._brain_directory}/{self.save_location}Raw_results/"
+        raw_results_path = f"{self.save_location}Raw_results/"
         Utils.check_and_make_dir(raw_results_path)
 
         # Save JSON files
         if config.verbose:
             print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
 
-        with open(summary_results_path + self.no_ext_brain + ".json", 'w') as file:
+        with open(f"{summary_results_path}{self.no_ext_brain}.json", 'w') as file:
             json.dump(results.to_dict(), file, indent=2)
-        with open(raw_results_path + self.no_ext_brain + "_raw.json", 'w') as file:
+        with open(f"{raw_results_path}{self.no_ext_brain}_raw.json", 'w') as file:
             json.dump(roidict, file, indent=2)
 
     def roi_stats_setup(self):
         # Load original brain (with statistical map)
         stat_brain = nib.load(self.stat_brain)
         # Load atlas brain (which has been converted into native space)
-        mni_brain = nib.load(self.save_location + 'mni_to_' + self.no_ext_brain + '.nii.gz')
+        mni_brain = nib.load(f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz")
 
         stat_brain = stat_brain.get_fdata()
         mni_brain = mni_brain.get_fdata()
@@ -403,7 +414,7 @@ class Brain(Environment):
                             'match.')
 
         # Find the number of unique ROIs in the atlas
-        roiList = list(range(0, len(self.label_list) - 1))
+        roiList = list(range(0, len(self._labelArray) - 1))
         roiNum = np.size(roiList)
 
         idxBrain = stat_brain.flatten()
@@ -450,7 +461,7 @@ class Brain(Environment):
                                                                     axis=axis)  # Count number of non-nan voxels
             roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
             roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
-            roiResults[3, write_start:write_end] = self._conf_level_list[int(config.conf_level_number)][1] \
+            roiResults[3, write_start:write_end] = Environment.conf_level_list[int(config.conf_level_number)][1] \
                                                    * roiResults[2, write_start:write_end] \
                                                    / np.sqrt(
                 roiResults[0, write_start:write_end])  # 95% confidence interval calculation
@@ -486,11 +497,11 @@ class Brain(Environment):
         interp = 'trilinear'
 
         # Save inverse of fMRI to anat
-        inverse_mat = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
+        inverse_mat = fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
                                          'inverse_anat_to_')
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = self.fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
+        segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
                                                   prefix, inverse_mat, current_brain, interp)
 
         return segmentation_to_fmri
@@ -511,34 +522,36 @@ class Brain(Environment):
 
         if config.motion_correct:
             # Motion correction
-            self.fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
+            fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
 
         # Turn 4D scan into 3D
-        current_brain = self.fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
+        current_brain = fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
 
         # Brain extraction
-        current_brain = self.fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
+        current_brain = fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
 
         if config.anat_align:
             if config.verbose:
                 print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
 
             # Align to anatomical
-            anat_aligned_mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self._anat_brain)
+            anat_aligned_mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self.anat_brain)
 
             # Combine fMRI-anat and anat-mni matrices
-            mat = self.fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
+            mat = fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
 
         else:
             # Align to MNI
-            mat = self.fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
+            mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
                                      f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+
         # Get inverse of matrix
-        inverse_mat = self.fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
+        inverse_mat = fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
 
         # Apply inverse of matrix to chosen atlas to convert it into native space
-        self.fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path, 'mni_to_', inverse_mat, current_brain,
-                           'nearestneighbour')
+        fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path,
+                      'mni_to_', inverse_mat, current_brain,
+                      'nearestneighbour')
 
         if config.grey_matter_segment:
             # Convert segmentation to fMRI native space
@@ -575,7 +588,7 @@ class Brain(Environment):
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
 
-        self.file_cleanup(self)  # Clean up files
+        self.file_cleanup()  # Clean up files
 
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
@@ -584,7 +597,7 @@ class Brain(Environment):
             print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.')
 
-        brain_stat = nib.load(self.atlas_path)
+        brain_stat = nib.load(Environment.atlas_path)
         brain_stat = brain_stat.get_fdata()
 
         within_roi_stat = deepcopy(brain_stat)
@@ -635,12 +648,83 @@ class Brain(Environment):
             Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
-    # def save_class_variables(self):
-    #     # Due to dill errors with saving class variables of imported classes, this function is used to save the class
-    #     # variable as an instance variable, however it needs to be called after brain extraction of the anatomical
-    #     # instantiation, which is why it isn't saved during instantiation.
-    #     self._anat_brain = Participant._anat_brain
-    #     self._anat_brain_to_mni = Participant._anat_brain_to_mni
+
+def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):
+    fslfunc.inputs.reference = ref
+    fslfunc.inputs.args = f"-init {init}"  # args used as in_matrix_file method not working
+    fslfunc.inputs.out_file = out_file
+    fslfunc.inputs.out_matrix_file = matrix_file
+
+    if config.verbose_cmd_line_args:
+        print(fslfunc.cmdline)
+
+    output = fslfunc.run()
+    cost_func = float(re.search("[0-9]*\.[0-9]+", output.runtime.stdout)[0])
+
+    # Clean up files
+    os.remove(out_file)
+    os.remove(matrix_file)
+
+    return cost_func
+
+
+def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
+    """Run an FSL function using NiPype."""
+    fslfunc = getattr(fsl, func)()
+    fslfunc.inputs.in_file = input
+    fslfunc.inputs.output_type = 'NIFTI_GZ'
+
+    if func == 'ConvertXFM':
+        suffix = '.mat'
+    else:
+        suffix = '.nii.gz'
+
+    current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
+
+    # Arguments dependent on FSL function used
+    if func == 'MCFLIRT':
+        obj.brain = current_brain  # TODO comment this and how it effects other parts of the program
+
+    elif func == 'BET':
+        fslfunc.inputs.functional = True
+
+    elif func == 'FLIRT':
+        fslfunc.inputs.reference = argv[0]
+        fslfunc.inputs.dof = config.dof
+        current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
+
+    elif func == 'ConvertXFM':
+        if len(argv) > 0 and argv[0] == 'concat_xfm': # TODO: Double check if concatenated in correct direction
+            fslfunc.inputs.in_file2 = obj.anat_brain_to_mni
+            fslfunc.inputs.concat_xfm = True
+        else:
+            fslfunc.inputs.invert_xfm = True
+
+    elif func == 'ApplyXFM':
+        fslfunc.inputs.apply_xfm = True
+        fslfunc.inputs.in_matrix_file = argv[0]
+        fslfunc.inputs.reference = argv[1]
+        fslfunc.inputs.interp = argv[2]
+        current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
+
+    if config.verbose_cmd_line_args:
+        print(fslfunc.cmdline)
+
+    fslfunc.run()
+
+    if func in ('FLIRT', 'ApplyXFM'):
+        obj.file_list.extend([current_brain, current_mat])
+
+    elif func == 'BET':
+        obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
+
+    else:
+        obj.file_list.append(current_brain)
+
+    if func == 'FLIRT':
+        return current_mat
+
+    return current_brain
 
 
 def calculate_confidence_interval(data, alpha, roi=None):
@@ -660,7 +744,8 @@ def calculate_confidence_interval(data, alpha, roi=None):
 
     return results.value, conf_int
 
-def verify_paramValues():
+
+def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
     from .paramparser import ParamParser
 

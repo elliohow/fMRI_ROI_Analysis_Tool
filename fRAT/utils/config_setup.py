@@ -21,7 +21,7 @@ General = {
                               'Description': 'true or false.', 'label': 'Verbose command line arguments'},
 
     'multicore_processing': {'type': 'CheckButton', 'Recommended': 'true',
-                             'Description': 'true or false. Use multicore processing to use during analysis? Recommended: true'},
+                             'Description': 'true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true'},
 
     'max_core_usage': {'type': 'OptionMenu', 'Recommended': 'max', 'Options': ['max', 6, 5, 4, 3, 2, 1],
                        'save_as': 'string',

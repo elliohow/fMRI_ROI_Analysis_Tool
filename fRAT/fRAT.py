@@ -79,25 +79,21 @@ def analysis(config):
         print('\n----------------\n--- Analysis ---\n----------------')
 
     # Run class setup
-    brain_list = Environment.setup_analysis(config)
+    participant_list = Environment.setup_analysis(config)
 
     if config.verbose:
         print('\n--- Running analysis ---')
-
-    if config.anat_align:
-        Environment.anat_setup()
-
-        for brain in brain_list:
-            brain.save_class_variables()
 
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
     else:
         pool = None
 
-    brain_list = run_analysis(brain_list, config, pool)
-    calculate_flirt_cost(brain_list, config)
-    atlas_scale(brain_list, config, pool)
+    for participant in participant_list:
+        participant.run_analysis(pool)
+
+    calculate_flirt_cost(participant_list, config, pool)
+    atlas_scale(participant_list, config, pool)
 
     if config.verify_param_method == 'table':
         Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment.save_location}", copy=True)
@@ -105,22 +101,29 @@ def analysis(config):
     return
 
 
-def calculate_flirt_cost(brain_list, config):
+def calculate_flirt_cost(participant_list, config, pool):
     cost_func_vals = []
 
-    if config.anat_align:
-        if config.verbose:
-            print(f'Calculating cost function value for anatomical file: {Environment._anat_brain}')
+    for counter, participant in enumerate(participant_list):
+        if config.anat_align:
+            if config.verbose:
+                print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
-        anat_to_mni_cost = Environment.calculate_anat_flirt_cost_function()
-        cost_func_vals.append([Environment._anat_brain_no_ext, 0, anat_to_mni_cost])
+            anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
+            cost_func_vals.append([participant.anat_brain_no_ext, 0, anat_to_mni_cost])
 
-    for counter, brain in enumerate(brain_list):
-        if config.verbose:
-            print(f'Calculating cost function value for {counter + 1}/{len(brain_list)}: {brain.brain}')
+        # Set arguments to pass to run_analysis function
+        iterable = zip(participant.brains, itertools.repeat("calculate_fMRI_flirt_cost_function"),
+                       range(len(participant.brains)),
+                       itertools.repeat(len(participant.brains)),
+                       itertools.repeat(config))
 
-        brain.calculate_fMRI_flirt_cost_function()
-        cost_func_vals.append([brain.no_ext_brain, brain.anat_cost, brain.mni_cost])
+        if config.multicore_processing:
+            results = pool.starmap(Utils.instance_method_handler, iterable)
+        else:
+            results = list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+        cost_func_vals.extend(results)  # TODO: need to save participant number too
 
     if config.verbose:
         print(f'Saving cost function dataframe as cost_function.json')
@@ -130,22 +133,6 @@ def calculate_flirt_cost(brain_list, config):
         json.dump(df.to_dict(), file, indent=2)
 
     # TODO: Calculate movement using mcflirt
-
-
-def run_analysis(brain_list, config, pool):
-    # Set arguments to pass to run_analysis function
-    iterable = zip(brain_list, itertools.repeat("run_analysis"), range(len(brain_list)),
-                   itertools.repeat(len(brain_list)), itertools.repeat(config))
-
-    if config.multicore_processing:
-        brain_list = pool.starmap(Utils.instance_method_handler, iterable)
-    else:
-        brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
-
-    if config.anat_align:
-        Environment.file_cleanup(Environment)
-
-    return brain_list
 
 
 def atlas_scale(brain_list, config, pool):
