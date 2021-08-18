@@ -239,32 +239,38 @@ class ParamParser:
         config = Utils.load_config(Path(os.path.abspath(__file__)).parents[1], 'config.toml')  # Load config file
 
         print('--- Creating paramValues.csv ---')
-        print('Select the NIFTI/ANALYZE file directory.')
-        brain_directory = Utils.file_browser(title='Select the NIFTI/ANALYZE file directory', chdir=True)
+        print('Select the base directory.')
+        base_directory = Utils.file_browser(title='Select the base directory', chdir=True)
 
-        brain_file_list = Utils.find_files(brain_directory, "hdr", "nii.gz", "nii")
-        brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
-        brain_file_list.sort()
+        participant_dirs = cls.find_participant_dirs(config)
 
-        padding = np.empty((len(brain_file_list)))
-        padding[:] = np.NaN
+        data = []
+        for participant in participant_dirs:
+            brain_file_list = Utils.find_files(f"{participant}/fmri", "hdr", "nii.gz", "nii")
+            brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
+            brain_file_list.sort()
 
-        params = []
-        for file in brain_file_list:
-            # Try to find parameters to prefill table
-            params.append(ParamParser.parse_params_from_file_name(file, config))
-        params = np.array(params).transpose()
+            for file in brain_file_list:
+                # Try to find parameters to prefill table
+                brain_file_params = ParamParser.parse_params_from_file_name(file, config)
+                data.append([participant, file, *brain_file_params, np.NaN])
 
-        df = pd.DataFrame(data={'File name': brain_file_list})
-
-        for counter, param in enumerate(config.parameter_dict):
-            df[param] = params[counter]
-
-        df['Ignore file? (y for yes, otherwise blank)'] = padding
+        df = pd.DataFrame(columns=['Participant', 'File name',
+                                   *config.parameter_dict.keys(), 'Ignore file? (y for yes, otherwise blank)'],
+                          data=data)
 
         df.to_csv('paramValues.csv', index=False)
 
-        print(f"\nparamValues.csv saved in {brain_directory}.\n\nInput parameter values in paramValues.csv and change "
+        print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv and change "
               f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
               f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
               f"parameters, update the parsing options in the GUI or parameter_dict2 in config.toml.")
+
+    @staticmethod
+    def find_participant_dirs(config):
+        participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
+
+        if config.verbose:
+            print(f'Found {len(participant_dirs)} participant folders.')
+
+        return participant_dirs

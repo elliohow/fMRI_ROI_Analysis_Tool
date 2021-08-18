@@ -91,7 +91,7 @@ class Environment:
 
     @classmethod
     def find_participant_dirs(cls):
-        participant_dirs = [dir for dir in glob("*") if re.search("^p[0-9]+", dir)]
+        participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
 
         if config.verbose:
             print(f'Found {len(participant_dirs)} participant folders.')
@@ -272,7 +272,8 @@ class Brain:
         self.roi_stat_list = ""
         self.file_list = []
 
-        # Copying class attributes here is a workaround for dill, which can't access modified class attributes for imported modules.
+        # Copying class attributes here is a workaround for dill,
+        # which can't access modified class attributes for imported modules.
         self._brain_directory = Environment.base_directory
         self._fsl_path = Environment.fsl_path
         self._atlas_label_path = Environment.atlas_label_path
@@ -280,7 +281,7 @@ class Brain:
         self._labelArray = Environment.labelArray
         self.atlas_path = Environment.atlas_path
 
-    def calculate_fMRI_flirt_cost_function(self, brain_number_current, brain_number_total, config):
+    def calculate_fmri_flirt_cost_function(self, brain_number_current, brain_number_total, config):
         if config.verbose:
             print(f'Calculating cost function value for {brain_number_current + 1}/{brain_number_total}: '
                   f'{self.no_ext_brain}')
