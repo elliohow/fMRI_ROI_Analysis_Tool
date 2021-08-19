@@ -18,11 +18,12 @@ from nipype.interfaces import fsl
 from sklearn.metrics import mean_squared_error as mse
 
 from .utils import Utils
+from .paramparser import ParamParser
 
 config = None
 
 
-class Environment:
+class Environment_Setup:
     file_list = []
     save_location = None
     roi_stat_list = ["Voxel number", "Mean", "Standard Deviation", "Confidence Interval", "Min", "Max"]
@@ -73,7 +74,45 @@ class Environment:
 
         participant_list = cls.setup_participants()
 
-        return participant_list
+        matched_brain_list = cls.matched_brains_setup(participant_list)
+
+        return participant_list, matched_brain_list
+
+    @classmethod
+    def matched_brains_setup(cls, participant_list):
+        matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations TODO: Raise error if paramvalues is different
+
+        MatchedBrains.critical_parameters = config.parameter_dict1
+
+        matched_brain_list = set()
+        for combination in matched_brains:
+            # Initialise participants
+            matched_brain_list.add(MatchedBrains(matched_brains[combination], combination))
+
+        return matched_brain_list
+
+    @classmethod
+    def find_shared_params(cls, participant_list):
+        param_values = ParamParser.load_paramValues_file()
+
+        matched_brains = dict()
+        for index, row in param_values.iterrows():
+            if tuple(row[2:-1]) not in matched_brains.keys():
+                matched_brains[tuple(row[2:-1])] = [cls.find_brain_object(row, participant_list)]
+            else:
+                matched_brains[tuple(row[2:-1])].append(cls.find_brain_object(row, participant_list))
+
+        return matched_brains
+
+    @staticmethod
+    def find_brain_object(row, participant_list):
+        participant = next(participant for participant in participant_list
+                           if participant.participant_name == row['Participant'])
+        brain = next(brain for brain in participant.brains
+                     if brain.no_ext_brain == row['File name'])
+
+        return {'Participant': participant.participant_name, 'Brain': brain.no_ext_brain}
+
 
     @classmethod
     def setup_participants(cls):
@@ -93,7 +132,9 @@ class Environment:
     def find_participant_dirs(cls):
         participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
 
-        if config.verbose:
+        if len(participant_dirs) == 0:
+            raise FileNotFoundError('Participant directories not found.')
+        elif config.verbose:
             print(f'Found {len(participant_dirs)} participant folders.')
             
         return participant_dirs
@@ -182,7 +223,13 @@ class Participant:
             self.anat_setup()
 
         # Initialise brain class for each file found
-        self.initialise_brains()
+        for counter, brain in enumerate(self.brains):
+            self.brains[counter] = Brain(f"{self.participant_path}/fmri/{brain}",
+                                         self.participant_path,
+                                         self.participant_name,
+                                         self.save_location,
+                                         self.anat_brain,
+                                         self.anat_brain_to_mni)
 
     def run_analysis(self, pool):
         if config.verbose:
@@ -193,12 +240,14 @@ class Participant:
                        itertools.repeat(len(self.brains)), itertools.repeat(config))
 
         if config.multicore_processing:
-            pool.starmap(Utils.instance_method_handler, iterable)
+            brain_list = pool.starmap(Utils.instance_method_handler, iterable)
         else:
-            list(itertools.starmap(Utils.instance_method_handler, iterable))
+            brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
         if config.anat_align:
-            self.file_cleanup()
+            self.anat_file_cleanup()
+
+        return brain_list
 
     def find_fmri_files(self):
         # Find all nifti and analyze files
@@ -206,14 +255,6 @@ class Participant:
 
         if len(self.brains) == 0:
             raise NameError("No files found.")
-
-    def initialise_brains(self):
-        for counter, brain in enumerate(self.brains):
-            self.brains[counter] = Brain(f"{self.participant_path}/fmri/{brain}",
-                                         self.participant_path,
-                                         self.save_location,
-                                         self.anat_brain,
-                                         self.anat_brain_to_mni)
 
     def anat_setup(self):
         if config.verbose:
@@ -230,23 +271,23 @@ class Participant:
         self.anat_brain_no_ext = anat.rsplit(".")[0]
         self.anat_brain_to_mni = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
                                                 'FLIRT', self.anat_brain, 'to_mni_from_',
-                                                f'{Environment.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+                                                f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
-                            schedule=f'{Environment.fsl_path}/etc/flirtsch/measurecost1.sch',
+                            schedule=f'{Environment_Setup.fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
         # Calculate MNI cost function value
         mni_cost = run_flirt_cost_function(fslfunc,
-                                                f'{Environment.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                                f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
                                                 f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
                                                 f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
                                                 f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat')
 
         return mni_cost
 
-    def file_cleanup(self):
+    def anat_file_cleanup(self):
         """Clean up unnecessary output from either instance of class, or class itself."""
         if config.file_cleanup == 'delete':
             for file in self.file_list:
@@ -261,25 +302,27 @@ class Participant:
 
 
 class Brain:
-    def __init__(self, brain, participant_folder, save_location, anat_brain, anat_brain_to_mni):
+    def __init__(self, brain, participant_folder, participant_name, save_location, anat_brain, anat_brain_to_mni):
         self.brain = brain
         self.save_location = save_location
         self.anat_brain = anat_brain
         self.anat_brain_to_mni = anat_brain_to_mni
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
-        self.roiResults = ""
+        self.roiResults = None
+        self.roiTempStore = None
         self.roi_stat_list = ""
         self.file_list = []
+        self.participant_name = participant_name
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
-        self._brain_directory = Environment.base_directory
-        self._fsl_path = Environment.fsl_path
-        self._atlas_label_path = Environment.atlas_label_path
-        self._atlas_name = Environment.atlas_name
-        self._labelArray = Environment.labelArray
-        self.atlas_path = Environment.atlas_path
+        self._brain_directory = Environment_Setup.base_directory
+        self._fsl_path = Environment_Setup.fsl_path
+        self._atlas_label_path = Environment_Setup.atlas_label_path
+        self._atlas_name = Environment_Setup.atlas_name
+        self._labelArray = Environment_Setup.labelArray
+        self.atlas_path = Environment_Setup.atlas_path
 
     def calculate_fmri_flirt_cost_function(self, brain_number_current, brain_number_total, config):
         if config.verbose:
@@ -316,12 +359,14 @@ class Brain:
         config = cfg
 
         if config.verbose:
-            print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.brain}')
+            print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
         GM_bool = self.roi_flirt_transform(brain_number_current,
                                            brain_number_total)  # Convert MNI brain to native space
 
         self.roi_stats(brain_number_current, brain_number_total, GM_bool)  # Calculate and save statistics
+
+        self.file_cleanup()  # Clean up files
 
         return self
 
@@ -359,7 +404,7 @@ class Brain:
 
     def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
         headers = ['Voxels', 'Mean', 'Std_dev',
-                   f'Conf_Int_{Environment.conf_level_list[int(config.conf_level_number)][0]}',
+                   f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
                    'Median', 'Min', 'Max', 'Excluded_Voxels']
 
         # Reorganise matrix to later remove nan rows
@@ -441,49 +486,6 @@ class Brain:
                     roiResults[7, int(roi)] += 1
 
         return roiTempStore, roiResults
-
-    def calculate_roi_stats(self, roiTempStore, roiResults):
-        if config.noise_cutoff:
-            noise_threshold = np.nanmean(roiTempStore[0, :])
-            rois = roiTempStore[1:, :]
-            below_threshold = np.count_nonzero(rois < noise_threshold, axis=1)
-            roiResults[7, 1:-1] += below_threshold
-            rois[rois < noise_threshold] = np.nan
-            roiTempStore[1:, :] = rois
-
-        axis = 1
-        read_start = 0
-        write_start = 0
-        write_end = -1
-
-        # First loop calculates summary stats for normal ROIs, second loop calculates stats for overall ROI
-        for i in range(2):
-            roiResults[0, write_start:write_end] = np.count_nonzero(~np.isnan(roiTempStore[read_start:, :]),
-                                                                    axis=axis)  # Count number of non-nan voxels
-            roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
-            roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
-            roiResults[3, write_start:write_end] = Environment.conf_level_list[int(config.conf_level_number)][1] \
-                                                   * roiResults[2, write_start:write_end] \
-                                                   / np.sqrt(
-                roiResults[0, write_start:write_end])  # 95% confidence interval calculation
-            roiResults[4, write_start:write_end] = np.nanmedian(roiTempStore[read_start:, :], axis=axis)
-            roiResults[5, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
-            roiResults[6, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
-
-            axis = None
-            read_start = 1
-            write_start = -1
-            write_end = None
-
-        roiResults[7, -1] = np.sum(roiResults[7, 1:-1])  # Calculate excluded voxels
-
-        # Convert ROIs with no voxels from columns with NaNs to zeros
-        for column, voxel_num in enumerate(roiResults[0]):
-            if voxel_num == 0.0:
-                for row in list(range(1, 6)):
-                    roiResults[row][column] = 0.0
-
-        return roiResults
 
     def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
         if config.verbose:
@@ -577,7 +579,7 @@ class Brain:
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-        roiResults = self.calculate_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
+        roiResults = compile_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
@@ -588,8 +590,7 @@ class Brain:
         self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
-
-        self.file_cleanup()  # Clean up files
+        self.roiTempStore = roiTempStore  # Retain variable for atlas_scale function
 
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
@@ -598,7 +599,7 @@ class Brain:
             print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.')
 
-        brain_stat = nib.load(Environment.atlas_path)
+        brain_stat = nib.load(Environment_Setup.atlas_path)
         brain_stat = brain_stat.get_fdata()
 
         within_roi_stat = deepcopy(brain_stat)
@@ -648,6 +649,65 @@ class Brain:
         for brain in scaled_brains:
             Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
+
+
+class MatchedBrains:
+    critical_parameters = []
+
+    def __init__(self, brains, parameters):
+        self.brains = brains
+        self.parameters = parameters
+
+    def test(self):
+        print(2)
+
+
+def compile_roi_stats(roiTempStore, roiResults):
+    warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+
+    if config.noise_cutoff:
+        noise_threshold = np.nanmean(roiTempStore[0, :])
+        rois = roiTempStore[1:, :]
+        below_threshold = np.count_nonzero(rois < noise_threshold, axis=1)
+        roiResults[7, 1:-1] += below_threshold
+        rois[rois < noise_threshold] = np.nan
+        roiTempStore[1:, :] = rois
+
+    axis = 1
+    read_start = 0
+    write_start = 0
+    write_end = -1
+
+    # First loop calculates summary stats for normal ROIs, second loop calculates stats for overall ROI
+    for i in range(2):
+        roiResults[0, write_start:write_end] = np.count_nonzero(~np.isnan(roiTempStore[read_start:, :]),
+                                                                axis=axis)  # Count number of non-nan voxels
+        roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
+        roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
+        roiResults[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
+                                               * roiResults[2, write_start:write_end] \
+                                               / np.sqrt(
+            roiResults[0, write_start:write_end])  # 95% confidence interval calculation
+        roiResults[4, write_start:write_end] = np.nanmedian(roiTempStore[read_start:, :], axis=axis)
+        roiResults[5, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
+        roiResults[6, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
+
+        axis = None
+        read_start = 1
+        write_start = -1
+        write_end = None
+
+    roiResults[7, -1] = np.sum(roiResults[7, 1:-1])  # Calculate excluded voxels
+
+    # Convert ROIs with no voxels from columns with NaNs to zeros
+    for column, voxel_num in enumerate(roiResults[0]):
+        if voxel_num == 0.0:
+            for row in list(range(1, 6)):
+                roiResults[row][column] = 0.0
+
+    warnings.filterwarnings('default')  # Reactivate warnings
+
+    return roiResults
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):
@@ -750,7 +810,7 @@ def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
     from .paramparser import ParamParser
 
-    table = [x.lower() for x in ParamParser.load_paramValues_file(config)][1:-1]
+    table = [x.lower() for x in ParamParser.load_paramValues_file()][1:-1]
 
     for key in config.parameter_dict.keys():
         if key.lower() not in table:

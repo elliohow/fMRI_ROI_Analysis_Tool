@@ -79,7 +79,7 @@ def analysis(config):
         print('\n----------------\n--- Analysis ---\n----------------')
 
     # Run class setup
-    participant_list = Environment.setup_analysis(config)
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config)
 
     if config.verbose:
         print('\n--- Running analysis ---')
@@ -89,16 +89,28 @@ def analysis(config):
     else:
         pool = None
 
+    brain_list = []
     for participant in participant_list:
-        participant.run_analysis(pool)
+        brain_list.extend(participant.run_analysis(pool))
+
+    run_overall_analysis(brain_list, matched_brains)
 
     calculate_flirt_cost(participant_list, config, pool)
     atlas_scale(participant_list, config, pool)
 
     if config.verify_param_method == 'table':
-        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment.save_location}", copy=True)
+        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
 
     return
+
+
+def run_overall_analysis(matched_brains):
+    for group in matched_brains:
+        group.test()
+
+    # TODO Divide workload of matched brains up to cores
+    # TODO Search brain list for right roiTempStore based on participant and brain id
+    # TODO Combine roitempstore and save out
 
 
 def calculate_flirt_cost(participant_list, config, pool):
@@ -129,7 +141,7 @@ def calculate_flirt_cost(participant_list, config, pool):
         print(f'Saving cost function dataframe as cost_function.json')
 
     df = pd.DataFrame(cost_func_vals, columns=['File', 'anat_cost_value', 'mni_cost_value'])
-    with open(f"{Environment.save_location}cost_function.json", 'w') as file:
+    with open(f"{Environment_Setup.save_location}cost_function.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 
     # TODO: Calculate movement using mcflirt
@@ -142,7 +154,7 @@ def atlas_scale(brain_list, config, pool):
         print('\n--- Atlas scaling ---')
 
     # Make directory to store scaled brains
-    Utils.check_and_make_dir(f"{os.getcwd()}/{Environment.save_location}NIFTI_ROI")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{Environment_Setup.save_location}NIFTI_ROI")
 
     for statistic_number in range(len(brain_list[0].roiResults)):
         roi_stats = deepcopy(brain_list[0].roiResults[statistic_number, :])

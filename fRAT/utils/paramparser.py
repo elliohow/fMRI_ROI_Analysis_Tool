@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 
 from .utils import Utils
-from .analysis import Environment
-
 
 config = None
 
@@ -45,7 +43,7 @@ class ParamParser:
         combined_dataframe = pd.DataFrame()
 
         if config.verify_param_method == 'table':
-            table = cls.load_paramValues_file(config)
+            table = cls.load_paramValues_file()
 
         for json in json_array:
             if json == "combined_results.json":
@@ -68,7 +66,7 @@ class ParamParser:
             combined_dataframe.to_json("Summarised_results/combined_results.json", orient='records', indent=2)
 
     @classmethod
-    def load_paramValues_file(cls, config):
+    def load_paramValues_file(cls):
         if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
             table = pd.read_csv("paramValues.csv")  # Load param table
         else:
@@ -76,6 +74,7 @@ class ParamParser:
                 table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
             except FileNotFoundError:
                 raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+
         return table
 
     @classmethod
@@ -185,8 +184,8 @@ class ParamParser:
     @staticmethod
     def chdir_to_output_directory(current_step, config):
         if current_step in ('Plotting', 'Statistics') and config.run_analysis:
-            from utils.analysis import Environment
-            json_directory = f'{os.getcwd()}/{Environment.save_location}'
+            from utils.analysis import Environment_Setup
+            json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
 
             os.chdir(json_directory)
 
@@ -270,7 +269,9 @@ class ParamParser:
     def find_participant_dirs(config):
         participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
 
-        if config.verbose:
+        if len(participant_dirs) == 0:
+            raise FileNotFoundError('Participant directories not found.')
+        elif config.verbose:
             print(f'Found {len(participant_dirs)} participant folders.')
 
         return participant_dirs
