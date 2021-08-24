@@ -62,9 +62,6 @@ def plotting(config, orig_path):
     if config.verbose:
         print('\n----------------\n--- Plotting ---\n----------------')
 
-    # Parameter Parsing
-    ParamParser.run_parse(config)
-
     # Plotting
     Figures.figures(config)
 
@@ -79,64 +76,80 @@ def analysis(config):
         print('\n----------------\n--- Analysis ---\n----------------')
 
     # Run class setup
-    brain_list = Analysis.setup_analysis(config)
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config)
+
+    Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
 
     if config.verbose:
         print('\n--- Running analysis ---')
-
-    if config.anat_align:
-        Analysis.anat_setup()
-
-        for brain in brain_list:
-            brain.save_class_variables()
 
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
     else:
         pool = None
 
-    brain_list = run_analysis(brain_list, config, pool)
-    calculate_flirt_cost(brain_list, config)
-    atlas_scale(brain_list, config, pool)
+    brain_list = []
+    for participant in participant_list:
+        brain_list.extend(participant.run_analysis(pool))
 
-    if config.verify_param_method == 'table':
-        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Analysis.save_location}", copy=True)
+    run_overall_analysis(brain_list, matched_brains, config, pool)
+    calculate_flirt_cost(participant_list, brain_list, config, pool)
+    atlas_scale(participant_list, config, pool)
 
-    return
+
+def run_overall_analysis(brain_list, matched_brains, config, pool):
+    for parameter_comb in matched_brains:
+        for brain in brain_list:
+            if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
+                parameter_comb.overall_results.append(brain.roiResults)
+                parameter_comb.raw_results.append(brain.roiTempStore)
+
+    # Set arguments to pass to run_analysis function
+    iterable = zip(matched_brains, itertools.repeat("compile_results"),
+                   range(len(matched_brains)), itertools.repeat(len(matched_brains)),
+                   itertools.repeat(config))
+
+    if config.multicore_processing:
+        pool.starmap(Utils.instance_method_handler, iterable)
+    else:
+        list(itertools.starmap(Utils.instance_method_handler, iterable))
+        
+    construct_combined_results(Environment_Setup.save_location)
 
 
-def calculate_flirt_cost(brain_list, config):
-    costs = [['File', 'anat_cost_value', 'mni_cost_value']]
+def calculate_flirt_cost(participant_list, brain_list, config, pool):
+    cost_func_vals = []
 
     if config.anat_align:
-        anat_to_mni_cost = Analysis.calculate_anat_flirt_cost_function()
-        costs.append([Analysis._anat_brain_no_ext, 0, anat_to_mni_cost])
+        for counter, participant in enumerate(participant_list):
+            if config.verbose:
+                print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
-    for brain in brain_list:
-        brain.calculate_fMRI_flirt_cost_function()
-        costs.append([brain.no_ext_brain, brain.anat_cost, brain.mni_cost])
+            anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
+            cost_func_vals.append([participant.participant_name, participant.anat_brain_no_ext, 0, anat_to_mni_cost])
 
-    df = pd.DataFrame(costs[1:], columns=costs[0])
-    with open(f"{Analysis.save_location}cost_function.json", 'w') as file:
+    # Set arguments to pass to run_analysis function
+    iterable = zip(brain_list, itertools.repeat("calculate_fmri_flirt_cost_function"),
+                   range(len(brain_list)),
+                   itertools.repeat(len(brain_list)),
+                   itertools.repeat(config))
+
+    if config.multicore_processing:
+        results = pool.starmap(Utils.instance_method_handler, iterable)
+    else:
+        results = list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+    cost_func_vals.extend(results)
+
+    if config.verbose:
+        print(f'Saving cost function dataframe as cost_function.json')
+
+    df = pd.DataFrame(cost_func_vals, columns=['Participant', 'File', 'anat_cost_value', 'mni_cost_value'])
+
+    with open(f"{Environment_Setup.save_location}cost_function.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 
     # TODO: Calculate movement using mcflirt
-
-
-def run_analysis(brain_list, config, pool):
-    # Set arguments to pass to run_analysis function
-    iterable = zip(brain_list, itertools.repeat("run_analysis"), range(len(brain_list)),
-                   itertools.repeat(len(brain_list)), itertools.repeat(config))
-
-    if config.multicore_processing:
-        brain_list = pool.starmap(Utils.instance_method_handler, iterable)
-    else:
-        brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
-
-    if config.anat_align:
-        Analysis.file_cleanup(Analysis)
-
-    return brain_list
 
 
 def atlas_scale(brain_list, config, pool):
@@ -146,7 +159,7 @@ def atlas_scale(brain_list, config, pool):
         print('\n--- Atlas scaling ---')
 
     # Make directory to store scaled brains
-    Utils.check_and_make_dir(f"{os.getcwd()}/{Analysis.save_location}NIFTI_ROI")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{Environment_Setup.save_location}NIFTI_ROI")
 
     for statistic_number in range(len(brain_list[0].roiResults)):
         roi_stats = deepcopy(brain_list[0].roiResults[statistic_number, :])

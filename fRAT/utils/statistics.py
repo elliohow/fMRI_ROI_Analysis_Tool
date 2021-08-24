@@ -5,7 +5,7 @@ from statsmodels.formula.api import ols
 
 from .utils import Utils
 from .figures import Histogram
-from .paramparser import ParamParser
+
 
 def main(config):
     if config.verbose:

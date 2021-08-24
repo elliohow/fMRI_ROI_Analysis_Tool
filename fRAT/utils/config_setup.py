@@ -21,7 +21,7 @@ General = {
                               'Description': 'true or false.', 'label': 'Verbose command line arguments'},
 
     'multicore_processing': {'type': 'CheckButton', 'Recommended': 'true',
-                             'Description': 'true or false. Use multicore processing to use during analysis? Recommended: true'},
+                             'Description': 'true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true'},
 
     'max_core_usage': {'type': 'OptionMenu', 'Recommended': 'max', 'Options': ['max', 6, 5, 4, 3, 2, 1],
                        'save_as': 'string',
@@ -80,7 +80,7 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
-    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
+    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'false',
                              'Description': 'true or false. Recommended: true.'},
 
     'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string',
@@ -108,14 +108,6 @@ Analysis = {
 
 '''Parsing settings'''
 Parsing = {
-    'verify_param_method': {'type': 'OptionMenu', 'Recommended': 'table', 'Options': ["table", "name", "manual"],
-                            'save_as': 'string',
-                            'label': 'Parameter verification method',
-                            'Description': '"table", "name" or "manual". '
-                                           '\nHow to find parameter values: "table" finds values from spreadsheet '
-                                           'document, "name" finds values from file name, "manual" allows you to '
-                                           'manually input parameters at runtime.'},
-
     'parameter_dict1': {'type': 'Entry', 'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
                         'Description': 'Comma-separated list of parameter names to be parsed for and plotted. '
                                        '\n As these critical parameters will also be used when labelling the rows and '

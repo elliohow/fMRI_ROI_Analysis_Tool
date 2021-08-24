@@ -744,3 +744,33 @@ class CompareOutputs(Figures):
         figure.save(f"TEST.png", height=config.plot_scale,
                     width=config.plot_scale * 3,
                     verbose=False, limitsize=False)
+
+
+def chdir_to_output_directory(current_step, config):  # TODO: Hook this up to figures step
+    if current_step in ('Plotting', 'Statistics') and config.run_analysis:
+        from utils.analysis import Environment_Setup
+        json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
+
+        os.chdir(json_directory)
+
+    elif current_step == 'Statistics' and config.run_plotting:
+        return
+
+    elif config.output_folder_loc in ("", " "):
+        print('Select the directory output by the fRAT.')
+        json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
+
+    else:
+        json_directory = config.output_folder_loc
+        config.output_folder_loc = json_directory
+
+        try:
+            os.chdir(json_directory)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                'Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
+
+        if config.verbose:
+            print(f'Output folder selection: {config.output_folder_loc}.')
+
+    return json_directory
