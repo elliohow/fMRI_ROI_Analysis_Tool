@@ -623,7 +623,7 @@ def Button_handler(command):
 
         elif command == "Make paramValues.csv":
             Save_settings()
-            ParamParser.make_table()
+            make_table()
             sys.exit()
 
         elif command == "Run_dash":
@@ -769,6 +769,82 @@ def Reset_settings():
             eval(page)[key]['Current'] = eval(page)[key]['Recommended']
 
     print('----- Reset settings to recommended values, save them to retain these settings -----')
+
+
+def make_table():
+    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'config.toml')  # Load config file
+
+    print('--- Creating paramValues.csv ---')
+    print('Select the base directory.')
+    base_directory = Utils.file_browser(title='Select the base directory', chdir=True)
+
+    participant_dirs = find_participant_dirs(config)
+
+    data = []
+    for participant in participant_dirs:
+        brain_file_list = Utils.find_files(f"{participant}/fmri", "hdr", "nii.gz", "nii")
+        brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
+        brain_file_list.sort()
+
+        for file in brain_file_list:
+            # Try to find parameters to prefill table
+            brain_file_params = parse_params_from_file_name(file, config)
+            data.append([participant, file, *brain_file_params, np.NaN])
+
+    df = pd.DataFrame(columns=['Participant', 'File name',
+                               *config.parameter_dict.keys(), 'Ignore file? (y for yes, otherwise blank)'],
+                      data=data)
+
+    df.to_csv('paramValues.csv', index=False)
+
+    print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv and change "
+          f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
+          f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
+          f"parameters, update the parsing options in the GUI or parameter_dict2 in config.toml.")
+
+
+def find_participant_dirs(config):
+    participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
+
+    if len(participant_dirs) == 0:
+        raise FileNotFoundError('Participant directories not found.')
+    elif config.verbose:
+        print(f'Found {len(participant_dirs)} participant folders.')
+
+    return participant_dirs
+
+
+def parse_params_from_file_name(json_file_name, cfg=config):
+    """Search for MRI parameters in each json file name for use in table headers and created the combined json."""
+    param_nums = []
+
+    for key in cfg.parameter_dict:
+        parameter = cfg.parameter_dict[key]  # Extract search term
+
+        if parameter in cfg.binary_params:
+            param = re.search("{}".format(parameter), json_file_name, flags=re.IGNORECASE)
+
+            if param is not None:
+                param_nums.append('On')  # Save 'on' if parameter is found in file name
+            else:
+                param_nums.append('Off')  # Save 'off' if parameter not found in file name
+
+        else:
+            # Float search
+            param = re.search("{}[0-9]p[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
+            if param is not None:
+                param_nums.append(param[0][1] + "." + param[0][-1])
+                continue
+
+            # If float search didnt work then Integer search
+            param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
+            if param is not None:
+                param_nums.append(param[0][-1])  # Extract the number from the parameter
+
+            else:
+                param_nums.append(str(param))  # Save None if parameter not found in file name
+
+    return param_nums
 
 
 if __name__ == '__main__':

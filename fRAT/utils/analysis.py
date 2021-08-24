@@ -15,10 +15,9 @@ import bootstrapped.stats_functions as bs_stats
 from os.path import splitext
 from glob import glob
 from nipype.interfaces import fsl
-from sklearn.metrics import mean_squared_error as mse
 
 from .utils import Utils
-from .paramparser import ParamParser
+
 
 config = None
 
@@ -51,7 +50,7 @@ class Environment_Setup:
     atlas_path = None
     atlas_label_path = None
     atlas_name = None
-    labelArray = []
+    label_array = []
 
     @classmethod
     def setup_analysis(cls, cfg):
@@ -64,7 +63,7 @@ class Environment_Setup:
 
         cls.setup_environment(config)
 
-        if config.verify_param_method and config.run_plotting == 'table':
+        if config.run_plotting:
             verify_param_values()  # TODO: check this works with participant folders
 
         cls.setup_save_location(config)
@@ -72,72 +71,11 @@ class Environment_Setup:
         # Extract labels from selected FSL atlas
         cls.roi_label_list()
 
-        participant_list = cls.setup_participants()
+        participant_list = Participant.setup_class(cls.base_directory, cls.save_location)
 
-        matched_brain_list = cls.matched_brains_setup(participant_list)
+        matched_brain_list = MatchedBrain.setup_class(participant_list)
 
         return participant_list, matched_brain_list
-
-    @classmethod
-    def matched_brains_setup(cls, participant_list):
-        matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations TODO: Raise error if paramvalues is different
-
-        MatchedBrains.critical_parameters = config.parameter_dict1
-
-        matched_brain_list = set()
-        for combination in matched_brains:
-            # Initialise participants
-            matched_brain_list.add(MatchedBrains(matched_brains[combination], combination))
-
-        return matched_brain_list
-
-    @classmethod
-    def find_shared_params(cls, participant_list):
-        param_values = ParamParser.load_paramValues_file()
-
-        matched_brains = dict()
-        for index, row in param_values.iterrows():
-            if tuple(row[2:-1]) not in matched_brains.keys():
-                matched_brains[tuple(row[2:-1])] = [cls.find_brain_object(row, participant_list)]
-            else:
-                matched_brains[tuple(row[2:-1])].append(cls.find_brain_object(row, participant_list))
-
-        return matched_brains
-
-    @staticmethod
-    def find_brain_object(row, participant_list):
-        participant = next(participant for participant in participant_list
-                           if participant.participant_name == row['Participant'])
-        brain = next(brain for brain in participant.brains
-                     if brain.no_ext_brain == row['File name'])
-
-        return {'Participant': participant.participant_name, 'Brain': brain.no_ext_brain}
-
-
-    @classmethod
-    def setup_participants(cls):
-        participant_dirs = cls.find_participant_dirs()
-
-        participant_list = set()
-        for participant_dir in participant_dirs:
-            # Initialise participants
-            participant_list.add(Participant(participant_dir, cls.base_directory, cls.save_location))
-
-        for participant in participant_list:
-            participant.setup()
-
-        return participant_list
-
-    @classmethod
-    def find_participant_dirs(cls):
-        participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
-
-        if len(participant_dirs) == 0:
-            raise FileNotFoundError('Participant directories not found.')
-        elif config.verbose:
-            print(f'Found {len(participant_dirs)} participant folders.')
-            
-        return participant_dirs
 
     @classmethod
     def setup_save_location(cls, config):
@@ -192,13 +130,13 @@ class Environment_Setup:
         with open(cls.atlas_label_path) as fd:
             atlas_label_dict = xmltodict.parse(fd.read())
 
-        cls.labelArray = []
-        cls.labelArray.append('No ROI')
+        cls.label_array = []
+        cls.label_array.append('No ROI')
 
         for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
-            cls.labelArray.append(roiLabelLine['#text'])
+            cls.label_array.append(roiLabelLine['#text'])
 
-        cls.labelArray.append('Overall')
+        cls.label_array.append('Overall')
 
 
 class Participant:
@@ -213,8 +151,10 @@ class Participant:
         self.anat_brain_to_mni = None
         self.anat_brain_no_ext = None
 
-    def setup(self):
-        self.find_fmri_files()
+        self.setup_participant()
+
+    def setup_participant(self):
+        self.find_fmri_files()  # Find fMRI files to save in self.brains
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(self.save_location)
@@ -231,19 +171,51 @@ class Participant:
                                          self.anat_brain,
                                          self.anat_brain_to_mni)
 
+    @classmethod
+    def setup_class(cls, base_directory, save_location):
+        participant_dirs = cls.find_participant_dirs()
+
+        participant_list = set()
+        for participant_dir in participant_dirs:
+            # Initialise participants
+            participant_list.add(Participant(participant_dir, base_directory, save_location))
+
+        return participant_list
+
+    @classmethod
+    def find_participant_dirs(cls):
+        participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
+
+        if len(participant_dirs) == 0:
+            raise FileNotFoundError('Participant directories not found.')
+        elif config.verbose:
+            print(f'Found {len(participant_dirs)} participant folders.')
+
+        return participant_dirs
+
     def run_analysis(self, pool):
         if config.verbose:
             print(f'\nAnalysing fMRI files for participant: {self.participant_name}\n')
 
-        # Set arguments to pass to run_analysis function
-        iterable = zip(self.brains, itertools.repeat("run_analysis"), range(len(self.brains)),
-                       itertools.repeat(len(self.brains)), itertools.repeat(config))
+        orig_brain_num = len(self.brains)
+        self.brains = [brain for brain in self.brains if brain.parameters]  # Remove any brains that are set to be ignored
 
-        if config.multicore_processing:
-            brain_list = pool.starmap(Utils.instance_method_handler, iterable)
-        else:
-            brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
+        if config.verbose and orig_brain_num != len(self.brains):
+            print(f'Ignoring {orig_brain_num - len(self.brains)}/{orig_brain_num} files.\n')
 
+        brain_list = []
+        if self.brains:
+            # Set arguments to pass to run_analysis function
+            iterable = zip(self.brains, itertools.repeat("run_analysis"), range(len(self.brains)),
+                           itertools.repeat(len(self.brains)), itertools.repeat(config))
+
+            if config.multicore_processing:
+                brain_list = pool.starmap(Utils.instance_method_handler, iterable)
+            else:
+                brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+            construct_combined_results(f'{self.participant_path}/{Environment_Setup.save_location}')
+        
         if config.anat_align:
             self.anat_file_cleanup()
 
@@ -314,6 +286,7 @@ class Brain:
         self.roi_stat_list = ""
         self.file_list = []
         self.participant_name = participant_name
+        self.parameters = []
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
@@ -321,7 +294,7 @@ class Brain:
         self._fsl_path = Environment_Setup.fsl_path
         self._atlas_label_path = Environment_Setup.atlas_label_path
         self._atlas_name = Environment_Setup.atlas_name
-        self._labelArray = Environment_Setup.labelArray
+        self._labelArray = Environment_Setup.label_array
         self.atlas_path = Environment_Setup.atlas_path
 
     def calculate_fmri_flirt_cost_function(self, brain_number_current, brain_number_total, config):
@@ -352,7 +325,7 @@ class Brain:
                                                          f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
                                                     config)
 
-        return self.no_ext_brain, anat_cost, mni_cost
+        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -384,67 +357,6 @@ class Brain:
                 Utils.move_file(file, self.save_location, f"{self.save_location}Intermediate_files")
 
         self.file_list = []
-
-    @staticmethod
-    def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
-        for counter, roi in enumerate(list(range(0, roiNum + 1))):
-            if config.verbose:
-                print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
-                      f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
-
-            if counter < roiNum:
-                roiResults[1, roi], roiResults[3, roi] = calculate_confidence_interval(roiTempStore,
-                                                                                       config.bootstrap_alpha,
-                                                                                       roi=roi)
-            else:
-                # Calculate overall statistics
-                roiResults[1, -1], roiResults[3, -1] = calculate_confidence_interval(roiTempStore[1:, :],
-                                                                                     config.bootstrap_alpha)
-        return roiResults
-
-    def roi_stats_save(self, roiTempStore, roiResults, brain_number_current, brain_number_total):
-        headers = ['Voxels', 'Mean', 'Std_dev',
-                   f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
-                   'Median', 'Min', 'Max', 'Excluded_Voxels']
-
-        # Reorganise matrix to later remove nan rows
-        roiTempStore = roiTempStore.transpose()
-        i = np.arange(roiTempStore.shape[1])
-        # Find indices of nans and put them at the end of each column
-        a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
-        # Reorganise matrix with nans at end
-        roiTempStore[:] = roiTempStore[a, i]
-
-        # Save results as dataframe
-        results = pd.DataFrame(data=roiResults,
-                               index=headers,
-                               columns=self._labelArray)
-        raw_results = pd.DataFrame(data=roiTempStore,
-                                   columns=self._labelArray[:-1])
-
-        # Remove the required rows from the dataframe
-        raw_results = raw_results.drop(raw_results.columns[0], axis=1)
-
-        # Remove rows where all columns have NaNs (essential to keep file size down)
-        raw_results = raw_results.dropna(axis=0, how='all')
-
-        # Convert to dict and get rid of row numbers to significantly decrease file size
-        roidict = Utils.dataframe_to_dict(raw_results)
-
-        summary_results_path = f"{self.save_location}Summarised_results/"
-        Utils.check_and_make_dir(summary_results_path)
-
-        raw_results_path = f"{self.save_location}Raw_results/"
-        Utils.check_and_make_dir(raw_results_path)
-
-        # Save JSON files
-        if config.verbose:
-            print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.')
-
-        with open(f"{summary_results_path}{self.no_ext_brain}.json", 'w') as file:
-            json.dump(results.to_dict(), file, indent=2)
-        with open(f"{raw_results_path}{self.no_ext_brain}_raw.json", 'w') as file:
-            json.dump(roidict, file, indent=2)
 
     def roi_stats_setup(self):
         # Load original brain (with statistical map)
@@ -579,15 +491,16 @@ class Brain:
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-        roiResults = compile_roi_stats(roiTempStore, roiResults)  # Compile ROI statistics
+        roiResults = compile_roi_stats(roiTempStore, roiResults, config)  # Compile ROI statistics
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
-        if config.bootstrap:
-            roiResults = self.roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
+        if config.bootstrap:  # TODO: make this a GUI option
+            roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
                                                   brain_number_total)  # Bootstrapping
 
-        self.roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total)  # Save results
+        roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total,
+                       self._labelArray, self.save_location, self.parameters, config)  # Save results
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
         self.roiTempStore = roiTempStore  # Retain variable for atlas_scale function
@@ -651,18 +564,123 @@ class Brain:
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
 
-class MatchedBrains:
+class MatchedBrain:
     critical_parameters = []
+    label_array = []
+    save_location = None
 
     def __init__(self, brains, parameters):
         self.brains = brains
         self.parameters = parameters
+        self.overall_results = []
+        self.raw_results = []
 
-    def test(self):
-        print(2)
+        # Copying class attributes here is a workaround for dill, which can't access class attributes.
+        self.critical_parameters = self.critical_parameters
+        self.label_array = self.label_array
+        self.save_location = self.save_location
+
+    @classmethod
+    def setup_class(cls, participant_list):
+        matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations TODO: Raise error if paramvalues is different
+
+        cls.critical_parameters = config.parameter_dict1
+        cls.label_array = Environment_Setup.label_array
+        cls.save_location = Environment_Setup.save_location
+
+        matched_brain_list = set()
+        for param_combination in matched_brains:
+            # Initialise participants
+            matched_brain_list.add(MatchedBrain(matched_brains[param_combination], param_combination))
+            
+        cls.assign_parameters_to_brains(matched_brain_list, participant_list)
+
+        return matched_brain_list
+
+    @classmethod
+    def find_shared_params(cls, participant_list):
+        table = load_paramValues_file()
+
+        ignore_column_loc, critical_column_locs = cls.find_column_locs(table, participant_list)
+
+        matched_brains = dict()
+        for index, row in table.iterrows():
+            if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in ('yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
+                continue
+
+            elif tuple(row[critical_column_locs]) not in matched_brains.keys():
+                matched_brains[tuple(row[critical_column_locs])] = dict()
+
+            participant, brain = cls.find_brain_object(row, participant_list)
+            matched_brains[tuple(row[critical_column_locs])][participant] = brain
+
+        return matched_brains
+
+    @classmethod
+    def find_column_locs(cls, table, participant_list):
+        table.columns = [x.lower() for x in table.columns]  # Convert to lower case for comparison to key later
+
+        ignore_column_loc = next((counter for counter, column in enumerate(table.columns) if "ignore file" in column),
+                                 False)
+
+        critical_column_locs = set()
+        for key in config.parameter_dict:
+            column_loc = next((counter for counter, column in enumerate(table.columns) if key.lower() == column), False)
+
+            if column_loc:
+                critical_column_locs.add(column_loc)
+            else:
+                raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
+                                f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
+                                f'paramValues.csv headers.')
+
+        return ignore_column_loc, critical_column_locs
+
+    @staticmethod
+    def find_brain_object(row, participant_list):
+        participant = next(participant for participant in participant_list
+                           if participant.participant_name == row['participant'])
+        brain = next(brain for brain in participant.brains
+                     if brain.no_ext_brain == row['file name'])
+
+        return participant.participant_name, brain.no_ext_brain
+
+    def compile_results(self, brain_number_current, brain_number_total, config):
+        if config.verbose:
+            print(f'Combining results for parameter combination: {self.parameters}')
+
+        for result in self.overall_results:
+            result[0:-1, :] = 0  # Reset roiResults and only retain excluded voxels
+
+        # Collapse overall results and calculate total excluded voxels
+        self.overall_results = np.sum(self.overall_results, axis=0)
+
+        self.raw_results = np.concatenate(self.raw_results, axis=1)  # Combine raw results
+
+        self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
+        roi_stats_save(self.raw_results, self.overall_results, brain_number_current, brain_number_total,
+                       self.label_array, self.save_location, self.parameters, config)  # Save results
+
+        # TODO implement bootstrapping
+
+    @classmethod
+    def assign_parameters_to_brains(cls, matched_brains, participant_list):
+        brain_list = []
+        for participant in participant_list:
+            for brain in participant.brains:
+                brain_list.append(brain)
+
+        for parameter_comb in matched_brains:
+            for brain in brain_list:
+                try:
+                    if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
+                        brain.parameters = parameter_comb.parameters
+
+                except KeyError:
+                    pass
 
 
-def compile_roi_stats(roiTempStore, roiResults):
+def compile_roi_stats(roiTempStore, roiResults, config):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
     if config.noise_cutoff:
@@ -806,14 +824,125 @@ def calculate_confidence_interval(data, alpha, roi=None):
     return results.value, conf_int
 
 
+def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, brain_number_total):
+    for counter, roi in enumerate(list(range(0, roiNum + 1))):
+        if config.verbose:
+            print(f"  - Bootstrapping ROI {counter + 1}/{roiNum + 1} "
+                  f"for fMRI volume {brain_number_current + 1}/{brain_number_total}.")
+
+        if counter < roiNum:
+            roiResults[1, roi], roiResults[3, roi] = calculate_confidence_interval(roiTempStore,
+                                                                                   config.bootstrap_alpha,
+                                                                                   roi=roi)
+        else:
+            # Calculate overall statistics
+            roiResults[1, -1], roiResults[3, -1] = calculate_confidence_interval(roiTempStore[1:, :],
+                                                                                 config.bootstrap_alpha)
+    return roiResults
+
+
+def roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total,
+                   labelArray, save_location, no_ext_brain, config):
+    headers = ['Voxels', 'Mean', 'Std_dev',
+               f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
+               'Median', 'Min', 'Max', 'Excluded_Voxels']
+
+    # Reorganise matrix to later remove nan rows
+    roiTempStore = roiTempStore.transpose()
+    i = np.arange(roiTempStore.shape[1])
+    # Find indices of nans and put them at the end of each column
+    a = np.isnan(roiTempStore).argsort(0, kind='mergesort')
+    # Reorganise matrix with nans at end
+    roiTempStore[:] = roiTempStore[a, i]
+
+    # Save results as dataframe
+    results = pd.DataFrame(data=roiResults,
+                           index=headers,
+                           columns=labelArray)
+    raw_results = pd.DataFrame(data=roiTempStore,
+                               columns=labelArray[:-1])
+
+    # Remove the required rows from the dataframe
+    raw_results = raw_results.drop(raw_results.columns[0], axis=1)
+
+    # Remove rows where all columns have NaNs (essential to keep file size down)
+    raw_results = raw_results.dropna(axis=0, how='all')
+
+    # Convert to dict and get rid of row numbers to significantly decrease file size
+    roidict = Utils.dataframe_to_dict(raw_results)
+
+    # Save JSON files
+    if config.verbose:
+        print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.') # TODO change this
+
+    summary_results_path = f"{save_location}Summarised_results/"
+    Utils.check_and_make_dir(summary_results_path)
+
+    with open(f"{summary_results_path}{no_ext_brain}.json", 'w') as file:
+        json.dump(results.to_dict(), file, indent=2)
+
+    raw_results_path = f"{save_location}Raw_results/"
+    Utils.check_and_make_dir(raw_results_path)
+
+    with open(f"{raw_results_path}{no_ext_brain}_raw.json", 'w') as file:
+        json.dump(roidict, file, indent=2)
+
+
 def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
-    from .paramparser import ParamParser
-
-    table = [x.lower() for x in ParamParser.load_paramValues_file()][1:-1]
+    table = [x.lower() for x in load_paramValues_file()][1:-1]
 
     for key in config.parameter_dict.keys():
         if key.lower() not in table:
             raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
                             f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
                             f'paramValues.csv headers.')
+
+
+def load_paramValues_file():
+    if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
+        table = pd.read_csv("paramValues.csv")  # Load param table
+    else:
+        try:
+            table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
+        except FileNotFoundError:
+            raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+
+    return table
+
+
+def construct_combined_results(directory):
+    combined_dataframe = pd.DataFrame()
+    json_file_list = [os.path.basename(f) for f in glob(f"{directory}/Summarised_results/*.json")]
+
+    for jsn in json_file_list:
+        if jsn == 'combined_results.json':
+            continue
+
+        # Splits a file name. For example from '(1, 2)'.json into [1, 2]
+        parameters = re.split('\(|\)|, ', jsn.split('.')[0])[1:-1]
+        if combined_dataframe.empty:
+            combined_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
+            combined_dataframe = combined_dataframe.transpose()
+
+            for counter, parameter_name in enumerate(config.parameter_dict):
+                combined_dataframe[parameter_name] = parameters[counter]
+
+        else:
+            new_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
+            new_dataframe = new_dataframe.transpose()
+
+            for counter, parameter_name in enumerate(config.parameter_dict):
+                new_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
+
+            combined_dataframe = combined_dataframe.append(new_dataframe, sort=True)
+
+    # Save combined results
+    combined_dataframe = combined_dataframe.reset_index()
+    combined_dataframe.to_json(f"{directory}/Summarised_results/combined_results.json", orient='records', indent=2)
+
+def json_search():
+    if len(json_file_list) == 0:
+        raise NameError('Folder selection error. Could not find json files in the "Summarised_results" directory.')
+    else:
+        return json_file_list

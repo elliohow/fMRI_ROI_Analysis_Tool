@@ -7,7 +7,7 @@ run_plotting = true                                                             
 run_statistics = true                                                             # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
-multicore_processing = true                                                       # true or false. Use multicore processing to use during analysis? Recommended: true
+multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 output_folder_loc = ''                                                            # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
@@ -21,7 +21,7 @@ motion_correct = false                                                          
 anat_align = true                                                                 # true or false. Recommended: true.
 grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: Requires anatomical align be true to function.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
-noise_cutoff = true                                                               # true or false. Recommended: true.
+noise_cutoff = false                                                              # true or false. Recommended: true.
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 bootstrap = false                                                                 # True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
@@ -29,7 +29,6 @@ conf_level_number = '95%, 1.96'                                                 
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 # Parsing
-verify_param_method = 'table'                                                     # "table", "name" or "manual".  How to find parameter values: "table" finds values from spreadsheet document, "name" finds values from file name, "manual" allows you to manually input parameters at runtime. Options: ['table', 'name', 'manual'].
 parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
 parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 

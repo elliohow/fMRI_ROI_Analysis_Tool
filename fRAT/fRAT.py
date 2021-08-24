@@ -62,9 +62,6 @@ def plotting(config, orig_path):
     if config.verbose:
         print('\n----------------\n--- Plotting ---\n----------------')
 
-    # Parameter Parsing
-    ParamParser.run_parse(config)
-
     # Plotting
     Figures.figures(config)
 
@@ -81,6 +78,8 @@ def analysis(config):
     # Run class setup
     participant_list, matched_brains = Environment_Setup.setup_analysis(config)
 
+    Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
+
     if config.verbose:
         print('\n--- Running analysis ---')
 
@@ -93,54 +92,60 @@ def analysis(config):
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
 
-    run_overall_analysis(brain_list, matched_brains)
-
-    calculate_flirt_cost(participant_list, config, pool)
+    run_overall_analysis(brain_list, matched_brains, config, pool)
+    calculate_flirt_cost(participant_list, brain_list, config, pool)
     atlas_scale(participant_list, config, pool)
 
-    if config.verify_param_method == 'table':
-        Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
 
-    return
+def run_overall_analysis(brain_list, matched_brains, config, pool):
+    for parameter_comb in matched_brains:
+        for brain in brain_list:
+            if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
+                parameter_comb.overall_results.append(brain.roiResults)
+                parameter_comb.raw_results.append(brain.roiTempStore)
+
+    # Set arguments to pass to run_analysis function
+    iterable = zip(matched_brains, itertools.repeat("compile_results"),
+                   range(len(matched_brains)), itertools.repeat(len(matched_brains)),
+                   itertools.repeat(config))
+
+    if config.multicore_processing:
+        pool.starmap(Utils.instance_method_handler, iterable)
+    else:
+        list(itertools.starmap(Utils.instance_method_handler, iterable))
+        
+    construct_combined_results(Environment_Setup.save_location)
 
 
-def run_overall_analysis(matched_brains):
-    for group in matched_brains:
-        group.test()
-
-    # TODO Divide workload of matched brains up to cores
-    # TODO Search brain list for right roiTempStore based on participant and brain id
-    # TODO Combine roitempstore and save out
-
-
-def calculate_flirt_cost(participant_list, config, pool):
+def calculate_flirt_cost(participant_list, brain_list, config, pool):
     cost_func_vals = []
 
-    for counter, participant in enumerate(participant_list):
-        if config.anat_align:
+    if config.anat_align:
+        for counter, participant in enumerate(participant_list):
             if config.verbose:
                 print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
             anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
-            cost_func_vals.append([participant.anat_brain_no_ext, 0, anat_to_mni_cost])
+            cost_func_vals.append([participant.participant_name, participant.anat_brain_no_ext, 0, anat_to_mni_cost])
 
-        # Set arguments to pass to run_analysis function
-        iterable = zip(participant.brains, itertools.repeat("calculate_fMRI_flirt_cost_function"),
-                       range(len(participant.brains)),
-                       itertools.repeat(len(participant.brains)),
-                       itertools.repeat(config))
+    # Set arguments to pass to run_analysis function
+    iterable = zip(brain_list, itertools.repeat("calculate_fmri_flirt_cost_function"),
+                   range(len(brain_list)),
+                   itertools.repeat(len(brain_list)),
+                   itertools.repeat(config))
 
-        if config.multicore_processing:
-            results = pool.starmap(Utils.instance_method_handler, iterable)
-        else:
-            results = list(itertools.starmap(Utils.instance_method_handler, iterable))
+    if config.multicore_processing:
+        results = pool.starmap(Utils.instance_method_handler, iterable)
+    else:
+        results = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-        cost_func_vals.extend(results)  # TODO: need to save participant number too
+    cost_func_vals.extend(results)
 
     if config.verbose:
         print(f'Saving cost function dataframe as cost_function.json')
 
-    df = pd.DataFrame(cost_func_vals, columns=['File', 'anat_cost_value', 'mni_cost_value'])
+    df = pd.DataFrame(cost_func_vals, columns=['Participant', 'File', 'anat_cost_value', 'mni_cost_value'])
+
     with open(f"{Environment_Setup.save_location}cost_function.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 
