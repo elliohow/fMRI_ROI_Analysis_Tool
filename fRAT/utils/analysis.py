@@ -53,7 +53,7 @@ class Environment_Setup:
     label_array = []
 
     @classmethod
-    def setup_analysis(cls, cfg):
+    def setup_analysis(cls, cfg, pool):
         """Set up environment and find files before running analysis."""
         global config
         config = cfg
@@ -71,7 +71,7 @@ class Environment_Setup:
         # Extract labels from selected FSL atlas
         cls.roi_label_list()
 
-        participant_list = Participant.setup_class(cls.base_directory, cls.save_location)
+        participant_list = Participant.setup_class(cls.base_directory, cls.save_location, pool)
 
         matched_brain_list = MatchedBrain.setup_class(participant_list)
 
@@ -88,7 +88,7 @@ class Environment_Setup:
             
         if config.verbose:
             print(f'Using the {cls.atlas_name} atlas.'
-                  f'\n Saving output in directory: {cls.save_location}')
+                  f'\n    Saving output in directory: {cls.save_location}\n')
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}")
@@ -143,7 +143,7 @@ class Participant:
     def __init__(self, participant, base_directory, save_location):
         self.participant_name = participant
         self.participant_path = f"{base_directory}/{participant}"
-        self.save_location = f"{self.participant_path}/{save_location}"
+        self.save_location = f"{base_directory}/{save_location}{participant}/"
         self.anat_cost = 0
         self.brains = None
         self.file_list = []
@@ -151,16 +151,17 @@ class Participant:
         self.anat_brain_to_mni = None
         self.anat_brain_no_ext = None
 
-        self.setup_participant()
+    def setup_participant(self, environment_globals, cfg):
+        global config
+        config = cfg
 
-    def setup_participant(self):
         self.find_fmri_files()  # Find fMRI files to save in self.brains
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(self.save_location)
 
         if config.anat_align:
-            self.anat_setup()
+            self.anat_setup(environment_globals['fsl_path'])
 
         # Initialise brain class for each file found
         for counter, brain in enumerate(self.brains):
@@ -169,16 +170,33 @@ class Participant:
                                          self.participant_name,
                                          self.save_location,
                                          self.anat_brain,
-                                         self.anat_brain_to_mni)
+                                         self.anat_brain_to_mni,
+                                         environment_globals)
+
+        return self
 
     @classmethod
-    def setup_class(cls, base_directory, save_location):
+    def setup_class(cls, base_directory, save_location, pool):
         participant_dirs = cls.find_participant_dirs()
 
         participant_list = set()
         for participant_dir in participant_dirs:
             # Initialise participants
             participant_list.add(Participant(participant_dir, base_directory, save_location))
+
+        # Set arguments to pass to run_analysis function
+        iterable = zip(participant_list, itertools.repeat("setup_participant"),
+                       itertools.repeat(Environment_Setup.__dict__), itertools.repeat(config))
+
+        if config.verbose and config.anat_align:
+            print(f'\n--- Anatomical file alignment ---')
+
+        if config.multicore_processing:
+            participant_list = pool.starmap(Utils.instance_method_handler, iterable)
+            participant_list = set(participant_list)
+
+        else:
+            participant_list = set(itertools.starmap(Utils.instance_method_handler, iterable))
 
         return participant_list
 
@@ -204,7 +222,8 @@ class Participant:
             print(f'Ignoring {orig_brain_num - len(self.brains)}/{orig_brain_num} files.\n')
 
         brain_list = []
-        if self.brains:
+        if self.brains:  # self.brains will be empty if all files for this participant have been set to ignore
+
             # Set arguments to pass to run_analysis function
             iterable = zip(self.brains, itertools.repeat("run_analysis"), range(len(self.brains)),
                            itertools.repeat(len(self.brains)), itertools.repeat(config))
@@ -214,7 +233,7 @@ class Participant:
             else:
                 brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-            construct_combined_results(f'{self.participant_path}/{Environment_Setup.save_location}')
+            construct_combined_results(f'{self.save_location}')
         
         if config.anat_align:
             self.anat_file_cleanup()
@@ -228,9 +247,9 @@ class Participant:
         if len(self.brains) == 0:
             raise NameError("No files found.")
 
-    def anat_setup(self):
+    def anat_setup(self, fsl_path):
         if config.verbose:
-            print(f'\nConverting anatomical file to MNI space for participant: {self.participant_name}')
+            print(f'Converting anatomical file to MNI space for participant: {self.participant_name}')
 
         anat = Utils.find_files(f'{self.participant_path}/anat/', "hdr", "nii.gz", "nii")
 
@@ -243,7 +262,7 @@ class Participant:
         self.anat_brain_no_ext = anat.rsplit(".")[0]
         self.anat_brain_to_mni = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
                                                 'FLIRT', self.anat_brain, 'to_mni_from_',
-                                                f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+                                                f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
@@ -274,7 +293,8 @@ class Participant:
 
 
 class Brain:
-    def __init__(self, brain, participant_folder, participant_name, save_location, anat_brain, anat_brain_to_mni):
+    def __init__(self, brain, participant_folder, participant_name, save_location,
+                 anat_brain, anat_brain_to_mni, environment_globals):
         self.brain = brain
         self.save_location = save_location
         self.anat_brain = anat_brain
@@ -290,16 +310,16 @@ class Brain:
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
-        self._brain_directory = Environment_Setup.base_directory
-        self._fsl_path = Environment_Setup.fsl_path
-        self._atlas_label_path = Environment_Setup.atlas_label_path
-        self._atlas_name = Environment_Setup.atlas_name
-        self._labelArray = Environment_Setup.label_array
-        self.atlas_path = Environment_Setup.atlas_path
+        self._brain_directory = environment_globals['base_directory']
+        self._fsl_path = environment_globals['fsl_path']
+        self._atlas_label_path = environment_globals['atlas_label_path']
+        self._atlas_name = environment_globals['atlas_name']
+        self._labelArray = environment_globals['label_array']
+        self.atlas_path = environment_globals['atlas_path']
 
     def calculate_fmri_flirt_cost_function(self, brain_number_current, brain_number_total, config):
         if config.verbose:
-            print(f'Calculating cost function value for {brain_number_current + 1}/{brain_number_total}: '
+            print(f'Calculating cost function value for fMRI volume {brain_number_current + 1}/{brain_number_total}: '
                   f'{self.no_ext_brain}')
 
         fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/bet_{self.no_ext_brain}.nii.gz',
@@ -499,69 +519,11 @@ class Brain:
             roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
                                                   brain_number_total)  # Bootstrapping
 
-        roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total,
-                       self._labelArray, self.save_location, self.parameters, config)  # Save results
+        roi_stats_save(roiTempStore, roiResults, self._labelArray,
+                       self.save_location, self.parameters, config)  # Save results
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
         self.roiTempStore = roiTempStore  # Retain variable for atlas_scale function
-
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, config):
-        """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
-        (based on the highest seen value of all brains and rois)."""
-        if config.verbose:
-            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
-                  f'{brain_number_current + 1}/{brain_number_total}: {self.brain}.')
-
-        brain_stat = nib.load(Environment_Setup.atlas_path)
-        brain_stat = brain_stat.get_fdata()
-
-        within_roi_stat = deepcopy(brain_stat)
-        mixed_roi_stat = deepcopy(brain_stat)
-
-        np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
-        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.roiResults[statistic_num, :])]
-        # Find maximum statistic value (excluding No ROI and overall category)
-        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.roiResults[statistic_num, :]]
-
-        roi_stat_brain_size = brain_stat.shape
-
-        # Iterate through each voxel in the atlas
-        for x in range(0, roi_stat_brain_size[0]):
-            for y in range(0, roi_stat_brain_size[1]):
-                for z in range(0, roi_stat_brain_size[2]):
-                    # Set new value of voxel to the required statistic
-                    roi_row = int(brain_stat[x][y][z])
-                    if roi_row == 0:
-                        brain_stat[x][y][z] = np.nan
-                        within_roi_stat[x][y][z] = np.nan
-                        mixed_roi_stat[x][y][z] = np.nan
-                    else:
-                        brain_stat[x][y][z] = self.roiResults[statistic_num, roi_row]
-                        within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
-                        mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
-
-        # Convert atlas to NIFTI and save it
-        affine = np.eye(4)
-        scale_stats = [
-            (brain_stat,
-             f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}.nii.gz"),
-            (within_roi_stat,
-             f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
-            (mixed_roi_stat,
-             f"{self.no_ext_brain}_{config.statistic_options[statistic_num]}_mixed_roi_scaled.nii.gz")
-        ]
-
-        scaled_brains = []
-
-        for scale_stat in scale_stats:
-            scaled_brain = nib.Nifti1Image(scale_stat[0], affine)
-            scaled_brain.to_filename(f"{self.save_location}{scale_stat[1]}")
-
-            scaled_brains.append(scale_stat[1])
-
-        for brain in scaled_brains:
-            Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
-                            f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
 
 class MatchedBrain:
@@ -586,7 +548,8 @@ class MatchedBrain:
 
         cls.critical_parameters = config.parameter_dict1
         cls.label_array = Environment_Setup.label_array
-        cls.save_location = Environment_Setup.save_location
+        cls.save_location = f"{Environment_Setup.save_location}Overall/"
+        Utils.check_and_make_dir(cls.save_location)
 
         matched_brain_list = set()
         for param_combination in matched_brains:
@@ -601,7 +564,7 @@ class MatchedBrain:
     def find_shared_params(cls, participant_list):
         table = load_paramValues_file()
 
-        ignore_column_loc, critical_column_locs = cls.find_column_locs(table, participant_list)
+        ignore_column_loc, critical_column_locs = cls.find_column_locs(table)
 
         matched_brains = dict()
         for index, row in table.iterrows():
@@ -611,13 +574,19 @@ class MatchedBrain:
             elif tuple(row[critical_column_locs]) not in matched_brains.keys():
                 matched_brains[tuple(row[critical_column_locs])] = dict()
 
+            elif row['participant'] in matched_brains[tuple(row[critical_column_locs])].keys():
+                raise FileExistsError(f'Multiple instances of participant {row["participant"]} found for parameter '
+                                      f'combination {tuple(row[critical_column_locs])}. '
+                                      f'This is not currently supported.')
+
             participant, brain = cls.find_brain_object(row, participant_list)
             matched_brains[tuple(row[critical_column_locs])][participant] = brain
+
 
         return matched_brains
 
     @classmethod
-    def find_column_locs(cls, table, participant_list):
+    def find_column_locs(cls, table):
         table.columns = [x.lower() for x in table.columns]  # Convert to lower case for comparison to key later
 
         ignore_column_loc = next((counter for counter, column in enumerate(table.columns) if "ignore file" in column),
@@ -645,7 +614,7 @@ class MatchedBrain:
 
         return participant.participant_name, brain.no_ext_brain
 
-    def compile_results(self, brain_number_current, brain_number_total, config):
+    def compile_results(self, config):
         if config.verbose:
             print(f'Combining results for parameter combination: {self.parameters}')
 
@@ -658,8 +627,8 @@ class MatchedBrain:
         self.raw_results = np.concatenate(self.raw_results, axis=1)  # Combine raw results
 
         self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
-        roi_stats_save(self.raw_results, self.overall_results, brain_number_current, brain_number_total,
-                       self.label_array, self.save_location, self.parameters, config)  # Save results
+        roi_stats_save(self.raw_results, self.overall_results, self.label_array,
+                       self.save_location, self.parameters, config)  # Save results
 
         # TODO implement bootstrapping
 
@@ -679,6 +648,63 @@ class MatchedBrain:
                 except KeyError:
                     pass
 
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, config):
+        """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
+        (based on the highest seen value of all brains and rois)."""
+        if config.verbose:
+            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
+                  f'{brain_number_current + 1}/{brain_number_total}: {self.parameters}.')
+
+        brain_stat = nib.load(atlas_path)
+        brain_stat = brain_stat.get_fdata()
+
+        within_roi_stat = deepcopy(brain_stat)
+        mixed_roi_stat = deepcopy(brain_stat)
+
+        np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
+        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[0][statistic_num, :])]
+        # Find maximum statistic value (excluding No ROI and overall category)
+        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[0][statistic_num, :]]
+
+        roi_stat_brain_size = brain_stat.shape
+
+        # Iterate through each voxel in the atlas
+        for x in range(0, roi_stat_brain_size[0]):
+            for y in range(0, roi_stat_brain_size[1]):
+                for z in range(0, roi_stat_brain_size[2]):
+                    # Set new value of voxel to the required statistic
+                    roi_row = int(brain_stat[x][y][z])
+                    if roi_row == 0:
+                        brain_stat[x][y][z] = np.nan
+                        within_roi_stat[x][y][z] = np.nan
+                        mixed_roi_stat[x][y][z] = np.nan
+                    else:
+                        brain_stat[x][y][z] = self.overall_results[0][statistic_num, roi_row]
+                        within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
+                        mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
+
+        # Convert atlas to NIFTI and save it
+        affine = np.eye(4)
+        scale_stats = [
+            (brain_stat,
+             f"{self.parameters}_{config.statistic_options[statistic_num]}.nii.gz"),
+            (within_roi_stat,
+             f"{self.parameters}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
+            (mixed_roi_stat,
+             f"{self.parameters}_{config.statistic_options[statistic_num]}_mixed_roi_scaled.nii.gz")
+        ]
+
+        scaled_brains = []
+
+        for scale_stat in scale_stats:
+            scaled_brain = nib.Nifti1Image(scale_stat[0], affine)
+            scaled_brain.to_filename(f"{self.save_location}{scale_stat[1]}")
+
+            scaled_brains.append(scale_stat[1])
+
+        for brain in scaled_brains:
+            Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
+                            f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
 def compile_roi_stats(roiTempStore, roiResults, config):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
@@ -841,8 +867,7 @@ def roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current, 
     return roiResults
 
 
-def roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_total,
-                   labelArray, save_location, no_ext_brain, config):
+def roi_stats_save(roiTempStore, roiResults, labelArray, save_location, no_ext_brain, config):
     headers = ['Voxels', 'Mean', 'Std_dev',
                f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
                'Median', 'Min', 'Max', 'Excluded_Voxels']
@@ -870,10 +895,6 @@ def roi_stats_save(roiTempStore, roiResults, brain_number_current, brain_number_
 
     # Convert to dict and get rid of row numbers to significantly decrease file size
     roidict = Utils.dataframe_to_dict(raw_results)
-
-    # Save JSON files
-    if config.verbose:
-        print(f'Saving JSON files for fMRI volume {brain_number_current + 1}/{brain_number_total}.') # TODO change this
 
     summary_results_path = f"{save_location}Summarised_results/"
     Utils.check_and_make_dir(summary_results_path)
@@ -940,6 +961,7 @@ def construct_combined_results(directory):
     # Save combined results
     combined_dataframe = combined_dataframe.reset_index()
     combined_dataframe.to_json(f"{directory}/Summarised_results/combined_results.json", orient='records', indent=2)
+
 
 def json_search():
     if len(json_file_list) == 0:

@@ -50,7 +50,8 @@ def argparser(config):
     args = Utils.argparser()
 
     if args.make_table:
-        ParamParser.make_table()
+        from fRAT_GUI import make_table
+        make_table()
         sys.exit()
     if args.brain_loc is not None:
         config.brain_file_loc = args.brain_loc
@@ -75,49 +76,54 @@ def analysis(config):
     if config.verbose:
         print('\n----------------\n--- Analysis ---\n----------------')
 
-    # Run class setup
-    participant_list, matched_brains = Environment_Setup.setup_analysis(config)
-
-    Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
-
-    if config.verbose:
-        print('\n--- Running analysis ---')
-
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
     else:
         pool = None
 
+    # Run class setup
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool)
+
+    Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
+
+    if config.verbose:
+        print('\n--- Running individual analysis ---')
+
     brain_list = []
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
 
-    run_overall_analysis(brain_list, matched_brains, config, pool)
+    compile_results(brain_list, matched_brains, config, pool)
     calculate_flirt_cost(participant_list, brain_list, config, pool)
-    atlas_scale(participant_list, config, pool)
+    atlas_scale(matched_brains, config, pool)
 
 
-def run_overall_analysis(brain_list, matched_brains, config, pool):
+def compile_results(brain_list, matched_brains, config, pool):
+    if config.verbose:
+        print('\n--- Running pooled analysis ---')
+
     for parameter_comb in matched_brains:
         for brain in brain_list:
             if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
                 parameter_comb.overall_results.append(brain.roiResults)
                 parameter_comb.raw_results.append(brain.roiTempStore)
 
-    # Set arguments to pass to run_analysis function
-    iterable = zip(matched_brains, itertools.repeat("compile_results"),
-                   range(len(matched_brains)), itertools.repeat(len(matched_brains)),
-                   itertools.repeat(config))
+    # Save each raw and overall results for each parameter combination
+    iterable = zip(matched_brains, itertools.repeat("compile_results"), itertools.repeat(config))
 
     if config.multicore_processing:
         pool.starmap(Utils.instance_method_handler, iterable)
     else:
         list(itertools.starmap(Utils.instance_method_handler, iterable))
-        
-    construct_combined_results(Environment_Setup.save_location)
+
+    # Compile the overall results for every parameter combination
+    construct_combined_results(MatchedBrain.save_location)
 
 
 def calculate_flirt_cost(participant_list, brain_list, config, pool):
+    if config.verbose:
+        print('\n--- Calculating cost function value ---')
+
     cost_func_vals = []
 
     if config.anat_align:
@@ -142,7 +148,7 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
     cost_func_vals.extend(results)
 
     if config.verbose:
-        print(f'Saving cost function dataframe as cost_function.json')
+        print(f'\nSaving cost function dataframe as cost_function.json')
 
     df = pd.DataFrame(cost_func_vals, columns=['Participant', 'File', 'anat_cost_value', 'mni_cost_value'])
 
@@ -152,26 +158,29 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
     # TODO: Calculate movement using mcflirt
 
 
-def atlas_scale(brain_list, config, pool):
+def atlas_scale(matched_brains, config, pool):
     """Save a copy of each statistic for each ROI from the first brain. Then using sequential comparison
        find the largest statistic values for each ROI out of all the brains analyzed."""
     if config.verbose:
         print('\n--- Atlas scaling ---')
 
     # Make directory to store scaled brains
-    Utils.check_and_make_dir(f"{os.getcwd()}/{Environment_Setup.save_location}NIFTI_ROI")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI")
 
-    for statistic_number in range(len(brain_list[0].roiResults)):
-        roi_stats = deepcopy(brain_list[0].roiResults[statistic_number, :])
+    first_combination = next(iter(matched_brains))
+    for statistic_number in range(len(first_combination.overall_results[0])):
+        roi_stats = deepcopy(first_combination.overall_results[0][statistic_number, :])
 
-        for brain in brain_list:
-            for counter, roi_stat in enumerate(brain.roiResults[statistic_number, :]):
+        for parameter_combination in matched_brains:
+            for counter, roi_stat in enumerate(parameter_combination.overall_results[0][statistic_number, :]):
                 if roi_stat > roi_stats[counter]:
                     roi_stats[counter] = roi_stat
 
         # Set arguments to pass to atlas_scale function
-        iterable = zip(brain_list, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats), range(len(brain_list)),
-                       itertools.repeat(len(brain_list)), itertools.repeat(statistic_number), itertools.repeat(config))
+        iterable = zip(matched_brains, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
+                       range(len(matched_brains)), itertools.repeat(len(matched_brains)),
+                       itertools.repeat(statistic_number), itertools.repeat(Environment_Setup.atlas_path),
+                       itertools.repeat(config))
 
         # Run atlas_scale function and pass in max roi stats for between brain scaling
         if config.multicore_processing:
