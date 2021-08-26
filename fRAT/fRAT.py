@@ -82,7 +82,7 @@ def analysis(config):
         pool = None
 
     # Run class setup
-    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool)
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool) # TODO: has the participant multiprocessing been setup incorrectly?
 
     Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
 
@@ -93,9 +93,15 @@ def analysis(config):
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
 
+    if config.multicore_processing:
+        pool = Utils.join_processing_pool(pool, restart=True)
+
     compile_results(brain_list, matched_brains, config, pool)
     calculate_flirt_cost(participant_list, brain_list, config, pool)
     atlas_scale(matched_brains, config, pool)
+
+    if config.multicore_processing:
+        Utils.join_processing_pool(pool, restart=False)
 
 
 def compile_results(brain_list, matched_brains, config, pool):
@@ -158,7 +164,7 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
     # TODO: Calculate movement using mcflirt
 
 
-def atlas_scale(matched_brains, config, pool):
+def atlas_scale(matched_brains, config, pool):  # TODO: doesnt seem to work when multiprocessing is off
     """Save a copy of each statistic for each ROI from the first brain. Then using sequential comparison
        find the largest statistic values for each ROI out of all the brains analyzed."""
     if config.verbose:
@@ -188,10 +194,6 @@ def atlas_scale(matched_brains, config, pool):
 
         else:
             list(itertools.starmap(Utils.instance_method_handler, iterable))
-
-    if config.multicore_processing:
-        pool.close()
-        pool.join()
 
 
 def config_check(config):

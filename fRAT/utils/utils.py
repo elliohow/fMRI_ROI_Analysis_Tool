@@ -119,17 +119,28 @@ class Utils:
         return argv[0](*argv[1:])
 
     @staticmethod
-    def start_processing_pool():
-        if config.multicore_processing:
-            if config.max_core_usage == 'max':
-                workers = mp.cpu_count()
-            else:
-                workers = config.max_core_usage
+    def start_processing_pool(restart=False):
+        if config.max_core_usage == 'max':
+            workers = mp.cpu_count()
+        else:
+            workers = config.max_core_usage
 
-            ctx = mp.get_context('forkserver')  # This stops segmentation fault for MacOS
-            if config.verbose:
-                print(f"\nStarting processing pool using {workers} cores.")
-            return ctx.Pool(processes=workers)
+        ctx = mp.get_context('forkserver')  # This stops segmentation fault for MacOS
+
+        if config.verbose and not restart:
+            print(f"\nStarting processing pool using {workers} cores.")
+
+        return ctx.Pool(processes=workers)
+
+    @staticmethod
+    def join_processing_pool(pool, restart):
+        pool.close()
+        pool.join()
+
+        if restart:
+            pool = Utils.start_processing_pool(restart=True)
+
+        return pool
 
     @classmethod
     def load_config(cls, config_path, filename, save=True):

@@ -177,7 +177,7 @@ class Participant:
 
     @classmethod
     def setup_class(cls, base_directory, save_location, pool):
-        participant_dirs = cls.find_participant_dirs()
+        participant_dirs = cls.find_participant_dirs()  # TODO: maybe try calling this from the environment setup class
 
         participant_list = set()
         for participant_dir in participant_dirs:
