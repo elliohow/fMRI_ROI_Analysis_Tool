@@ -19,15 +19,40 @@ from .utils import Utils
 
 class Figures:
     config = None
-    
+
     @classmethod
-    def figures(cls, cfg):
+    def setup_environment(cls, save_location, cfg):
         cls.config = cfg
 
+        if cls.config.run_analysis:
+            os.chdir(save_location)
+
+        else:
+            if cls.config.report_output_folder in ("", " "):
+                print('Select the directory output by the fRAT.')
+                figure_directory = Utils.file_browser(title='Select the report directory output by the fRAT.')
+
+            else:
+                figure_directory = cls.config.report_output_folder
+
+            if cls.config.verbose:
+                print(f'Finding files in {cls.config.report_output_folder}.')
+
+            try:
+                os.chdir(figure_directory)
+            except FileNotFoundError:
+                raise FileNotFoundError('report_output_folder in config.toml is not a valid directory.')
+
+    @classmethod
+    def make_figures(cls):
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
 
-        combined_results_df = pd.read_json("Summarised_results/combined_results.json")
+        try:
+            combined_results_df = pd.read_json("Overall/Summarised_results/combined_results.json")
+        except ValueError:
+            raise Exception("combined_results.json in relative path 'Overall/Summarised_results/' not found, "
+                            "check correct directory has been selected.")
 
         if cls.config.multicore_processing & (cls.config.make_one_region_fig or cls.config.make_histogram):
             pool = Utils.start_processing_pool()
@@ -47,10 +72,10 @@ class Figures:
             ViolinPlot.make(combined_results_df)
 
         if cls.config.make_one_region_fig:
-            Barchart.setup(combined_results_df, pool)
+            Barchart.setup_environment(combined_results_df, pool)
 
         if cls.config.make_histogram:
-            Histogram.setup(combined_results_df, pool)
+            Histogram.setup_environment(combined_results_df, pool)
 
         if pool:
             pool.close()
@@ -142,7 +167,7 @@ class Figures:
         combined_raw_df = pd.DataFrame()
 
         for json_file in jsons:
-            with open(f"{os.getcwd()}/Raw_results/{json_file}", 'r') as f:
+            with open(f"{os.getcwd()}/Overall/Raw_results/{json_file}", 'r') as f:
                 current_json = Utils.dict_to_dataframe(json.load(f))
 
             json_file_name = json_file.rsplit("_raw.json")[0]
@@ -165,6 +190,8 @@ class Figures:
             id_vars=[config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"],
             var_name='ROI', value_name='voxel_value')
 
+        combined_raw_df.dropna(inplace=True)  # Drop rows that have NA for voxel value
+
         return combined_raw_df
 
 
@@ -184,7 +211,7 @@ class BrainGrid(Figures):
                                f"_{statistic}_mixed_roi_scaled.nii.gz"]
 
             for base_extension in brain_plot_exts:
-                indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic)
+                indiv_brain_imgs = cls.setup_environment(combined_results_df, base_extension, statistic)
 
                 for img in indiv_brain_imgs:
                     Utils.move_file(img, os.getcwd(), indiv_brains_dir)
@@ -193,7 +220,7 @@ class BrainGrid(Figures):
                 print("\n")
 
     @classmethod
-    def setup(cls, df, base_extension, statistic):
+    def setup_environment(cls, df, base_extension, statistic):
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
@@ -292,7 +319,7 @@ class BrainGrid(Figures):
 
         if base_extension == f"_{statistic}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
             # Calculate colour bar limit if not manually set
-            brain = nib.load(f"NIFTI_ROI/{json}{base_extension}")
+            brain = nib.load(f"Overall/NIFTI_ROI/{json}{base_extension}")
             brain = brain.get_fdata()
 
             vmax = np.nanmax(brain)
@@ -301,7 +328,7 @@ class BrainGrid(Figures):
             # If this isn't changed later it is definitely due to efficiency not laziness.
             vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
 
-        plot = plotting.plot_anat(f"NIFTI_ROI/{json}{base_extension}",
+        plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{json}{base_extension}",
                                   draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                   vmin=cls.config.brain_fig_value_min, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
@@ -402,7 +429,7 @@ class ViolinPlot(Figures):
         df = df.reset_index(drop=True)  # Reset index to remove grouping
 
         if cls.config.verbose:
-            print(f"Saving violin plot!")
+            print(f"Saved violin plot!")
 
         df['constant'] = 1
 
@@ -440,7 +467,7 @@ class ViolinPlot(Figures):
 
 class Barchart(Figures):
     @classmethod
-    def setup(cls, df, pool):
+    def setup_environment(cls, df, pool):
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
@@ -533,7 +560,7 @@ class Barchart(Figures):
 
 class Histogram(Figures):
     @classmethod
-    def setup(cls, combined_df, pool):
+    def setup_environment(cls, combined_df, pool):
         Utils.check_and_make_dir("Figures/Histograms")
         list_rois = list(combined_df['index'].unique())
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
@@ -544,7 +571,7 @@ class Histogram(Figures):
             if cls.config.verbose:
                 print(f'\n--- Histogram creation ---')
 
-            jsons = Utils.find_files("Raw_results", "json")
+            jsons = Utils.find_files("Overall/Raw_results", "json")
             combined_raw_df = cls.make_raw_df(cls.config, jsons, combined_df)
 
             combined_raw_dfs = []
@@ -756,13 +783,13 @@ def chdir_to_output_directory(current_step, config):  # TODO: Hook this up to fi
     elif current_step == 'Statistics' and config.run_plotting:
         return
 
-    elif config.output_folder_loc in ("", " "):
+    elif config.report_output_folder in ("", " "):
         print('Select the directory output by the fRAT.')
         json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
 
     else:
-        json_directory = config.output_folder_loc
-        config.output_folder_loc = json_directory
+        json_directory = config.report_output_folder
+        config.report_output_folder = json_directory
 
         try:
             os.chdir(json_directory)
@@ -771,6 +798,6 @@ def chdir_to_output_directory(current_step, config):  # TODO: Hook this up to fi
                 'Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
 
         if config.verbose:
-            print(f'Output folder selection: {config.output_folder_loc}.')
+            print(f'Output folder selection: {config.report_output_folder}.')
 
     return json_directory

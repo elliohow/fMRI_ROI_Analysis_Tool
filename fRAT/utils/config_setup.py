@@ -31,8 +31,8 @@ General = {
                        'label': 'NIFTI/ANALYZE folder location',
                        'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
-    'output_folder_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                          'label': 'fRAT output folder location',
+    'report_output_folder': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
+                          'label': 'fRAT report output folder location',
                           'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',

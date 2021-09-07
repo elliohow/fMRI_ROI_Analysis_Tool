@@ -56,7 +56,7 @@ def argparser(config):
     if args.brain_loc is not None:
         config.brain_file_loc = args.brain_loc
     if args.output_loc is not None:
-        config.output_folder_loc = args.output_loc
+        config.report_output_folder = args.output_loc
 
 
 def plotting(config, orig_path):
@@ -64,7 +64,8 @@ def plotting(config, orig_path):
         print('\n----------------\n--- Plotting ---\n----------------')
 
     # Plotting
-    Figures.figures(config)
+    Figures.setup_environment(Environment_Setup.save_location, config)
+    Figures.make_figures()
 
     # Create html report
     html_report.main(str(orig_path))
@@ -82,7 +83,7 @@ def analysis(config):
         pool = None
 
     # Run class setup
-    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool) # TODO: has the participant multiprocessing been setup incorrectly?
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool)
 
     Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
 
@@ -96,8 +97,8 @@ def analysis(config):
     if config.multicore_processing:
         pool = Utils.join_processing_pool(pool, restart=True)
 
-    compile_results(brain_list, matched_brains, config, pool)
     calculate_flirt_cost(participant_list, brain_list, config, pool)
+    matched_brains = compile_results(brain_list, matched_brains, config, pool)
     atlas_scale(matched_brains, config, pool)
 
     if config.multicore_processing:
@@ -118,12 +119,14 @@ def compile_results(brain_list, matched_brains, config, pool):
     iterable = zip(matched_brains, itertools.repeat("compile_results"), itertools.repeat(config))
 
     if config.multicore_processing:
-        pool.starmap(Utils.instance_method_handler, iterable)
+        matched_brains = pool.starmap(Utils.instance_method_handler, iterable)
     else:
-        list(itertools.starmap(Utils.instance_method_handler, iterable))
+        matched_brains = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
     # Compile the overall results for every parameter combination
     construct_combined_results(MatchedBrain.save_location)
+
+    return matched_brains
 
 
 def calculate_flirt_cost(participant_list, brain_list, config, pool):
@@ -164,7 +167,7 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
     # TODO: Calculate movement using mcflirt
 
 
-def atlas_scale(matched_brains, config, pool):  # TODO: doesnt seem to work when multiprocessing is off
+def atlas_scale(matched_brains, config, pool):
     """Save a copy of each statistic for each ROI from the first brain. Then using sequential comparison
        find the largest statistic values for each ROI out of all the brains analyzed."""
     if config.verbose:
@@ -174,11 +177,11 @@ def atlas_scale(matched_brains, config, pool):  # TODO: doesnt seem to work when
     Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI")
 
     first_combination = next(iter(matched_brains))
-    for statistic_number in range(len(first_combination.overall_results[0])):
-        roi_stats = deepcopy(first_combination.overall_results[0][statistic_number, :])
+    for statistic_number in range(len(first_combination.overall_results)):
+        roi_stats = deepcopy(first_combination.overall_results[statistic_number, :])
 
         for parameter_combination in matched_brains:
-            for counter, roi_stat in enumerate(parameter_combination.overall_results[0][statistic_number, :]):
+            for counter, roi_stat in enumerate(parameter_combination.overall_results[statistic_number, :]):
                 if roi_stat > roi_stats[counter]:
                     roi_stats[counter] = roi_stat
 

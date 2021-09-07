@@ -72,7 +72,6 @@ class Environment_Setup:
         cls.roi_label_list()
 
         participant_list = Participant.setup_class(cls.base_directory, cls.save_location, pool)
-
         matched_brain_list = MatchedBrain.setup_class(participant_list)
 
         return participant_list, matched_brain_list
@@ -177,7 +176,7 @@ class Participant:
 
     @classmethod
     def setup_class(cls, base_directory, save_location, pool):
-        participant_dirs = cls.find_participant_dirs()  # TODO: maybe try calling this from the environment setup class
+        participant_dirs = cls.find_participant_dirs()
 
         participant_list = set()
         for participant_dir in participant_dirs:
@@ -191,9 +190,9 @@ class Participant:
         if config.verbose and config.anat_align:
             print(f'\n--- Anatomical file alignment ---')
 
+        # Setup each participant
         if config.multicore_processing:
-            participant_list = pool.starmap(Utils.instance_method_handler, iterable)
-            participant_list = set(participant_list)
+            participant_list = set(pool.starmap(Utils.instance_method_handler, iterable))
 
         else:
             participant_list = set(itertools.starmap(Utils.instance_method_handler, iterable))
@@ -202,6 +201,7 @@ class Participant:
 
     @classmethod
     def find_participant_dirs(cls):
+        # Searches for folders that start with p
         participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
 
         if len(participant_dirs) == 0:
@@ -630,6 +630,7 @@ class MatchedBrain:
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
                        self.save_location, self.parameters, config)  # Save results
 
+        return self
         # TODO implement bootstrapping
 
     @classmethod
@@ -652,7 +653,7 @@ class MatchedBrain:
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
         if config.verbose:
-            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for fMRI volume '
+            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for parameter combination '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.parameters}.')
 
         brain_stat = nib.load(atlas_path)
@@ -662,9 +663,9 @@ class MatchedBrain:
         mixed_roi_stat = deepcopy(brain_stat)
 
         np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
-        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[0][statistic_num, :])]
+        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[statistic_num, :])]
         # Find maximum statistic value (excluding No ROI and overall category)
-        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[0][statistic_num, :]]
+        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[statistic_num, :]]
 
         roi_stat_brain_size = brain_stat.shape
 
@@ -679,7 +680,7 @@ class MatchedBrain:
                         within_roi_stat[x][y][z] = np.nan
                         mixed_roi_stat[x][y][z] = np.nan
                     else:
-                        brain_stat[x][y][z] = self.overall_results[0][statistic_num, roi_row]
+                        brain_stat[x][y][z] = self.overall_results[statistic_num, roi_row]
                         within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
                         mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
 
@@ -942,21 +943,20 @@ def construct_combined_results(directory):
 
         # Splits a file name. For example from '(1, 2)'.json into [1, 2]
         parameters = re.split('\(|\)|, ', jsn.split('.')[0])[1:-1]
-        if combined_dataframe.empty:
-            combined_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
-            combined_dataframe = combined_dataframe.transpose()
 
-            for counter, parameter_name in enumerate(config.parameter_dict):
-                combined_dataframe[parameter_name] = parameters[counter]
+        current_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
+        current_dataframe = current_dataframe.transpose()
+
+        for counter, parameter_name in enumerate(config.parameter_dict):
+            current_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
+
+        current_dataframe['File_name'] = jsn.split('.')[0]
+
+        if combined_dataframe.empty:
+            combined_dataframe = current_dataframe
 
         else:
-            new_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
-            new_dataframe = new_dataframe.transpose()
-
-            for counter, parameter_name in enumerate(config.parameter_dict):
-                new_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
-
-            combined_dataframe = combined_dataframe.append(new_dataframe, sort=True)
+            combined_dataframe = combined_dataframe.append(current_dataframe, sort=True)
 
     # Save combined results
     combined_dataframe = combined_dataframe.reset_index()
