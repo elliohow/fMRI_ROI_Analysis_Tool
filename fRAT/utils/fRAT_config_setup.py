@@ -1,5 +1,5 @@
 """Configuration file"""
-pages = ['Settings', 'General', 'Analysis', 'Parsing', 'Plotting', 'Violin_plot',
+pages = ['Home', 'General', 'Analysis', 'Parsing', 'Plotting', 'Violin_plot',
          'Brain_table', 'Region_barchart', 'Region_histogram']
 
 '''General settings'''

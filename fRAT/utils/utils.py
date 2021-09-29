@@ -8,6 +8,7 @@ from tkinter import Tk, filedialog
 import multiprocess as mp
 import pandas as pd
 import warnings
+from pathlib import Path
 from types import SimpleNamespace
 
 config = None
@@ -30,7 +31,7 @@ class Utils:
         parser.add_argument('--make_table', dest='make_table', action='store_true',
                             help='Use this flag to create a csv file to store parameter information about files.'
                                  'Recommended that this file is created and filled in before fRAT execution'
-                                 ' (this setting can alternatively be set to True or False in config.TOML).')
+                                 ' (this setting can alternatively be set to True or False in fRAT_config.toml).')
 
         # Execute the parse_args() method
         args = parser.parse_args()
@@ -85,7 +86,7 @@ class Utils:
 
     @staticmethod
     def save_config(directory):
-        with open(directory + '/config_log.toml', 'w') as f, open(f'config.toml', 'r') as r:
+        with open(directory + '/config_log.toml', 'w') as f, open(f'fRAT_config.toml', 'r') as r:
             for line in r:
                 f.write(line)
 
@@ -158,24 +159,32 @@ class Utils:
 
                 config = SimpleNamespace(**parse)
 
-                # Cleans config output
-                atlas_options = ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort',
-                                 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
-                                 'SMATT-labels', 'STN',
-                                 'striatum-structural', 'Talairach-labels', 'Thalamus']
-                config.atlas_number = atlas_options.index(config.atlas_number)
+                if filename == 'fRAT_config.toml':
+                    # Cleans config output
+                    atlas_options = ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort',
+                                     'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
+                                     'SMATT-labels', 'STN',
+                                     'striatum-structural', 'Talairach-labels', 'Thalamus']
+                    config.atlas_number = atlas_options.index(config.atlas_number)
 
-                config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
-                                            'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
+                    config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
+                                                'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
 
-                conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
-                config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
-                config.conf_level_number = conf_level_options.index(config.conf_level_number)
+                    conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
+                    config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
+                    config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
-                config.parameter_dict = {config.parameter_dict1[i]:
-                                             config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
+                    config.parameter_dict = {config.parameter_dict1[i]:
+                                                 config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
 
                 return config
 
             except (toml.decoder.TomlDecodeError, AttributeError):
                 raise Exception('Config file not in correct format or missing entries.')
+
+    @staticmethod
+    def strip_ext(path):
+        path = Path(path)
+        extensions = "".join(path.suffixes)
+
+        return str(path).replace(extensions, "")

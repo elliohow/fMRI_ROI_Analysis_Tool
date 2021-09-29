@@ -118,7 +118,7 @@ class Environment_Setup:
         try:
             os.chdir(cls.base_directory)
         except FileNotFoundError:
-            raise FileNotFoundError('brain_file_loc in config.toml is not a valid directory.')
+            raise FileNotFoundError('brain_file_loc in fRAT_config.toml is not a valid directory.')
 
     @classmethod
     def roi_label_list(cls):
@@ -685,7 +685,6 @@ class MatchedBrain:
                         mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
 
         # Convert atlas to NIFTI and save it
-        affine = np.eye(4)
         scale_stats = [
             (brain_stat,
              f"{self.parameters}_{config.statistic_options[statistic_num]}.nii.gz"),
@@ -698,12 +697,12 @@ class MatchedBrain:
         scaled_brains = []
 
         for scale_stat in scale_stats:
-            scaled_brain = nib.Nifti1Image(scale_stat[0], affine)
+            scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))  # TODO: Change np.eye(4) to None and pass in header
             scaled_brain.to_filename(f"{self.save_location}{scale_stat[1]}")
 
             scaled_brains.append(scale_stat[1])
 
-        for brain in scaled_brains:
+        for brain in scaled_brains:  # TODO: Can I just save in NIFTI_ROI sooner?
             Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 

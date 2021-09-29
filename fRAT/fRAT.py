@@ -40,7 +40,7 @@ def fRAT():
 
 def load_config():
     orig_path = Path(os.path.abspath(__file__)).parents[0]
-    config = Utils.load_config(orig_path, 'config.toml')  # Reload config file incase GUI has changed it
+    config = Utils.load_config(orig_path, 'fRAT_config.toml')  # Reload config file incase GUI has changed it
     config_check(config)
     return config, orig_path
 

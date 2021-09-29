@@ -41,7 +41,7 @@ class Figures:
             try:
                 os.chdir(figure_directory)
             except FileNotFoundError:
-                raise FileNotFoundError('report_output_folder in config.toml is not a valid directory.')
+                raise FileNotFoundError('report_output_folder in fRAT_config.toml is not a valid directory.')
 
     @classmethod
     def make_figures(cls):
@@ -72,10 +72,10 @@ class Figures:
             ViolinPlot.make(combined_results_df)
 
         if cls.config.make_one_region_fig:
-            Barchart.setup_environment(combined_results_df, pool)
+            Barchart.setup(combined_results_df, pool)
 
         if cls.config.make_histogram:
-            Histogram.setup_environment(combined_results_df, pool)
+            Histogram.setup(combined_results_df, pool)
 
         if pool:
             pool.close()
@@ -211,7 +211,7 @@ class BrainGrid(Figures):
                                f"_{statistic}_mixed_roi_scaled.nii.gz"]
 
             for base_extension in brain_plot_exts:
-                indiv_brain_imgs = cls.setup_environment(combined_results_df, base_extension, statistic)
+                indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic)
 
                 for img in indiv_brain_imgs:
                     Utils.move_file(img, os.getcwd(), indiv_brains_dir)
@@ -220,14 +220,13 @@ class BrainGrid(Figures):
                 print("\n")
 
     @classmethod
-    def setup_environment(cls, df, base_extension, statistic):
+    def setup(cls, df, base_extension, statistic):
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
         json_array = df['File_name'].unique()
 
-        plot_values, axis_titles, current_params, col_nums, \
-        row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)  # TODO: check if axis titles still need to be returned
+        plot_values, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -254,7 +253,7 @@ class BrainGrid(Figures):
             if cls.config.verbose:
                 print(f"Saving {base_ext_clean} table.")
 
-            indiv_brain_imgs = cls.make_table(axis_titles, base_ext_clean, base_extension, cell_nums,
+            indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums,
                                               col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
                                               statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
 
@@ -267,13 +266,13 @@ class BrainGrid(Figures):
                 vmax = vmax_storage[0]
 
                 if cls.config.verbose:
-                    print(f'Maximum ROI value of: {round(vmax_storage[0])} seen in file: {vmax_storage[1]}. '
+                    print(f'Maximum ROI value of: {round(vmax_storage[0])} seen for parameter combination: {vmax_storage[1]}. '
                           f'Creating figures with this colourbar limit.')
 
         return indiv_brain_imgs
 
     @classmethod
-    def make_table(cls, axis_titles, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
+    def make_table(cls, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
                    json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
                    y_axis_size):
         for file_num, json in enumerate(json_array):
@@ -301,7 +300,7 @@ class BrainGrid(Figures):
                 plt.ylabel(cls.config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
                            fontsize=cls.config.plot_font_size)
 
-        cls.label_blank_cell_axes(plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims)
+        cls.label_blank_cell_axes(plot_values, cell_nums, x_axis_size, y_axis_size, dims)
 
         if cls.config.brain_tight_layout:
             plt.tight_layout()
@@ -377,10 +376,10 @@ class BrainGrid(Figures):
             cell_nums.append(np.ravel_multi_index((row_nums[file_num], col_nums[file_num]),
                                                   (y_axis_size, x_axis_size)))  # Find linear index of figure
 
-        return plot_values_sorted, axis_titles, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
+        return plot_values_sorted, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
 
     @classmethod
-    def label_blank_cell_axes(cls, plot_values, axis_titles, cell_nums, x_axis_size, y_axis_size, dims):
+    def label_blank_cell_axes(cls, plot_values, cell_nums, x_axis_size, y_axis_size, dims):
         # Make blank image with the same dimensions as previous images
         img = Image.new("RGB", (dims[0], dims[1]), (255, 255, 255))
 
@@ -467,7 +466,7 @@ class ViolinPlot(Figures):
 
 class Barchart(Figures):
     @classmethod
-    def setup_environment(cls, df, pool):
+    def setup(cls, df, pool):
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
@@ -560,7 +559,7 @@ class Barchart(Figures):
 
 class Histogram(Figures):
     @classmethod
-    def setup_environment(cls, combined_df, pool):
+    def setup(cls, combined_df, pool):
         Utils.check_and_make_dir("Figures/Histograms")
         list_rois = list(combined_df['index'].unique())
         chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
@@ -716,7 +715,7 @@ class Histogram(Figures):
 
 
 class CompareOutputs(Figures):
-    current_df = None
+    current_df = None # TODO: TOMORROW see what this class could be used for
 
     @classmethod
     def run(cls, config):
@@ -740,7 +739,6 @@ class CompareOutputs(Figures):
         dfm = dfs[0].merge(dfs[1], how='outer', on=['index', config.histogram_fig_y_facet, config.histogram_fig_x_facet])
 
         return dfm, labels
-
 
     @classmethod
     def Make_scatter(cls, df, labels, config):
@@ -795,7 +793,7 @@ def chdir_to_output_directory(current_step, config):  # TODO: Hook this up to fi
             os.chdir(json_directory)
         except FileNotFoundError:
             raise FileNotFoundError(
-                'Output folder location (fRAT output folder location) in config.toml is not a valid directory.')
+                'Output folder location (fRAT output folder location) in fRAT_config.toml is not a valid directory.')
 
         if config.verbose:
             print(f'Output folder selection: {config.report_output_folder}.')

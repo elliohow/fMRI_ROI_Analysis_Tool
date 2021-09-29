@@ -20,10 +20,12 @@ from pathlib import Path
 from PIL import ImageTk, Image
 
 from fRAT import fRAT
+from statmap import main as statmap_calc
 from printResults import printResults
 import dash_report
 from utils import *
-from utils.config_setup import *
+from utils.fRAT_config_setup import *
+from utils.statmap_config_setup import *
 
 w = None
 VERSION = "0.15.0"
@@ -51,7 +53,7 @@ def create_Config_GUI(rt):
 
 
 class Config_GUI:
-    def __init__(self, window=None, page='Settings', load_initial_values=True):
+    def __init__(self, window=None, page='Home', load_initial_values=True):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
         self.widgets = {}
@@ -61,7 +63,8 @@ class Config_GUI:
         self.background = '#d9d9d9'
 
         if load_initial_values:
-            self.load_initial_values()
+            for toml_file in ['fRAT_config.toml', 'statmap_config.toml']:
+                self.load_initial_values(toml_file)
 
             self.style = ttk.Style()
             self.style.theme_use('clam')
@@ -80,27 +83,91 @@ class Config_GUI:
             window.configure(highlightbackground=self.background)
             window.configure(highlightcolor="black")
 
-        try:
-            self.current_info = eval(self.page)
-        except NameError:
-            self.current_info = pages
+        if page == 'Statistical_maps':
+            self.current_info = Statistical_maps
 
-        self.Setting_frame_create(window)
+        else:
+            try:
+                self.current_info = eval(self.page)
+            except NameError:
+                self.current_info = pages
 
-        if self.page == 'Settings':
+        self.settings_frame_create(window)
+
+        if self.page == 'Home':
             self.banner_draw(window)
-            self.Options_frame_draw(self.Setting_frame)
-            self.Atlas_frame_draw(self.Setting_frame)
-            self.Run_frame_draw(self.Setting_frame)
+            self.Options_frame_draw(self.settings_frame)
+            self.Atlas_frame_draw(self.settings_frame)
+            self.Run_frame_draw(self.settings_frame)
+
+            self.statmap_frame_create(window)
+
+    def statmap_frame_create(self, window):
+        self.statmap_frame = tk.LabelFrame(window)
+        self.frames.append(self.statmap_frame)
+
+        self.statmap_frame.place(relx=0.02, rely=0.77, relheight=0.22, relwidth=0.973)
+        self.statmap_frame.configure(text='Statistical maps', font='Helvetica 18 bold')
+        self.format_frame(self.statmap_frame)
+
+        self.statmap_run_frame_create(self.statmap_frame)
+        self.statmap_settings_frame_create(self.statmap_frame)
+
+    def statmap_settings_frame_create(self, window):
+        self.statmap_settings_frame = tk.LabelFrame(window)
+        self.frames.append(self.statmap_settings_frame)
+        self.statmap_settings_frame.place(relx=0.02, rely=0, height=140, relwidth=0.467)
+        self.statmap_settings_frame.configure(text='Settings', font='Helvetica 18 bold')
+        self.format_frame(self.statmap_settings_frame)
+
+        self.statmap_save_button = ttk.Button(self.statmap_settings_frame)
+        self.statmap_save_button.place(relx=0.02, rely=0.08, height=42, width=105)
+        self.statmap_save_button.configure(command=lambda: Save_settings(['Statistical_maps'], 'statmap_config.toml'))
+        self.statmap_save_button.configure(text='''Save settings''')
+        Tooltip.CreateToolTip(self.statmap_save_button, 'Save all statistical map settings')
+
+        self.statmap_reset_button = ttk.Button(self.statmap_settings_frame)
+        self.statmap_reset_button.place(relx=0.5, rely=0.08, height=42, width=105)
+        self.statmap_reset_button.configure(command=lambda: Reset_settings(['Statistical_maps']))
+        self.statmap_reset_button.configure(text='''Reset settings''')
+        Tooltip.CreateToolTip(self.statmap_reset_button, 'Reset statistical map settings')
+
+        self.statmap_settings_button = ttk.Button(self.statmap_settings_frame)
+        self.statmap_settings_button.place(relx=0.17, rely=0.55, height=42, width=150)
+        self.statmap_settings_button.configure(command=lambda: self.change_frame('Statistical_maps'))
+        self.statmap_settings_button.configure(text='''Settings''')
+
+    def statmap_run_frame_create(self, window):
+        self.statmap_run_frame = tk.LabelFrame(window)
+        self.frames.append(self.statmap_run_frame)
+        self.statmap_run_frame.place(relx=0.5, rely=0, height=140, relwidth=0.467)
+        self.statmap_run_frame.configure(text='Run', font='Helvetica 18 bold')
+        self.format_frame(self.statmap_run_frame)
+
+        statmap_options = ('Image SNR', 'Temporal SNR')
+        state = tk.StringVar()
+        state.set(statmap_options[1])
+        self.statmap_option = tk.OptionMenu(self.statmap_run_frame, state, *statmap_options)
+        self.statmap_option.place(relx=0.08, rely=0.27, width=200, bordermode='ignore')
+        self.statmap_option.configure(bg=self.background)
+        self.statmap_option.val = state
+
+        self.statmap_run_button = ttk.Button(self.statmap_run_frame)
+        self.statmap_run_button.place(relx=0.17, rely=0.55, height=42, width=150)
+        self.statmap_run_button.configure(command=lambda: Button_handler('Make maps', self.statmap_option.val.get()))
+        self.statmap_run_button.configure(text='''Make maps''')  # TODO: Change these lines
+        Tooltip.CreateToolTip(self.statmap_run_button, 'Print ROIs from selected atlas. This can be used to find which '
+                                                 'numbers to input in the "Plotting" menu to plot specific regions.'
+                                                 '\nNOTE: This does not change the atlas to be used for analysis.')
 
     @staticmethod
-    def load_initial_values():
-        with open('config.toml', 'r') as f:
+    def load_initial_values(toml_file):
+        with open(toml_file, 'r') as f:
             for line in f.readlines():
                 if line[0] == '#':
                     curr_page = re.split('# |\n', line)[1]
 
-                elif curr_page == 'fRAT Info':
+                elif curr_page == 'Version Info':
                     continue
 
                 elif line is not '\n':
@@ -128,11 +195,11 @@ class Config_GUI:
             except AttributeError:
                 eval(self.page)[widget]['Current'] = self.widgets[widget].val.get()
 
-        self.Setting_frame.destroy()
-        self.Setting_frame_create(root)
+        self.settings_frame.destroy()
+        self.settings_frame_create(root)
 
         # request tkinter to call self.refresh after 1s (the delay is given in ms)
-        self.Setting_frame.after(10000, self.refresh_frame)
+        self.settings_frame.after(10000, self.refresh_frame)
 
     def banner_draw(self, window):
         img = Image.open(f'{os.getcwd()}/fRAT.gif')
@@ -158,26 +225,26 @@ class Config_GUI:
         self.Options_frame = tk.LabelFrame(window)
         self.Options_frame.place(relx=0.5, rely=0.01, height=150, relwidth=0.345)
         self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
-        self.frame_setup(self.Options_frame)
+        self.format_frame(self.Options_frame)
         self.frames.append(self.Options_frame)
 
         self.Save_button = ttk.Button(self.Options_frame)
         self.Save_button.place(relx=0.05, y=10, height=42, width=150)
-        self.Save_button.configure(command=Save_settings)
-        self.Save_button.configure(text='''Save preferences''')
-        Tooltip.CreateToolTip(self.Save_button, 'Save all preferences')
+        self.Save_button.configure(command=lambda: Save_settings(pages, 'fRAT_config.toml'))
+        self.Save_button.configure(text='''Save settings''')
+        Tooltip.CreateToolTip(self.Save_button, 'Save all fRAT settings')
 
         self.Reset_button = ttk.Button(self.Options_frame)
         self.Reset_button.place(relx=0.05, y=70, height=42, width=150)
-        self.Reset_button.configure(command=Reset_settings)
-        self.Reset_button.configure(text='''Reset preferences''')
-        Tooltip.CreateToolTip(self.Reset_button, 'Reset preferences to recommended values')
+        self.Reset_button.configure(command=lambda: Reset_settings(pages))
+        self.Reset_button.configure(text='''Reset settings''')
+        Tooltip.CreateToolTip(self.Reset_button, 'Reset fRAT settings to recommended values')
 
     def Atlas_frame_draw(self, window):
         self.Atlas_frame = tk.LabelFrame(window)
         self.Atlas_frame.place(relx=0.5, rely=0.348, height=128, relwidth=0.467)
         self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
-        self.frame_setup(self.Atlas_frame)
+        self.format_frame(self.Atlas_frame)
         self.frames.append(self.Atlas_frame)
 
         atlas_options = ('Cerebellum_MNIflirt',
@@ -213,7 +280,7 @@ class Config_GUI:
         self.Run_frame = tk.LabelFrame(window)
         self.Run_frame.place(relx=0.025, rely=0.65, height=145, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
-        self.frame_setup(self.Run_frame)
+        self.format_frame(self.Run_frame)
         self.frames.append(self.Run_frame)
 
         self.paramValues_button = ttk.Button(self.Run_frame)
@@ -240,26 +307,26 @@ class Config_GUI:
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings')
 
-    def Setting_frame_create(self, window):
-        self.Setting_frame = tk.LabelFrame(window)
-        self.frames.append(self.Setting_frame)
+    def settings_frame_create(self, window):
+        self.settings_frame = tk.LabelFrame(window)
+        self.frames.append(self.settings_frame)
 
-        if self.page == 'Settings':
-            self.Setting_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
-            self.Setting_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
-            self.frame_setup(self.Setting_frame)
+        if self.page == 'Home':
+            self.settings_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
+            self.settings_frame.configure(text='fRAT', font='Helvetica 18 bold')
+            self.format_frame(self.settings_frame)
 
-            self.General_settings_frame = tk.LabelFrame(self.Setting_frame)
+            self.General_settings_frame = tk.LabelFrame(self.settings_frame)
             self.frames.append(self.General_settings_frame)
             self.General_settings_frame.place(relx=0.025, rely=0.01, height=280, relwidth=0.41)
-            self.General_settings_frame.configure(text=f'''Preferences''', font='Helvetica 18 bold')
-            self.frame_setup(self.General_settings_frame)
+            self.General_settings_frame.configure(text=f'''Settings''', font='Helvetica 18 bold')
+            self.format_frame(self.General_settings_frame)
             current_frame = self.General_settings_frame
 
             y_loc = 10
             relx = 0.03
             for page in pages:
-                if page == 'Settings':
+                if page == 'Home':
                     continue
 
                 if page == 'Violin_plot':
@@ -270,13 +337,13 @@ class Config_GUI:
                 y_loc += 60
 
         elif self.page == 'Plotting':
-            y_loc = self.widget_create('Settings')
+            y_loc = self.widget_create('Home')
 
             self.Plot_settings_frame = tk.LabelFrame(window)
             self.frames.append(self.Plot_settings_frame)
             self.Plot_settings_frame.place(relx=0.31, y=y_loc + 58, height=270, relwidth=0.394)
             self.Plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
-            self.frame_setup(self.Plot_settings_frame)
+            self.format_frame(self.Plot_settings_frame)
 
             continue_loop = True
 
@@ -293,8 +360,8 @@ class Config_GUI:
 
                 y_loc += 60
 
-        elif self.page in ['General', 'Analysis', 'Parsing']:
-            self.widget_create('Settings')
+        elif self.page in ['General', 'Analysis', 'Parsing', 'Statistical_maps']:
+            self.widget_create('Home')
 
         else:
             self.widget_create('Plotting')
@@ -327,11 +394,11 @@ class Config_GUI:
 
             y_loc += 40
 
-        self.Setting_frame.place(relx=0.02, rely=0.014, height=y_loc + 40, relwidth=0.973)
-        self.Setting_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
-        self.frame_setup(self.Setting_frame)
+        self.settings_frame.place(relx=0.02, rely=0.014, height=y_loc + 40, relwidth=0.973)
+        self.settings_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
+        self.format_frame(self.settings_frame)
 
-        self.Index_button = tk.Button(self.Setting_frame, command=lambda: self.change_frame(previous_frame))
+        self.Index_button = tk.Button(self.settings_frame, command=lambda: self.change_frame(previous_frame))
         self.Index_button.place(relx=0.35, y=y_loc - 30, height=42, width=150)
         self.Index_button.configure(activebackground="#ececec")
         self.Index_button.configure(activeforeground="#000000")
@@ -343,7 +410,7 @@ class Config_GUI:
 
         return y_loc
 
-    def frame_setup(self, frame):
+    def format_frame(self, frame):
         frame.configure(borderwidth="2")
         frame.configure(relief='groove')
         frame.configure(foreground="black")
@@ -398,7 +465,7 @@ class Config_GUI:
         return y_loc, dynamic_widgets
 
     def label_create(self, name, y_loc, info=None, relx=0.08, font=None):
-        self.__setattr__(name, tk.Label(self.Setting_frame))
+        self.__setattr__(name, tk.Label(self.settings_frame))
         label_name = getattr(self, name)
 
         try:
@@ -415,7 +482,7 @@ class Config_GUI:
             Tooltip.CreateToolTip(label_name, info['Description'])
 
     def scale_create(self, name, info, y_loc):
-        self.__setattr__(name, tk.Scale(self.Setting_frame, from_=info['From'], to=info['To']))
+        self.__setattr__(name, tk.Scale(self.settings_frame, from_=info['From'], to=info['To']))
         widget = getattr(self, name)
 
         widget.place(x=300, y=y_loc - 15, relwidth=0.205, relheight=0.0, height=39, bordermode='ignore')
@@ -440,7 +507,7 @@ class Config_GUI:
     def checkbutton_create(self, name, info, y_loc):
         state = tk.BooleanVar()
 
-        self.__setattr__(name, tk.Checkbutton(self.Setting_frame, variable=state))
+        self.__setattr__(name, tk.Checkbutton(self.settings_frame, variable=state))
         widget = getattr(self, name)
 
         widget.place(x=295, y=y_loc, bordermode='ignore')
@@ -485,7 +552,7 @@ class Config_GUI:
         except KeyError:
             options = info['Options']
 
-        self.__setattr__(name, tk.OptionMenu(self.Setting_frame, state, *options))
+        self.__setattr__(name, tk.OptionMenu(self.settings_frame, state, *options))
         widget = getattr(self, name)
 
         widget.place(x=295, y=y_loc, width=183, bordermode='ignore')
@@ -495,7 +562,7 @@ class Config_GUI:
         return {name: widget}
 
     def entry_create(self, name, info, y_loc):
-        self.__setattr__(name, tk.Entry(self.Setting_frame))
+        self.__setattr__(name, tk.Entry(self.settings_frame))
         widget = getattr(self, name)
 
         widget.place(x=300, y=y_loc, height=25, bordermode='ignore')
@@ -603,10 +670,10 @@ class Tooltip(object):
         widget.bind('<Leave>', leave)
 
 
-def Button_handler(command):
+def Button_handler(command, *args):
     try:
         if command == 'Run_fRAT':
-            Save_settings()
+            Save_settings(pages, 'fRAT_config.toml')
 
             stale_pages = check_stale_state()
             if stale_pages:
@@ -622,12 +689,16 @@ def Button_handler(command):
             printResults()
 
         elif command == "Make paramValues.csv":
-            Save_settings()
+            Save_settings(pages, 'fRAT_config.toml')
             make_table()
             sys.exit()
 
         elif command == "Run_dash":
             dash_report.main()
+
+        elif command == "Make maps":
+            Save_settings(['Statistical_maps'], 'statmap_config.toml')
+            statmap_calc(args[0])
 
     except Exception as err:
         if err.args[0] == 'No folder selected.':
@@ -686,15 +757,14 @@ def Print_atlas_ROIs(selection):
     print("----------------------------\n")
 
 
-def Save_settings():
-    with open(f'{Path(os.path.abspath(__file__)).parents[0]}/config.toml', 'w') as f:
-
-        f.write(f"# fRAT Info\n")
+def Save_settings(page_list, file):
+    with open(f'{Path(os.path.abspath(__file__)).parents[0]}/{file}', 'w') as f:
+        f.write(f"# Version Info\n")
         f.write(f"version = '{VERSION}'\n")
         f.write("\n")
 
-        for page in pages:
-            if page == 'Settings':
+        for page in page_list:
+            if page == 'Home':
                 continue
 
             f.write(f"# {page}\n")
@@ -760,19 +830,19 @@ def Save_settings():
     print('----- Saved settings -----')
 
 
-def Reset_settings():
+def Reset_settings(pages):
     for page in pages:
-        if page == 'Settings':
+        if page == 'Home':
             continue
 
         for key in eval(page).keys():
             eval(page)[key]['Current'] = eval(page)[key]['Recommended']
 
-    print('----- Reset settings to recommended values, save them to retain these settings -----')
+    print('----- Reset fRAT settings to recommended values, save them to retain these settings -----')
 
 
 def make_table():
-    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'config.toml')  # Load config file
+    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'fRAT_config.toml')  # Load config file
 
     print('--- Creating paramValues.csv ---')
     print('Select the base directory.')
@@ -800,7 +870,7 @@ def make_table():
     print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv and change "
           f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
           f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
-          f"parameters, update the parsing options in the GUI or parameter_dict2 in config.toml.")
+          f"parameters, update the parsing options in the GUI or parameter_dict2 in fRAT_config.toml.")
 
 
 def find_participant_dirs(config):
