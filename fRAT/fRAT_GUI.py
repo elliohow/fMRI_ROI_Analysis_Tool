@@ -852,7 +852,7 @@ def make_table():
 
     data = []
     for participant in participant_dirs:
-        brain_file_list = Utils.find_files(f"{participant}/fmri", "hdr", "nii.gz", "nii")
+        brain_file_list = Utils.find_files(f"{participant}/func", "hdr", "nii.gz", "nii")
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
         brain_file_list.sort()
 

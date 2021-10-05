@@ -15,8 +15,7 @@ Statistical_maps = {
     'fMRI_file_location': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
                            'label': 'NIFTI/ANALYZE folder location',
                            'Description': 'Either the absolute location of brain files or blank, if blank then a '
-                                          'browser window will allow you to search for the files at runtime. If '
-                                          'passing in this information as a command line flag, this will be ignored.'},
+                                          'browser window will allow you to search for the files at runtime.'},
 
     'output_folder_name': {'type': 'Entry', 'Recommended': "DEFAULT", 'save_as': 'string',
                            'Description': 'Directory to save output. If set to DEFAULT, output directory name will be '
@@ -24,10 +23,13 @@ Statistical_maps = {
                                           'Recommended: DEFAULT'},
 
     'temporal_filter': {'type': 'CheckButton', 'Recommended': 'true',
-                        'Description': 'true or false. Use a high pass filter to remove low frequency drift. Recommended: true'},
+                        'Description': 'true or false. Use a high pass filter to remove low frequency drift. '
+                                       'Recommended: true'},
 
     'highpass_filter_cutoff': {'type': 'Entry', 'Recommended': 0.01,
-                               'label': 'Highpass filter cutoff frequency (Hz)', 'Description': 'Recommended: 0.01'},
+                               'label': 'Highpass filter cutoff frequency (Hz)',
+                               'Description': 'Highpass filter cutoff frequency converted into sigma in seconds using '
+                                              'the formula 1/(2*f*TR). Recommended: 0.01'},
 
     'motion_correction': {'type': 'CheckButton', 'Recommended': 'false',
                           'Description': 'true or false. Use MCFLIRT to motion correct volumes '
@@ -61,8 +63,9 @@ Statistical_maps = {
                               'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
 
     'manual_noise_value': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                           'label': 'Noise value (if not using noise volume)', 'Description': ''}
+                           'label': 'Noise value (if not using noise volume)',
+                           'Description': 'Noise value can be calculated as the standard deviation of voxel values '
+                                          'outside of the brain. If noise volume is set to true, standard deviation of '
+                                          'noise will be calculated using the noise volume, even if a noise value has '
+                                          'been provided.'}
 }
-
-# TODO: explain how converted to sigma in seconds
-# TODO: make sure labels and descriptions are correct

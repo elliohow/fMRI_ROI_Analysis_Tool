@@ -164,7 +164,7 @@ class Participant:
 
         # Initialise brain class for each file found
         for counter, brain in enumerate(self.brains):
-            self.brains[counter] = Brain(f"{self.participant_path}/fmri/{brain}",
+            self.brains[counter] = Brain(f"{self.participant_path}/func/{brain}",
                                          self.participant_path,
                                          self.participant_name,
                                          self.save_location,
@@ -242,7 +242,7 @@ class Participant:
 
     def find_fmri_files(self):
         # Find all nifti and analyze files
-        self.brains = Utils.find_files(f"{self.participant_path}/fmri", "hdr", "nii.gz", "nii")
+        self.brains = Utils.find_files(f"{self.participant_path}/func", "hdr", "nii.gz", "nii")
 
         if len(self.brains) == 0:
             raise NameError("No files found.")
