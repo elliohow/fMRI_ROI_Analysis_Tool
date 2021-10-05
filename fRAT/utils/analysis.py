@@ -202,7 +202,7 @@ class Participant:
     @classmethod
     def find_participant_dirs(cls):
         # Searches for folders that start with p
-        participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
+        participant_dirs = [direc for direc in glob("*") if re.search("^sub-[0-9]+", direc)]
 
         if len(participant_dirs) == 0:
             raise FileNotFoundError('Participant directories not found.')
@@ -455,12 +455,11 @@ class Brain:
         """Function which uses NiPype to transform the chosen atlas into native space."""
         pack_vars = [self, self.save_location, self.no_ext_brain]
 
-        if config.motion_correct:
-            # Motion correction
-            fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mc_")
+        # Motion correction
+        current_brain = fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mcf_")
 
         # Turn 4D scan into 3D
-        current_brain = fsl_functions(*pack_vars, 'MeanImage', self.brain, "mean_")
+        current_brain = fsl_functions(*pack_vars, 'MeanImage', current_brain, "mean_")
 
         # Brain extraction
         current_brain = fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
@@ -781,6 +780,8 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 
     if func == 'ConvertXFM':
         suffix = '.mat'
+    elif func == 'MCFLIRT':
+        suffix = ""
     else:
         suffix = '.nii.gz'
 
@@ -788,7 +789,7 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 
     # Arguments dependent on FSL function used
     if func == 'MCFLIRT':
-        obj.brain = current_brain  # TODO comment this and how it effects other parts of the program
+        fslfunc.inputs.save_rms = True
 
     elif func == 'BET':
         fslfunc.inputs.functional = True
@@ -819,17 +820,15 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 
     if func in ('FLIRT', 'ApplyXFM'):
         obj.file_list.extend([current_brain, current_mat])
-
     elif func == 'BET':
         obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
-
     else:
         obj.file_list.append(current_brain)
 
     if func == 'FLIRT':
         return current_mat
-
-    return current_brain
+    else:
+        return current_brain
 
 
 def calculate_confidence_interval(data, alpha, roi=None):

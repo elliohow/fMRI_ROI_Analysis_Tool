@@ -155,10 +155,9 @@ class Config_GUI:
         self.statmap_run_button = ttk.Button(self.statmap_run_frame)
         self.statmap_run_button.place(relx=0.17, rely=0.55, height=42, width=150)
         self.statmap_run_button.configure(command=lambda: Button_handler('Make maps', self.statmap_option.val.get()))
-        self.statmap_run_button.configure(text='''Make maps''')  # TODO: Change these lines
-        Tooltip.CreateToolTip(self.statmap_run_button, 'Print ROIs from selected atlas. This can be used to find which '
-                                                 'numbers to input in the "Plotting" menu to plot specific regions.'
-                                                 '\nNOTE: This does not change the atlas to be used for analysis.')
+        self.statmap_run_button.configure(text='''Make maps''')
+        Tooltip.CreateToolTip(self.statmap_run_button, 'Make statistical maps using method chosen in the drop down '
+                                                       'menu.')
 
     @staticmethod
     def load_initial_values(toml_file):
