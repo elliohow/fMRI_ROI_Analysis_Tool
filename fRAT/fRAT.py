@@ -17,7 +17,7 @@ def fRAT():
 
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
     # sys.exit()
-    
+
     if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics == 'all':
         print(f"\n--- Running all steps ---")
 
@@ -93,11 +93,13 @@ def analysis(config):
     brain_list = []
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
+        shutil.move(f"{participant.save_location}/motion_correction_files",
+                    f"{participant.save_location}Intermediate_files/motion_correction_files")  # TODO: If file cleanup option is different, delete mcf files
 
     if config.multicore_processing:
         pool = Utils.join_processing_pool(pool, restart=True)
 
-    calculate_flirt_cost(participant_list, brain_list, config, pool)
+    calculate_cost_function_and_displacement_values(participant_list, brain_list, config, pool)
     matched_brains = compile_results(brain_list, matched_brains, config, pool)
     atlas_scale(matched_brains, config, pool)
 
@@ -129,11 +131,11 @@ def compile_results(brain_list, matched_brains, config, pool):
     return matched_brains
 
 
-def calculate_flirt_cost(participant_list, brain_list, config, pool):
+def calculate_cost_function_and_displacement_values(participant_list, brain_list, config, pool):
     if config.verbose:
-        print('\n--- Calculating cost function value ---')
+        print('\n--- Calculating cost function and displacement values ---')
 
-    cost_func_vals = []
+    vals = []
 
     if config.anat_align:
         for counter, participant in enumerate(participant_list):
@@ -141,10 +143,11 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
                 print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
             anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
-            cost_func_vals.append([participant.participant_name, participant.anat_brain_no_ext, 0, anat_to_mni_cost])
+            vals.append([participant.participant_name, participant.anat_brain_no_ext, 0,
+                         anat_to_mni_cost, 0, 0])
 
-    # Set arguments to pass to run_analysis function
-    iterable = zip(brain_list, itertools.repeat("calculate_fmri_flirt_cost_function"),
+    # Set arguments to pass to calculate_fmri_flirt_cost function
+    iterable = zip(brain_list, itertools.repeat("fmri_flirt_cost_and_mean_displacement"),
                    range(len(brain_list)),
                    itertools.repeat(len(brain_list)),
                    itertools.repeat(config))
@@ -154,17 +157,20 @@ def calculate_flirt_cost(participant_list, brain_list, config, pool):
     else:
         results = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-    cost_func_vals.extend(results)
+    vals.extend(results)
 
     if config.verbose:
-        print(f'\nSaving cost function dataframe as cost_function.json')
+        print(f'\nSaving dataframe as cost_displacement_vals.json')
 
-    df = pd.DataFrame(cost_func_vals, columns=['Participant', 'File', 'anat_cost_value', 'mni_cost_value'])
+    df = pd.DataFrame(vals, columns=['Participant',
+                                     'File',
+                                     '(FLIRT to anatomical) Cost function value',
+                                     '(FLIRT to MNI) Cost function value',
+                                     '(MCFLIRT) Mean Absolute displacement',
+                                     '(MCFLIRT) Mean Relative displacement'])
 
-    with open(f"{Environment_Setup.save_location}cost_function.json", 'w') as file:
+    with open(f"{Environment_Setup.save_location}cost_displacement_vals.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
-
-    # TODO: Calculate movement using mcflirt
 
 
 def atlas_scale(matched_brains, config, pool):

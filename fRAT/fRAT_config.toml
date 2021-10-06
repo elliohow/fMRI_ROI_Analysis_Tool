@@ -3,7 +3,7 @@ version = '0.15.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_plotting = true                                                               # true or false.
+run_plotting = false                                                              # true or false.
 run_statistics = false                                                            # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
@@ -17,7 +17,6 @@ file_cleanup = 'move'                                                           
 atlas_number = 'HarvardOxford-sub'                                                #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
 output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
-motion_correct = true                                                             # true or false. Note: This will inflate values such as tSNR.
 anat_align = false                                                                # true or false. Recommended: true.
 grey_matter_segment = false                                                       # true or false. Recommended: true.  Note: Requires anatomical align be true to function.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1

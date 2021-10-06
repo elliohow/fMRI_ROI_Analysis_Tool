@@ -1,6 +1,7 @@
 import itertools
 import os
 import re
+import shutil
 import sys
 import warnings
 from copy import deepcopy
@@ -317,7 +318,7 @@ class Brain:
         self._labelArray = environment_globals['label_array']
         self.atlas_path = environment_globals['atlas_path']
 
-    def calculate_fmri_flirt_cost_function(self, brain_number_current, brain_number_total, config):
+    def fmri_flirt_cost_and_mean_displacement(self, brain_number_current, brain_number_total, config):
         if config.verbose:
             print(f'Calculating cost function value for fMRI volume {brain_number_current + 1}/{brain_number_total}: '
                   f'{self.no_ext_brain}')
@@ -345,7 +346,15 @@ class Brain:
                                                          f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
                                                     config)
 
-        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost
+        # Find absolute and relative mean displacement files
+        suffixes = ['_abs_mean.rms', '_rel_mean.rms']
+        displacement_vals = []
+        for counter, suffix in enumerate(suffixes):
+            with open(f"{self.save_location}Intermediate_files/motion_correction_files/mcf_"
+                      f"{self.no_ext_brain}{suffix}", 'r') as file:
+                displacement_vals[counter] = float(file.read().replace('\n', ''))
+
+        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1]
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -705,6 +714,7 @@ class MatchedBrain:
             Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
                             f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
 
+
 def compile_roi_stats(roiTempStore, roiResults, config):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
@@ -780,12 +790,14 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 
     if func == 'ConvertXFM':
         suffix = '.mat'
-    elif func == 'MCFLIRT':
-        suffix = ""
     else:
         suffix = '.nii.gz'
 
-    current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
+    if func == 'MCFLIRT':
+        Utils.check_and_make_dir(f"{save_location}motion_correction_files/")
+        current_brain = fslfunc.inputs.out_file = f"{save_location}motion_correction_files/{prefix}{no_ext_brain}{suffix}"
+    else:
+        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 
     # Arguments dependent on FSL function used
     if func == 'MCFLIRT':
@@ -822,6 +834,16 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         obj.file_list.extend([current_brain, current_mat])
     elif func == 'BET':
         obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
+    elif func == 'MCFLIRT':
+        # Find all the motion correction files that are not the actual brain volume
+        mc_files = [direc for direc in os.listdir(f"{save_location}motion_correction_files/")
+                    if re.search(no_ext_brain, direc) and not re.search(f"^{prefix}{no_ext_brain}{suffix}$", direc)]
+
+        # Remove .nii.gz from middle of string
+        for file in mc_files:
+            os.rename(f"{save_location}motion_correction_files/{file}",
+                      f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
+
     else:
         obj.file_list.append(current_brain)
 

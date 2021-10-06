@@ -67,9 +67,6 @@ Analysis = {
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
 
-    'motion_correct': {'type': 'CheckButton', 'Recommended': 'false',
-                       'Description': 'true or false. Note: This will inflate values such as tSNR.'},
-
     'anat_align': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Align to anatomical volume',
                    'Description': 'true or false. Recommended: true.'},
 
