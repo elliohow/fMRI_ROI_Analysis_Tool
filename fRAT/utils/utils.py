@@ -85,8 +85,8 @@ class Utils:
         return directory
 
     @staticmethod
-    def save_config(directory):
-        with open(directory + '/config_log.toml', 'w') as f, open(f'fRAT_config.toml', 'r') as r:
+    def save_config(newdir):
+        with open(f'{newdir}/config_log.toml', 'w') as f, open(f'fRAT_config.toml', 'r') as r:
             for line in r:
                 f.write(line)
 

@@ -147,7 +147,7 @@ Plotting = {
                                          'save_as': 'list',
                                          'Description': 'Hex values of colourblind friendly colour scale.'},
 
-    'regional_fig_rois': {'type': 'Entry', 'Recommended': 'Runtime', 'save_as': 'list', 'label': 'ROIs to plot',
+    'regional_fig_rois': {'type': 'Entry', 'Recommended': 'all', 'save_as': 'list', 'label': 'ROIs to plot',
                           'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 }
 

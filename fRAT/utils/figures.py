@@ -204,9 +204,9 @@ class BrainGrid(Figures):
         Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids")
 
         for statistic in cls.config.statistic_options:
-            # If NIFTI files have not been created for statistic, skip creating the figure
-            if not glob(f"Overall/NIFTI_ROI/*{statistic}*"):
-                continue
+            # # If NIFTI files have not been created for statistic, skip creating the figure
+            # if not glob(f"Overall/NIFTI_ROI/*{statistic}*"):
+            #     continue TODO
 
             Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
 
@@ -230,8 +230,8 @@ class BrainGrid(Figures):
 
         json_array = df['File_name'].unique()
 
-        # Create new list of files which exist in NIFTI_ROI folder
-        json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
+        # # Create new list of files which exist in NIFTI_ROI folder TODO
+        # json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
 
         plot_values, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 

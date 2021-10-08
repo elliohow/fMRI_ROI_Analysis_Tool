@@ -175,7 +175,7 @@ def process_files(file, file_location, output_folder, func, cfg):
 
 def main(func):
     global config
-
+    Utils.save_config(os.getcwd()) # TODO: follow this
     config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'statmap_config.toml')  # Reload config file incase GUI has changed it
     logging.getLogger('nipype.workflow').setLevel(0)  # Suppress workflow terminal output
 
@@ -183,8 +183,7 @@ def main(func):
         raise Exception('Image SNR calculation selected but "Noise volume" is not true. \n '
                         'Make sure this option is set to true and the position of the noise '
                         'volume in the fMRI data is correctly set.')
-
-    if func == 'Image SNR' and config.noise_volume and config.manual_noise_value != '':
+    elif func == 'Image SNR' and config.noise_volume and config.manual_noise_value != '':
         warnings.warn('"Noise volume" is true and a manual noise value has also been given. Using noise volume for '
                       'image SNR calculation. If this is not correct, set "Noise volume" to false.')
 

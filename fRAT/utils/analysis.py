@@ -670,21 +670,20 @@ class MatchedBrain:
 
             return
 
-        atlas = nib.load(atlas_path)
-        header = atlas.header
-
-        atlas = atlas.get_fdata()
-
         roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[statistic_num, :])]
         # Find maximum statistic value (excluding No ROI and overall category)
         global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[statistic_num, :]]
+
+        atlas = nib.load(atlas_path)
+        header = atlas.header
+        atlas = atlas.get_fdata()
 
         unscaled_stat, within_roi_stat, mixed_roi_stat = self.group_roi_stats(atlas, global_scaled_stat,
                                                                               roi_scaled_stat, statistic_num)
 
         # Convert atlas to NIFTI and save it
         scale_stats = [
-            (atlas,
+            (unscaled_stat,
              f"{self.parameters}_{config.statistic_options[statistic_num]}.nii.gz"),
             (within_roi_stat,
              f"{self.parameters}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
@@ -700,10 +699,12 @@ class MatchedBrain:
         # Iterate through each voxel in the atlas
         atlas = atlas.astype(int)
 
+        # Assign stat values for each ROI all at once
         unscaled_stat = self.overall_results[statistic_num, atlas]
         within_roi_stat = np.array(roi_scaled_stat)[atlas]
         mixed_roi_stat = np.array(global_scaled_stat)[atlas]
 
+        # Make ROI group 0 (No ROI) nan so it does not effect colourmap when viewing in fsleyes
         unscaled_stat[atlas == 0] = np.nan
         within_roi_stat[atlas == 0] = np.nan
         mixed_roi_stat[atlas == 0] = np.nan

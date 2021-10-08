@@ -93,8 +93,12 @@ def analysis(config):
     brain_list = []
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
-        shutil.move(f"{participant.save_location}/motion_correction_files",
-                    f"{participant.save_location}Intermediate_files/motion_correction_files")  # TODO: If file cleanup option is different, delete mcf files
+
+        if config.file_cleanup == 'move':
+            shutil.move(f"{participant.save_location}/motion_correction_files",
+                        f"{participant.save_location}Intermediate_files/motion_correction_files")
+        elif config.file_cleanup == 'delete':
+            shutil.rmtree(f"{participant.save_location}/motion_correction_files")
 
     if config.multicore_processing:
         pool = Utils.join_processing_pool(pool, restart=True)
