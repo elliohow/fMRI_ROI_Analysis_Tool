@@ -675,7 +675,6 @@ class MatchedBrain:
         global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[statistic_num, :]]
 
         atlas = nib.load(atlas_path)
-        header = atlas.header
         atlas = atlas.get_fdata()
 
         unscaled_stat, within_roi_stat, mixed_roi_stat = self.group_roi_stats(atlas, global_scaled_stat,
@@ -692,7 +691,7 @@ class MatchedBrain:
         ]
 
         for scale_stat in scale_stats:
-            scaled_brain = nib.Nifti1Image(scale_stat[0], None, header)
+            scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))
             scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{scale_stat[1]}")
 
     def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num):
