@@ -212,3 +212,5 @@ def calculate_statistical_maps(files, file_location, output_folder, func):
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)
+
+# TODO: save config log

@@ -65,7 +65,7 @@ class Environment_Setup:
         cls.setup_environment(config)
 
         if config.run_plotting:
-            verify_param_values()  # TODO: check this works with participant folders
+            verify_param_values()
 
         cls.setup_save_location(config)
 
@@ -91,7 +91,7 @@ class Environment_Setup:
                   f'\n    Saving output in directory: {cls.save_location}\n')
 
         # Make folder to save ROI_report if not already created
-        Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}")
+        Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}", delete_old=True)
 
         # Move config file to analysis folder
         Utils.move_file('config_log.toml', cls.base_directory, cls.save_location)
@@ -148,7 +148,7 @@ class Participant:
         self.brains = None
         self.file_list = []
         self.anat_brain = None
-        self.anat_brain_to_mni = None
+        self.anat_to_mni_mat = None
         self.anat_brain_no_ext = None
 
     def setup_participant(self, environment_globals, cfg):
@@ -170,7 +170,7 @@ class Participant:
                                          self.participant_name,
                                          self.save_location,
                                          self.anat_brain,
-                                         self.anat_brain_to_mni,
+                                         self.anat_to_mni_mat,
                                          environment_globals)
 
         return self
@@ -261,7 +261,7 @@ class Participant:
 
         self.anat_brain = f'{self.participant_path}/anat/{anat}'
         self.anat_brain_no_ext = anat.rsplit(".")[0]
-        self.anat_brain_to_mni = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
+        self.anat_to_mni_mat = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
                                                 'FLIRT', self.anat_brain, 'to_mni_from_',
                                                 f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
@@ -295,11 +295,11 @@ class Participant:
 
 class Brain:
     def __init__(self, brain, participant_folder, participant_name, save_location,
-                 anat_brain, anat_brain_to_mni, environment_globals):
+                 anat_brain, anat_to_mni_mat, environment_globals):
         self.brain = brain
         self.save_location = save_location
         self.anat_brain = anat_brain
-        self.anat_brain_to_mni = anat_brain_to_mni
+        self.anat_to_mni_mat = anat_to_mni_mat
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
         self.roiResults = None
@@ -320,8 +320,8 @@ class Brain:
 
     def fmri_flirt_cost_and_mean_displacement(self, brain_number_current, brain_number_total, config):
         if config.verbose:
-            print(f'Calculating cost function value for fMRI volume {brain_number_current + 1}/{brain_number_total}: '
-                  f'{self.no_ext_brain}')
+            print(f'Calculating cost function and mean displacement values for fMRI volume '
+                  f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
         fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/bet_{self.no_ext_brain}.nii.gz',
                             schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
@@ -349,10 +349,10 @@ class Brain:
         # Find absolute and relative mean displacement files
         suffixes = ['_abs_mean.rms', '_rel_mean.rms']
         displacement_vals = []
-        for counter, suffix in enumerate(suffixes):
+        for suffix in suffixes:
             with open(f"{self.save_location}Intermediate_files/motion_correction_files/mcf_"
                       f"{self.no_ext_brain}{suffix}", 'r') as file:
-                displacement_vals[counter] = float(file.read().replace('\n', ''))
+                displacement_vals.append(float(file.read().replace('\n', '')))
 
         return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1]
 
@@ -478,10 +478,10 @@ class Brain:
                 print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
 
             # Align to anatomical
-            anat_aligned_mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self.anat_brain)
+            fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self.anat_brain)
 
             # Combine fMRI-anat and anat-mni matrices
-            mat = fsl_functions(*pack_vars, 'ConvertXFM', anat_aligned_mat, 'combined_mat_', 'concat_xfm')
+            mat = fsl_functions(*pack_vars, 'ConvertXFM', fmri_to_anat_mat, 'combined_mat_', 'concat_xfm')
 
         else:
             # Align to MNI
@@ -498,7 +498,7 @@ class Brain:
 
         if config.grey_matter_segment:
             # Convert segmentation to fMRI native space
-            segmentation_to_fmri = self.segmentation_to_fmri(anat_aligned_mat, current_brain,
+            segmentation_to_fmri = self.segmentation_to_fmri(fmri_to_anat_mat, current_brain,
                                                              brain_number_current, brain_number_total)
 
             grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
@@ -523,7 +523,7 @@ class Brain:
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
-        if config.bootstrap:  # TODO: make this a GUI option
+        if config.bootstrap:
             roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
                                                   brain_number_total)  # Bootstrapping
 
@@ -552,7 +552,7 @@ class MatchedBrain:
 
     @classmethod
     def setup_class(cls, participant_list):
-        matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations TODO: Raise error if paramvalues is different
+        matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations
 
         cls.critical_parameters = config.parameter_dict1
         cls.label_array = Environment_Setup.label_array
@@ -589,7 +589,6 @@ class MatchedBrain:
 
             participant, brain = cls.find_brain_object(row, participant_list)
             matched_brains[tuple(row[critical_column_locs])][participant] = brain
-
 
         return matched_brains
 
@@ -660,41 +659,32 @@ class MatchedBrain:
     def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
-        if config.verbose:
-            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI files for parameter combination '
+        if config.verbose and max(max_roi_stat) != 0.0:
+            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI file for parameter combination '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.parameters}.')
 
-        brain_stat = nib.load(atlas_path)
-        brain_stat = brain_stat.get_fdata()
+        elif config.verbose and \
+                config.statistic_options[statistic_num] == 'Excluded_voxels_amount' and max(max_roi_stat) == 0.0:
+            print(f'Not creating {config.statistic_options[statistic_num]} NIFTI_ROI file for parameter combination '
+                  f'{brain_number_current + 1}/{brain_number_total}: {self.parameters} as no voxels have been excluded.')
 
-        within_roi_stat = deepcopy(brain_stat)
-        mixed_roi_stat = deepcopy(brain_stat)
+            return
 
-        np.seterr('ignore')  # Ignore runtime warning when dividing by 0 (where ROIs have been excluded)
+        atlas = nib.load(atlas_path)
+        header = atlas.header
+
+        atlas = atlas.get_fdata()
+
         roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[statistic_num, :])]
         # Find maximum statistic value (excluding No ROI and overall category)
         global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[statistic_num, :]]
 
-        roi_stat_brain_size = brain_stat.shape
-
-        # Iterate through each voxel in the atlas
-        for x in range(0, roi_stat_brain_size[0]):
-            for y in range(0, roi_stat_brain_size[1]):
-                for z in range(0, roi_stat_brain_size[2]):
-                    # Set new value of voxel to the required statistic
-                    roi_row = int(brain_stat[x][y][z])
-                    if roi_row == 0:
-                        brain_stat[x][y][z] = np.nan
-                        within_roi_stat[x][y][z] = np.nan
-                        mixed_roi_stat[x][y][z] = np.nan
-                    else:
-                        brain_stat[x][y][z] = self.overall_results[statistic_num, roi_row]
-                        within_roi_stat[x][y][z] = roi_scaled_stat[roi_row]
-                        mixed_roi_stat[x][y][z] = global_scaled_stat[roi_row]
+        unscaled_stat, within_roi_stat, mixed_roi_stat = self.group_roi_stats(atlas, global_scaled_stat,
+                                                                              roi_scaled_stat, statistic_num)
 
         # Convert atlas to NIFTI and save it
         scale_stats = [
-            (brain_stat,
+            (atlas,
              f"{self.parameters}_{config.statistic_options[statistic_num]}.nii.gz"),
             (within_roi_stat,
              f"{self.parameters}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
@@ -702,17 +692,23 @@ class MatchedBrain:
              f"{self.parameters}_{config.statistic_options[statistic_num]}_mixed_roi_scaled.nii.gz")
         ]
 
-        scaled_brains = []
-
         for scale_stat in scale_stats:
-            scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))  # TODO: Change np.eye(4) to None and pass in header
-            scaled_brain.to_filename(f"{self.save_location}{scale_stat[1]}")
+            scaled_brain = nib.Nifti1Image(scale_stat[0], None, header)
+            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{scale_stat[1]}")
 
-            scaled_brains.append(scale_stat[1])
+    def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num):
+        # Iterate through each voxel in the atlas
+        atlas = atlas.astype(int)
 
-        for brain in scaled_brains:  # TODO: Can I just save in NIFTI_ROI sooner?
-            Utils.move_file(brain, f"{os.getcwd()}/{self.save_location}",
-                            f"{os.getcwd()}/{self.save_location}NIFTI_ROI")
+        unscaled_stat = self.overall_results[statistic_num, atlas]
+        within_roi_stat = np.array(roi_scaled_stat)[atlas]
+        mixed_roi_stat = np.array(global_scaled_stat)[atlas]
+
+        unscaled_stat[atlas == 0] = np.nan
+        within_roi_stat[atlas == 0] = np.nan
+        mixed_roi_stat[atlas == 0] = np.nan
+
+        return unscaled_stat, within_roi_stat, mixed_roi_stat
 
 
 def compile_roi_stats(roiTempStore, roiResults, config):
@@ -784,20 +780,8 @@ def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):
 
 def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
     """Run an FSL function using NiPype."""
-    fslfunc = getattr(fsl, func)()
-    fslfunc.inputs.in_file = input
-    fslfunc.inputs.output_type = 'NIFTI_GZ'
-
-    if func == 'ConvertXFM':
-        suffix = '.mat'
-    else:
-        suffix = '.nii.gz'
-
-    if func == 'MCFLIRT':
-        Utils.check_and_make_dir(f"{save_location}motion_correction_files/")
-        current_brain = fslfunc.inputs.out_file = f"{save_location}motion_correction_files/{prefix}{no_ext_brain}{suffix}"
-    else:
-        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
+    current_mat = None
+    current_brain, fslfunc, suffix = fsl_functions_setup(func, input, no_ext_brain, prefix, save_location)
 
     # Arguments dependent on FSL function used
     if func == 'MCFLIRT':
@@ -812,8 +796,8 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
 
     elif func == 'ConvertXFM':
-        if len(argv) > 0 and argv[0] == 'concat_xfm': # TODO: Double check if concatenated in correct direction
-            fslfunc.inputs.in_file2 = obj.anat_brain_to_mni
+        if len(argv) > 0 and argv[0] == 'concat_xfm':
+            fslfunc.inputs.in_file2 = obj.anat_to_mni_mat
             fslfunc.inputs.concat_xfm = True
         else:
             fslfunc.inputs.invert_xfm = True
@@ -830,6 +814,15 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 
     fslfunc.run()
 
+    fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix)
+
+    if func == 'FLIRT':
+        return current_mat
+
+    return current_brain
+
+
+def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix):
     if func in ('FLIRT', 'ApplyXFM'):
         obj.file_list.extend([current_brain, current_mat])
     elif func == 'BET':
@@ -847,10 +840,23 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
     else:
         obj.file_list.append(current_brain)
 
-    if func == 'FLIRT':
-        return current_mat
-    else:
-        return current_brain
+
+def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):
+    fslfunc = getattr(fsl, func)()
+    fslfunc.inputs.in_file = input
+    fslfunc.inputs.output_type = 'NIFTI_GZ'
+
+    # Standard variables that may be changed for specific FSL functions
+    suffix = '.nii.gz'
+    current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
+
+    if func == 'ConvertXFM':
+        suffix = '.mat'
+    elif func == 'MCFLIRT':
+        Utils.check_and_make_dir(f"{save_location}motion_correction_files/")
+        current_brain = fslfunc.inputs.out_file = f"{save_location}motion_correction_files/{prefix}{no_ext_brain}{suffix}"
+
+    return current_brain, fslfunc, suffix
 
 
 def calculate_confidence_interval(data, alpha, roi=None):

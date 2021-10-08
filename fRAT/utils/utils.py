@@ -107,9 +107,20 @@ class Utils:
             os.rename(f"{original_dir}{name}", f"{new_dir}{name}")
 
     @staticmethod
-    def check_and_make_dir(path):
-        if not os.path.exists(path):
+    def check_and_make_dir(path, delete_old=False):
+        if delete_old and os.path.exists(path):
+            shutil.rmtree(path)
+            Utils.mk_dir(path)
+
+        elif not os.path.exists(path):
+            Utils.mk_dir(path)
+
+    @staticmethod
+    def mk_dir(path):
+        try:
             os.mkdir(path)
+        except FileExistsError:
+            pass
 
     @staticmethod
     def instance_method_handler(*argv):
@@ -171,7 +182,7 @@ class Utils:
                                                 'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
 
                     conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
-                    config.bootstrap_alpha = 1-float(f"0.{re.split('%', config.conf_level_number)[0]}")
+                    config.bootstrap_alpha = 1 - float(f"0.{re.split('%', config.conf_level_number)[0]}")
                     config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
                     config.parameter_dict = {config.parameter_dict1[i]:

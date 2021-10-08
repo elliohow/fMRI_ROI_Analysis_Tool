@@ -35,8 +35,8 @@ class Figures:
             else:
                 figure_directory = cls.config.report_output_folder
 
-            if cls.config.verbose:
-                print(f'Finding files in {cls.config.report_output_folder}.')
+                if cls.config.verbose:
+                    print(f'Finding files in {cls.config.report_output_folder}.')
 
             try:
                 os.chdir(figure_directory)
@@ -204,6 +204,10 @@ class BrainGrid(Figures):
         Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids")
 
         for statistic in cls.config.statistic_options:
+            # If NIFTI files have not been created for statistic, skip creating the figure
+            if not glob(f"Overall/NIFTI_ROI/*{statistic}*"):
+                continue
+
             Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
 
             brain_plot_exts = [f"_{statistic}.nii.gz",
@@ -225,6 +229,9 @@ class BrainGrid(Figures):
         indiv_brain_imgs = []
 
         json_array = df['File_name'].unique()
+
+        # Create new list of files which exist in NIFTI_ROI folder
+        json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
 
         plot_values, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
@@ -257,9 +264,9 @@ class BrainGrid(Figures):
                                               col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
                                               statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
 
-            if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean or cls.config.brain_fig_value_max is not None:
+            if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean \
+                    or cls.config.brain_fig_value_max is not None:
                 break
-
             else:
                 # Find highest ROI value seen to create figures with the same scale
                 vmax_storage = sorted(vmax_storage)[-1]
