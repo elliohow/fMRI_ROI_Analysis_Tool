@@ -535,18 +535,17 @@ class Brain:
 
 
 class MatchedBrain:
-    critical_parameters = []
     label_array = []
     save_location = None
 
     def __init__(self, brains, parameters):
         self.brains = brains
-        self.parameters = parameters
+        self.parameters = "_".join([f"{param_name}{param_val}" for param_name, param_val
+                                    in zip(config.parameter_dict2, parameters)])
         self.overall_results = []
         self.raw_results = []
 
         # Copying class attributes here is a workaround for dill, which can't access class attributes.
-        self.critical_parameters = self.critical_parameters
         self.label_array = self.label_array
         self.save_location = self.save_location
 
@@ -554,7 +553,6 @@ class MatchedBrain:
     def setup_class(cls, participant_list):
         matched_brains = cls.find_shared_params(participant_list)  # Find brains which share parameter combinations
 
-        cls.critical_parameters = config.parameter_dict1
         cls.label_array = Environment_Setup.label_array
         cls.save_location = f"{Environment_Setup.save_location}Overall/"
         Utils.check_and_make_dir(cls.save_location)
@@ -616,6 +614,7 @@ class MatchedBrain:
     def find_brain_object(row, participant_list):
         participant = next(participant for participant in participant_list
                            if participant.participant_name == row['participant'])
+
         brain = next(brain for brain in participant.brains
                      if brain.no_ext_brain == row['file name'])
 
@@ -967,8 +966,8 @@ def construct_combined_results(directory):
         if jsn == 'combined_results.json':
             continue
 
-        # Splits a file name. For example from '(1, 2)'.json into [1, 2]
-        parameters = re.split('\(|\)|, ', jsn.split('.')[0])[1:-1]
+        # Splits a file name. For example from hb1_ip2.json into [1, 2]
+        parameters = list(filter(None, re.split(f'_|.json|{config.parameter_dict2}', jsn)))
 
         current_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
         current_dataframe = current_dataframe.transpose()
