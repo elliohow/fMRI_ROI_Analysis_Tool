@@ -114,7 +114,7 @@ class Environment_Setup:
                 print(f'Gathering brain files from {config.brain_file_loc}.')
 
         # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
-        Utils.save_config(cls.base_directory)
+        Utils.save_config(cls.base_directory, 'fRAT_config')
 
         try:
             os.chdir(cls.base_directory)

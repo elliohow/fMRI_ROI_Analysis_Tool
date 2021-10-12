@@ -175,7 +175,7 @@ def process_files(file, file_location, output_folder, func, cfg):
 
 def main(func):
     global config
-    Utils.save_config(os.getcwd()) # TODO: follow this
+
     config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'statmap_config.toml')  # Reload config file incase GUI has changed it
     logging.getLogger('nipype.workflow').setLevel(0)  # Suppress workflow terminal output
 
@@ -188,6 +188,8 @@ def main(func):
                       'image SNR calculation. If this is not correct, set "Noise volume" to false.')
 
     file_location, files, output_folder = file_setup(func)
+
+    Utils.save_config(output_folder, 'statmap_config')
 
     calculate_statistical_maps(files, file_location, output_folder, func)
 
@@ -211,5 +213,3 @@ def calculate_statistical_maps(files, file_location, output_folder, func):
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)
-
-# TODO: save config log
