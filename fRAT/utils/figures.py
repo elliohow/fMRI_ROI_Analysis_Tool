@@ -159,6 +159,10 @@ class Figures:
                     height=config.plot_scale, width=config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
+        figure.save(f"Figures/{chart_type.title()}s/{folder}/{thisroi}_{chart_type}.svg",
+                    height=config.plot_scale, width=config.plot_scale * 3,
+                    verbose=False, limitsize=False)
+
         if config.verbose:
             print(f"Saved {thisroi}_{chart_type}.png")
 
@@ -313,6 +317,7 @@ class BrainGrid(Figures):
             plt.tight_layout()
 
         plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.png", dpi=cls.config.plot_dpi, bbox_inches='tight')
+        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.svg", dpi=cls.config.plot_dpi, bbox_inches='tight')
         plt.close()
 
         return indiv_brain_imgs
@@ -467,6 +472,10 @@ class ViolinPlot(Figures):
                 figure += pltn.geom_point()
 
         figure.save(f"Figures/Violin_plots/violinplot.png", height=cls.config.plot_scale,
+                    width=cls.config.plot_scale * 3,
+                    verbose=False, limitsize=False)
+
+        figure.save(f"Figures/Violin_plots/violinplot.svg", height=cls.config.plot_scale,
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
