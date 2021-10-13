@@ -523,9 +523,9 @@ class Brain:
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
-        if config.bootstrap:
-            roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
-                                                  brain_number_total)  # Bootstrapping
+        # if config.bootstrap: # TODO: uncomment this when bootstrapping reimplemented
+        #     roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
+        #                                           brain_number_total)  # Bootstrapping
 
         roi_stats_save(roiTempStore, roiResults, self._labelArray,
                        self.save_location, self.parameters, config)  # Save results
@@ -637,7 +637,6 @@ class MatchedBrain:
                        self.save_location, self.parameters, config)  # Save results
 
         return self
-        # TODO implement bootstrapping
 
     @classmethod
     def assign_parameters_to_brains(cls, matched_brains, participant_list):
@@ -869,7 +868,8 @@ def calculate_confidence_interval(data, alpha, roi=None):
         values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
     results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
-    conf_int = (results.upper_bound - results.lower_bound) / 2  # TODO: URGENT CHANGE THIS
+    conf_int = (results.upper_bound - results.lower_bound) / 2
+    # TODO: Change this so it returns asymmetric bootstrap and implement bootstrapping for pooled analysis
 
     warnings.simplefilter(action='default', category=PendingDeprecationWarning)
 

@@ -10,7 +10,7 @@ verbose_cmd_line_args = false                                                   
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-report_output_folder = ''                                                         # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+report_output_folder = '/Users/lpxeh10/Desktop/Multifolder_test/HarvardOxford-Cortical_ROI_report'  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 # Analysis
@@ -23,7 +23,6 @@ fslfast_min_prob = 0.1                                                          
 noise_cutoff = false                                                              # true or false. Recommended: true.
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
-bootstrap = false                                                                 # True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
@@ -37,10 +36,10 @@ plot_font_size = 40                                                             
 plot_scale = 10                                                                   # Recommended value 10
 make_violin_plot = false                                                          # True or False.
 make_brain_table = false                                                          # True or False.
-make_one_region_fig = false                                                       # True or False.
+make_one_region_fig = true                                                        # True or False.
 make_histogram = false                                                            # True or False.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
-regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_fig_rois = [1, 2, 3, 4]                                                  # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 # Violin_plot
 table_x_label = 'tSNR mean'                                                       # 

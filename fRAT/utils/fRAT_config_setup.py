@@ -88,8 +88,8 @@ Analysis = {
                         'label': 'Statistical map suffix',
                         'Description': 'File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img'},
 
-    'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
-                  'Description': 'True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
+    # 'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
+    #               'Description': 'True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                           'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],

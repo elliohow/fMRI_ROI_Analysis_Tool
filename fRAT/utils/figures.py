@@ -542,11 +542,14 @@ class Barchart(Figures):
                             fill=config.single_roi_fig_label_fill)
                 + pltn.scale_x_discrete(labels=[])
                 + pltn.theme(panel_grid_major_x=pltn.element_line(alpha=0),
+                             panel_background=pltn.element_rect(fill='white', alpha=.2),
                              axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
                              axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
                              axis_text_y=pltn.element_text(size=20, color='black'),
-                             legend_title=pltn.element_text(size=20, color='black'),
-                             legend_text=pltn.element_text(size=18, color='black'),
+                             legend_title=pltn.element_text(size=20, weight='bold', color='black', margin={'b': 20}),
+                             legend_text=pltn.element_text(size=20, color='black', margin={'l': 5}),
+                             legend_entry_spacing=10,
+                             legend_key_size=30,
                              subplots_adjust={'right': 0.85},
                              legend_position=(0.9, 0.8),
                              dpi=config.plot_dpi
