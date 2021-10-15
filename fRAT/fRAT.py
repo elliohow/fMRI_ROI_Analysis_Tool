@@ -218,8 +218,8 @@ def config_check(config):
 def checkversion():
     # Check Python version:
     expect_major = 3
-    expect_minor = 7
-    expect_rev = 5
+    expect_minor = 8
+    expect_rev = 0
 
     print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
     if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):

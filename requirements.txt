@@ -33,7 +33,6 @@ itsdangerous==1.1.0
 Jinja2==2.11.3
 joblib==0.14.1
 kiwisolver==1.1.0
-llvmlite==0.37.0
 lxml==4.6.3
 MarkupSafe==1.1.1
 matplotlib==3.1.2

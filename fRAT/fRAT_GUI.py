@@ -169,7 +169,7 @@ class Config_GUI:
                 elif curr_page == 'Version Info':
                     continue
 
-                elif line is not '\n':
+                elif line != '\n':
                     setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
 
                     try:
