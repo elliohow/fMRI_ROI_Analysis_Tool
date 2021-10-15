@@ -156,12 +156,16 @@ Brain_table = {
     'brain_tight_layout': {'type': 'CheckButton', 'Recommended': 'false',
                            'Description': 'True or False. Use a tight layout when laying out the figure. Recommended: false'},
 
-    'brain_fig_value_min': {'type': 'Entry', 'Recommended': 0,
-                            'Description': 'Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black.\n'
+    'brain_fig_value_min': {'type': 'Entry', 'Recommended': 0, 'label': 'Minimum median and mean value',
+                            'Description': 'Provides the minimum value of the colourbar when creating mean and median '
+                                           'images. For example, set minimum to 50 to make areas with values below 50 '
+                                           'appear black.\n'
                                            'Recommended value: 0'},
 
-    'brain_fig_value_max': {'type': 'Entry', 'Recommended': None,
-                            'Description': 'Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar.\n'
+    'brain_fig_value_max': {'type': 'Entry', 'Recommended': None, 'label': 'Maximum median and mean value',
+                            'Description': 'Provides the maximum value of the colourbar when creating mean and median '
+                                           'images. For example, set maximum to 50 to make areas with values above 50 '
+                                           'appear as the brighest colour on the colourbar.\n'
                                            'Recommended value: None. Note: will default to 100 for scaled maps.'},
 
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,

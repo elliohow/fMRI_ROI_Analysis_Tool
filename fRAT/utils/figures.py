@@ -250,14 +250,21 @@ class BrainGrid(Figures):
         plt.rcParams['figure.subplot.wspace'] = 0.01
         plt.rcParams['figure.subplot.hspace'] = 0.1
 
-        vmax = vmax_storage = cls.config.brain_fig_value_max
+        if statistic in ['Mean', 'Median']:
+            vmax = vmax_storage = cls.config.brain_fig_value_max
+            vmin = cls.config.brain_fig_value_min
+        else:
+            vmax = vmax_storage = None
+            vmin = 0
+
         if vmax_storage is None:
             vmax_storage = []
 
         while True:
             if base_extension != f"_{statistic}.nii.gz":
+                # For within and mixed scaled tables
                 vmax = 100
-
+                vmin = 0
             elif base_extension == f"_{statistic}.nii.gz" and vmax is not None:
                 base_ext_clean += "_same_scale"
 
@@ -266,11 +273,11 @@ class BrainGrid(Figures):
 
             indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums,
                                               col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
-                                              statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
+                                              statistic, vmax, vmax_storage, vmin, x_axis_size, y_axis_size)
 
-            if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean \
-                    or cls.config.brain_fig_value_max is not None:
+            if vmax is not None:
                 break
+
             else:
                 # Find highest ROI value seen to create figures with the same scale
                 vmax_storage = sorted(vmax_storage)[-1]
@@ -284,11 +291,11 @@ class BrainGrid(Figures):
 
     @classmethod
     def make_table(cls, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
-                   json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
+                   json_array, plot_values, row_nums, statistic, vmax, vmax_storage, vmin, x_axis_size,
                    y_axis_size):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
-                                                                    vmax, vmax_storage, indiv_brain_imgs,
+                                                                    vmax, vmax_storage, vmin, indiv_brain_imgs,
                                                                     statistic)
 
             # Import saved image into subplot
@@ -323,7 +330,7 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs, statistic):
+    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs, statistic):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
@@ -341,7 +348,7 @@ class BrainGrid(Figures):
 
         plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{json}{base_extension}",
                                   draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
-                                  vmin=cls.config.brain_fig_value_min, vmax=vmax,
+                                  vmin=vmin, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
                                   cmap='inferno')
         plot.savefig(brain_img)
