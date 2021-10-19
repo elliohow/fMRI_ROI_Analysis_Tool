@@ -737,7 +737,7 @@ def check_stale_state():
 
     stale_pages = []
     for counter, widget in enumerate(dynamic_widgets):
-        if widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
+        if not widget['Current'] == '' and widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
             stale_pages.append(plot_pages[counter])
 
     if stale_pages:

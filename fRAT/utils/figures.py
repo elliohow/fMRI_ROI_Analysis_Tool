@@ -45,14 +45,14 @@ class Figures:
 
     @classmethod
     def make_figures(cls):
-        if not os.path.exists('Figures'):
-            os.makedirs('Figures')
-
         try:
             combined_results_df = pd.read_json("Overall/Summarised_results/combined_results.json")
         except ValueError:
             raise Exception("combined_results.json in relative path 'Overall/Summarised_results/' not found, "
                             "check correct directory has been selected.")
+
+        if not os.path.exists('Figures'):
+            os.makedirs('Figures')
 
         if cls.config.multicore_processing & (cls.config.make_one_region_fig or cls.config.make_histogram):
             pool = Utils.start_processing_pool()
@@ -170,6 +170,10 @@ class Figures:
     def make_raw_df(config, jsons, combined_df):
         combined_raw_df = pd.DataFrame()
 
+        # Make a list of significant columns and remove any blank values
+        # TODO: remove references to histogram to make it more generalisable
+        signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"]))
+
         for json_file in jsons:
             with open(f"{os.getcwd()}/Overall/Raw_results/{json_file}", 'r') as f:
                 current_json = Utils.dict_to_dataframe(json.load(f))
@@ -182,18 +186,16 @@ class Figures:
             combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
             combined_df_search.columns = [x.lower() for x in combined_df_search.columns]
 
-            try:  # TODO: remove references to histogram to make it more generalisable
-                current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet.lower()].iloc[0]
-                current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet.lower()].iloc[0]
+            try:
+                for column in signif_columns[:-1]: # TODO: check this works with file_name in signif_columns, do I need [:-1]
+                    current_json[column] = combined_df_search[column.lower()].iloc[0]
             except IndexError:
                 continue
 
             combined_raw_df = combined_raw_df.append(current_json)
 
-        combined_raw_df = combined_raw_df.melt(
-            id_vars=[config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"],
-            var_name='ROI', value_name='voxel_value')
-
+        # Convert it from wide format into long format
+        combined_raw_df = combined_raw_df.melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
         combined_raw_df.dropna(inplace=True)  # Drop rows that have NA for voxel value
 
         return combined_raw_df
@@ -374,18 +376,28 @@ class BrainGrid(Figures):
 
         plot_values = unique_params  # Get axis values
         axis_titles = list(cls.config.parameter_dict.keys())  # Get axis titles
-        plot_values_sorted = [plot_values[axis_titles.index(cls.config.brain_table_cols)],  # Sort axis values
-                              plot_values[axis_titles.index(cls.config.brain_table_rows)]]
 
-        x_axis_size = len(plot_values_sorted[0])
-        y_axis_size = len(plot_values_sorted[1])
+        critical_params = {'cols': {'param': cls.config.brain_table_cols, 'values': [None]},
+                           'rows': {'param': cls.config.brain_table_rows, 'values': [None]}}
+
+        for axis in critical_params:
+            if critical_params[axis]['param'] == '':
+                continue
+            else:
+                critical_params[axis]['values'] = plot_values[axis_titles.index(critical_params[axis]['param'])] # Sort axis values
+
+        x_axis_size = len(critical_params['cols']['values'])
+        y_axis_size = len(critical_params['rows']['values'])
 
         for file_num, file_name in enumerate(df['File_name'].unique()):
             temp_param_store = []
             file_name_row = df[df['File_name'] == file_name].iloc[0]  # Get the first row of the relevant file name
 
-            temp_param_store.append(str(file_name_row[cls.config.brain_table_cols]))
-            temp_param_store.append(str(file_name_row[cls.config.brain_table_rows]))
+            for axis in critical_params:
+                if critical_params[axis]['values'] != [None]:
+                    temp_param_store.append(str(file_name_row[critical_params[axis]['param']]))
+                else:
+                    temp_param_store.append(None)
 
             current_params.append(temp_param_store)  # Store parameters used for file
 
@@ -442,12 +454,18 @@ class ViolinPlot(Figures):
         Utils.check_and_make_dir("Figures/Violin_plots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
-        df = df.groupby([cls.config.table_cols, cls.config.table_rows]).apply(
-            lambda x: x.sort_values(['Mean']))  # Group by parameters and sort
-        df = df.reset_index(drop=True)  # Reset index to remove grouping
+        if not cls.config.table_cols == '' and not cls.config.table_rows == '':
+            # If parameter to plot for both columns and rows is set then group by both parameters and then sort by mean
+            df = df.groupby([cls.config.table_cols, cls.config.table_rows]).apply(lambda x: x.sort_values(['Mean']))
 
-        if cls.config.verbose:
-            print(f"Saved violin plot!")
+        elif not cls.config.table_cols == '':
+            df = df.groupby(cls.config.table_cols).apply(lambda x: x.sort_values(['Mean']))
+
+        elif not cls.config.table_rows == '':
+            df = df.groupby(cls.config.table_rows).apply(lambda x: x.sort_values(['Mean']))
+
+
+        df = df.reset_index(drop=True)  # Reset index to remove grouping
 
         df['constant'] = 1
 
@@ -457,14 +475,14 @@ class ViolinPlot(Figures):
         right_shift = pltn.aes(x=pltn.stage('constant', after_scale='x+shift'))  # shift outward
         left_shift = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
 
-        figure = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
+        figure = (pltn.ggplot(df)
+                  + pltn.aes(x="constant", y="Mean")
                   + pltn.geom_violin(left_shift, na_rm=True, style='left', fill=cls.config.violin_colour, size=0.6)
                   + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=cls.config.boxplot_colour, size=0.6)
                   + pltn.xlim(0.4, 1.4)
                   + pltn.ylab(cls.config.table_x_label)
                   + pltn.xlab("")
-                  + pltn.facet_grid('{rows}~{cols}'.format(rows=cls.config.table_rows, cols=cls.config.table_cols),
-                                    drop=True, labeller="label_both")
+                  + pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True, labeller="label_both")
                   + pltn.theme_538()  # Set theme
                   + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
                                panel_grid_major_x=pltn.themes.element_line(alpha=0),
@@ -486,10 +504,16 @@ class ViolinPlot(Figures):
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
+        if cls.config.verbose:
+            print(f"Saved violin plot!")
+
 
 class Barchart(Figures):
     @classmethod
     def setup(cls, df, pool):
+        if cls.config.single_roi_fig_x_axis == '':
+            raise Exception('Parameter to plot along the x-axes of the barcharts has not been set.')
+
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
@@ -539,9 +563,7 @@ class Barchart(Figures):
         config.single_roi_fig_colour = config.single_roi_fig_colour.replace(" ", "_")
 
         figure = (
-                pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
-                                                 ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
-                                                 fill=f'factor({config.single_roi_fig_colour})'))
+                pltn.ggplot(current_df)
                 + pltn.theme_538()
                 + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                 + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
@@ -565,6 +587,14 @@ class Barchart(Figures):
                                  color='black', size=20, va='top')
                 + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
         )
+
+        if not config.single_roi_fig_colour == '':
+            figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
+                               ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
+                               fill=f'factor({config.single_roi_fig_colour})')
+        else:
+            figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
+                               ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95")
 
         if ylimit:
             # Set y limit of figure (used to make it the same for every barchart)
@@ -649,13 +679,14 @@ class Histogram(Figures):
         combined_df = combined_df.rename(
             columns={"index": "ROI"})  # Rename column to maintain parity with combined_df column naming convention
 
+        # Make a list of significant columns and remove any blank values
+        signif_columns = list(filter(None, [cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet]))
         current_df = current_df.merge(combined_df,
-                                      on=['ROI', cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet],
+                                      on=['ROI', *signif_columns],
                                       how='left')
 
         # Keep only the necessary columns
-        keys = [cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet,
-                'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
+        keys = [*signif_columns, 'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
 
         for column in current_df.columns:
             if column not in keys:
