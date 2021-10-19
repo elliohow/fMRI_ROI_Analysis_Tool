@@ -629,31 +629,47 @@ class Config_GUI:
 class Tooltip(object):
     def __init__(self, widget):
         self.widget = widget
-        self.tipwindow = None
+        self.widget_type = widget.winfo_class()
+        self.tooltip_window = None
         self.id = None
         self.x = self.y = 0
 
     def showtip(self, text):
         "Display text in tooltip window"
         self.text = text
-        if self.tipwindow or not self.text:
+
+        if self.tooltip_window or not self.text:
             return
+
+        if self.widget_type == 'TButton':
+            x_offset = 120
+            y_offset = 32
+        else:
+            x_offset = 57
+            y_offset = 27
+
         x, y, cx, cy = self.widget.bbox("insert")
-        x = x + self.widget.winfo_rootx() + 57
-        y = y + cy + self.widget.winfo_rooty() +27
-        self.tipwindow = tw = tk.Toplevel(self.widget)
-        tw.wm_overrideredirect(1)
-        tw.wm_geometry("+%d+%d" % (x, y))
-        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+        x = x + self.widget.winfo_rootx() + x_offset
+        y = y + cy + self.widget.winfo_rooty() + y_offset
+
+        self.tooltip_window = tooltip_window = tk.Toplevel(self.widget)
+        tooltip_window.overrideredirect(True)
+        tooltip_window.wm_geometry(f"+{x}+{y}")
+
+        label = tk.Label(tooltip_window, text=self.text, justify=tk.LEFT,
                       background="#ffffe0", relief=tk.SOLID, borderwidth=1,
                       font=("tahoma", "12", "normal"))
         label.pack(ipadx=1)
 
+        tooltip_window.update_idletasks()
+        tooltip_window.lift()
+
     def hidetip(self):
-        tw = self.tipwindow
-        self.tipwindow = None
-        if tw:
-            tw.destroy()
+        tooltip_window = self.tooltip_window
+        self.tooltip_window = None
+
+        if tooltip_window:
+            tooltip_window.destroy()
 
     @staticmethod
     def CreateToolTip(widget, text):
