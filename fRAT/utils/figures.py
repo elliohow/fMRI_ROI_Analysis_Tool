@@ -397,7 +397,7 @@ class BrainGrid(Figures):
                 if critical_params[axis]['values'] != [None]:
                     temp_param_store.append(str(file_name_row[critical_params[axis]['param']]))
                 else:
-                    temp_param_store.append(None)
+                    temp_param_store.append(0)  # TODO: TOMORROW SHOULD THIS BE A STRING, COMPARE TO MASTER BRANCH
 
             current_params.append(temp_param_store)  # Store parameters used for file
 
@@ -463,7 +463,6 @@ class ViolinPlot(Figures):
 
         elif not cls.config.table_rows == '':
             df = df.groupby(cls.config.table_rows).apply(lambda x: x.sort_values(['Mean']))
-
 
         df = df.reset_index(drop=True)  # Reset index to remove grouping
 
