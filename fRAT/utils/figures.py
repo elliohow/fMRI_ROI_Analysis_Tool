@@ -239,7 +239,7 @@ class BrainGrid(Figures):
         # Create new list of files which exist in NIFTI_ROI folder
         json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
 
-        plot_values, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
+        critical_params, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -273,9 +273,9 @@ class BrainGrid(Figures):
             if cls.config.verbose:
                 print(f"Saving {base_ext_clean} table.")
 
-            indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums,
-                                              col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
-                                              statistic, vmax, vmax_storage, vmin, x_axis_size, y_axis_size)
+            indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array,
+                                              critical_params, statistic, vmax, vmax_storage, vmin, x_axis_size,
+                                              y_axis_size)
 
             if vmax is not None:
                 break
@@ -292,9 +292,8 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def make_table(cls, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
-                   json_array, plot_values, row_nums, statistic, vmax, vmax_storage, vmin, x_axis_size,
-                   y_axis_size):
+    def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params, statistic,
+                   vmax, vmax_storage, vmin, x_axis_size, y_axis_size):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
                                                                     vmax, vmax_storage, vmin, indiv_brain_imgs,
@@ -312,15 +311,15 @@ class BrainGrid(Figures):
             ax.set_xticks([])  # Remove x-axis ticks
             ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
-            if row_nums[file_num] == 0:
-                plt.title(cls.config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]],
+            if critical_params['rows']['order'][file_num] == 0 and len(critical_params['cols']['values']) != 1:
+                plt.title(cls.config.brain_table_col_labels + " " + str(critical_params['cols']['order'][file_num]),
                           fontsize=cls.config.plot_font_size)
 
-            if col_nums[file_num] == 0:
-                plt.ylabel(cls.config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
+            if critical_params['cols']['order'][file_num] == 0 and len(critical_params['rows']['values']) != 1:
+                plt.ylabel(cls.config.brain_table_row_labels + " " + str(critical_params['rows']['order'][file_num]),
                            fontsize=cls.config.plot_font_size)
 
-        cls.label_blank_cell_axes(plot_values, cell_nums, x_axis_size, y_axis_size, dims)
+        cls.label_blank_cell_axes(critical_params, cell_nums, x_axis_size, y_axis_size, dims)
 
         if cls.config.brain_tight_layout:
             plt.tight_layout()
@@ -364,9 +363,6 @@ class BrainGrid(Figures):
     @classmethod
     def table_setup(cls, df):
         unique_params = []
-        current_params = []
-        col_nums = []
-        row_nums = []
         cell_nums = []
 
         for key in cls.config.parameter_dict:
@@ -377,8 +373,8 @@ class BrainGrid(Figures):
         plot_values = unique_params  # Get axis values
         axis_titles = list(cls.config.parameter_dict.keys())  # Get axis titles
 
-        critical_params = {'cols': {'param': cls.config.brain_table_cols, 'values': [None]},
-                           'rows': {'param': cls.config.brain_table_rows, 'values': [None]}}
+        critical_params = {'cols': {'param': cls.config.brain_table_cols, 'values': [0], 'order': []},
+                           'rows': {'param': cls.config.brain_table_rows, 'values': [0], 'order': []}}
 
         for axis in critical_params:
             if critical_params[axis]['param'] == '':
@@ -390,31 +386,31 @@ class BrainGrid(Figures):
         y_axis_size = len(critical_params['rows']['values'])
 
         for file_num, file_name in enumerate(df['File_name'].unique()):
-            temp_param_store = []
+            temp_order_store = []
             file_name_row = df[df['File_name'] == file_name].iloc[0]  # Get the first row of the relevant file name
 
             for axis in critical_params:
-                if critical_params[axis]['values'] != [None]:
-                    temp_param_store.append(str(file_name_row[critical_params[axis]['param']]))
+                if critical_params[axis]['values'] != [0]:
+                    # Extract parameter from df for file
+                    file_param = str(file_name_row[critical_params[axis]['param']])
+                    # Work out row/col order
+                    critical_params[axis]['order'].append(critical_params['cols']['values'].index(file_param))
+                    temp_order_store.append(critical_params['cols']['values'].index(file_param))
                 else:
-                    temp_param_store.append(0)  # TODO: TOMORROW SHOULD THIS BE A STRING, COMPARE TO MASTER BRANCH
+                    critical_params[axis]['order'].append(0)
+                    temp_order_store.append(0)
 
-            current_params.append(temp_param_store)  # Store parameters used for file
-
-            col_nums.append(plot_values_sorted[0].index(current_params[file_num][0]))  # Work out col number
-            row_nums.append(plot_values_sorted[1].index(current_params[file_num][1]))  # Work out row number
-
-            cell_nums.append(np.ravel_multi_index((row_nums[file_num], col_nums[file_num]),
+            cell_nums.append(np.ravel_multi_index((temp_order_store[1], temp_order_store[0]),
                                                   (y_axis_size, x_axis_size)))  # Find linear index of figure
 
-        return plot_values_sorted, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
+        return critical_params, cell_nums, y_axis_size, x_axis_size
 
     @classmethod
-    def label_blank_cell_axes(cls, plot_values, cell_nums, x_axis_size, y_axis_size, dims):
+    def label_blank_cell_axes(cls, critical_params, cell_nums, x_axis_size, y_axis_size, dims):
         # Make blank image with the same dimensions as previous images
         img = Image.new("RGB", (dims[0], dims[1]), (255, 255, 255))
 
-        for counter, x_title in enumerate(plot_values[0]):
+        for counter, x_title in enumerate(critical_params['cols']['values']):
             hidden_cell = np.ravel_multi_index((0, counter), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums:
@@ -425,9 +421,10 @@ class BrainGrid(Figures):
                 plt.title(cls.config.brain_table_col_labels + " " + x_title, fontsize=cls.config.plot_font_size)
 
                 if hidden_cell == 0:
-                    plt.ylabel(cls.config.brain_table_row_labels + " " + plot_values[1][0], fontsize=cls.config.plot_font_size)
+                    plt.ylabel(cls.config.brain_table_row_labels + " " + critical_params['rows']['values'][0],
+                               fontsize=cls.config.plot_font_size)
 
-        for counter, y_title in enumerate(plot_values[1]):
+        for counter, y_title in enumerate(critical_params['rows']['values']):
             hidden_cell = np.ravel_multi_index((counter, 0), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums and hidden_cell != 0:
