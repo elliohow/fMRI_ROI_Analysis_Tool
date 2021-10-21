@@ -584,13 +584,15 @@ class Barchart(Figures):
                 + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
         )
 
+        conf_int_string = [x for x in current_df.keys() if 'Conf_Int' in x][0]
+
         if not config.single_roi_fig_colour == '':
             figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
-                               ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
+                               ymin=f"Mean-{conf_int_string}", ymax=f"Mean+{conf_int_string}",
                                fill=f'factor({config.single_roi_fig_colour})')
         else:
             figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
-                               ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95")
+                               ymin=f"Mean-{conf_int_string}", ymax=f"Mean+{conf_int_string}")
 
         if ylimit:
             # Set y limit of figure (used to make it the same for every barchart)

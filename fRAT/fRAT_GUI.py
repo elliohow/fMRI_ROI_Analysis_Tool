@@ -726,6 +726,10 @@ def Button_handler(command, *args):
 
 def check_stale_state():
     current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
+
+    if current_critical_params == ['']:
+        raise Exception('No critical parameters set in Parsing options.')
+
     dynamic_widgets = (Violin_plot['table_cols'], Violin_plot['table_rows'],
                        Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
                        Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],

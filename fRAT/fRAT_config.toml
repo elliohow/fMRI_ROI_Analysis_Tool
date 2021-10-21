@@ -2,7 +2,7 @@
 version = '0.15.0'
 
 # General
-run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
+run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
 run_plotting = true                                                               # true or false.
 run_statistics = false                                                            # true or false.
 verbose = true                                                                    # true or false.
@@ -23,11 +23,11 @@ fslfast_min_prob = 0.1                                                          
 noise_cutoff = false                                                              # true or false. Recommended: true.
 stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
 stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
-conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
+conf_level_number = '99%, 2.58'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 # Parsing
-parameter_dict1 = ['Hyperband', 'Inplane acceleration']                           # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
+parameter_dict1 = ['Hyperband', 'Inplane Acceleration']                           # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
 parameter_dict2 = ['hb', 'ip']                                                    # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 
 # Plotting
@@ -39,7 +39,7 @@ make_brain_table = true                                                         
 make_one_region_fig = false                                                       # True or False.
 make_histogram = false                                                            # True or False.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
-regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_fig_rois = [1, 2, 3, 4]                                                  # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 # Violin_plot
 table_x_label = 'tSNR mean'                                                       # 
@@ -49,7 +49,7 @@ violin_jitter = true                                                            
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 table_cols = 'Hyperband'                                                          # 
-table_rows = 'Inplane acceleration'                                               # 
+table_rows = 'Inplane Acceleration'                                               # 
 
 # Brain_table
 brain_tight_layout = false                                                        # True or False. Use a tight layout when laying out the figure. Recommended: false
@@ -60,14 +60,14 @@ brain_z_coord = 91                                                              
 brain_table_col_labels = 'MB'                                                     # Label for columns.
 brain_table_row_labels = 'SENSE'                                                  # Label for rows.
 brain_table_cols = 'Hyperband'                                                    # 
-brain_table_rows = 'Inplane acceleration'                                         # 
+brain_table_rows = 'Inplane Acceleration'                                         # 
 
 # Region_barchart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
 single_roi_fig_x_axis = 'Hyperband'                                               # 
-single_roi_fig_colour = 'Inplane acceleration'                                    # 
+single_roi_fig_colour = 'Inplane Acceleration'                                    # 
 
 # Region_histogram
 histogram_binwidth = 5                                                            # 
@@ -78,6 +78,6 @@ histogram_show_mean = true                                                      
 histogram_show_median = true                                                      # True or False.
 histogram_show_legend = true                                                      # True or False.
 histogram_fig_x_facet = 'Hyperband'                                               # 
-histogram_fig_y_facet = 'Inplane acceleration'                                    # 
+histogram_fig_y_facet = 'Inplane Acceleration'                                    # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

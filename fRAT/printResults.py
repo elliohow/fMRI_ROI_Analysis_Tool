@@ -2,12 +2,13 @@ import simplejson as json
 
 from utils import *
 
+
 def printResults():
     print('--- Printing results ---')
     print('Select the results directory created by fRAT.')
     result_loc = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    with open(f"{result_loc}/Summarised_results/combined_results.json", "r") as results:
+    with open(f"{result_loc}/Overall/Summarised_results/combined_results.json", "r") as results:
         results = json.load(results)
         rois = sorted({result['index'] for result in results})  # Using set returns only unique values
 
