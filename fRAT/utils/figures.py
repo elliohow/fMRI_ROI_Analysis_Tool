@@ -312,11 +312,13 @@ class BrainGrid(Figures):
             ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
             if critical_params['rows']['order'][file_num] == 0 and len(critical_params['cols']['values']) != 1:
-                plt.title(cls.config.brain_table_col_labels + " " + str(critical_params['cols']['order'][file_num]),
+                plt.title(cls.config.brain_table_col_labels + " "
+                          + str(critical_params['cols']['values'][critical_params['cols']['order'][file_num]]),
                           fontsize=cls.config.plot_font_size)
 
             if critical_params['cols']['order'][file_num] == 0 and len(critical_params['rows']['values']) != 1:
-                plt.ylabel(cls.config.brain_table_row_labels + " " + str(critical_params['rows']['order'][file_num]),
+                plt.ylabel(cls.config.brain_table_row_labels + " "
+                           + str(critical_params['rows']['values'][critical_params['rows']['order'][file_num]]),
                            fontsize=cls.config.plot_font_size)
 
         cls.label_blank_cell_axes(critical_params, cell_nums, x_axis_size, y_axis_size, dims)
@@ -563,8 +565,6 @@ class Barchart(Figures):
                 + pltn.theme_538()
                 + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                 + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
-                + pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
-                            fill=config.single_roi_fig_label_fill)
                 + pltn.scale_x_discrete(labels=[])
                 + pltn.theme(panel_grid_major_x=pltn.element_line(alpha=0),
                              panel_background=pltn.element_rect(fill='white', alpha=.2),
@@ -593,6 +593,9 @@ class Barchart(Figures):
         else:
             figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
                                ymin=f"Mean-{conf_int_string}", ymax=f"Mean+{conf_int_string}")
+
+        figure += pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
+                            fill=config.single_roi_fig_label_fill)
 
         if ylimit:
             # Set y limit of figure (used to make it the same for every barchart)

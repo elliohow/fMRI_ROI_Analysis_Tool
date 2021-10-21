@@ -70,7 +70,7 @@ def plotting(config, orig_path):
     # Create html report
     html_report.main(str(orig_path))
     if config.verbose:
-        print('\nCreated html report')
+        print('Created html report.')
 
 
 def analysis(config):
