@@ -172,19 +172,9 @@ class Config_GUI:
                 elif line != '\n':
                     setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
 
-                    try:
-                        if setting[1] in ['true', 'false']:
-                            setting[1] = setting[1].title()
+                    current_setting = Utils.convert_toml_input_to_python_object(setting[1])
 
-                        setting[1] = ast.literal_eval(setting[1])
-
-                        if isinstance(setting[1], tuple):
-                            setting[1] = list(setting[1])
-
-                    except (ValueError, SyntaxError):
-                        pass
-
-                    eval(curr_page)[setting[0]]['Current'] = setting[1]
+                    eval(curr_page)[setting[0]]['Current'] = current_setting
 
     def refresh_frame(self):
         """ refresh the content of the label every second """

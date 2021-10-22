@@ -13,7 +13,7 @@ def fRAT():
     checkversion()
 
     config, orig_path = load_config()
-    argparser(config)
+    config = argparser(config)
 
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
     # sys.exit()
@@ -49,14 +49,21 @@ def argparser(config):
     # Check arguments passed over command line
     args = Utils.argparser()
 
-    if args.make_table:
+    if args.make_table == 'true':
         from fRAT_GUI import make_table
         make_table()
         sys.exit()
-    if args.brain_loc is not None:
-        config.brain_file_loc = args.brain_loc
-    if args.output_loc is not None:
-        config.report_output_folder = args.output_loc
+    else:
+        args.__dict__.pop('make_table')
+
+    for arg in args.__dict__:
+        if args.__dict__[arg] is not None:
+            user_arg = Utils.convert_toml_input_to_python_object(args.__dict__[arg])
+            config.__dict__[arg] = user_arg
+
+    config = Utils.clean_config_options(config)
+
+    return config
 
 
 def plotting(config, orig_path):
