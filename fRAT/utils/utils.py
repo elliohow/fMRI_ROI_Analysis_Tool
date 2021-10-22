@@ -222,11 +222,15 @@ class Utils:
                          'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
                          'SMATT-labels', 'STN',
                          'striatum-structural', 'Talairach-labels', 'Thalamus']
-        config.atlas_number = atlas_options.index(config.atlas_number)
+
+        if not type(config.atlas_number) is int:
+            config.atlas_number = atlas_options.index(config.atlas_number)
 
         conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
-        config.bootstrap_alpha = 1 - float(f"0.{re.split('%', config.conf_level_number)[0]}")
-        config.conf_level_number = conf_level_options.index(config.conf_level_number)
+
+        if not type(config.conf_level_number) is int:
+            config.bootstrap_alpha = 1 - float(f"0.{re.split('%', config.conf_level_number)[0]}")
+            config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
         return config
 
