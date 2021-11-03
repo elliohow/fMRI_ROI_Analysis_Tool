@@ -28,11 +28,11 @@ General = {
                        'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
 
     'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                       'label': 'NIFTI/ANALYZE folder location',
+                       'label': 'Base directory of subjects',
                        'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'report_output_folder': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                          'label': 'fRAT report output folder location',
+                          'label': 'fRAT output directory location',
                           'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',

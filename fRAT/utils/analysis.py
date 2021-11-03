@@ -19,7 +19,6 @@ from nipype.interfaces import fsl
 
 from .utils import Utils
 
-
 config = None
 
 
@@ -80,15 +79,15 @@ class Environment_Setup:
     @classmethod
     def setup_save_location(cls, config):
         cls.atlas_name = os.path.splitext(cls.atlas_label_list[int(config.atlas_number)][1])[0]
-        
+
         if config.output_folder == 'DEFAULT':
             cls.save_location = f'{cls.atlas_name}_ROI_report/'
         else:
             cls.save_location = f'{config.output_folder}/'
-            
+
         if config.verbose:
-            print(f'Using the {cls.atlas_name} atlas.'
-                  f'\n    Saving output in directory: {cls.save_location}\n')
+            print(f'Saving output in directory: {cls.save_location}\n'
+                  f'Using the {cls.atlas_name} atlas.\n')
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}", delete_old=True)
@@ -111,7 +110,8 @@ class Environment_Setup:
             cls.base_directory = config.brain_file_loc
 
             if config.verbose:
-                print(f'Gathering brain files from {config.brain_file_loc}.')
+                print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
+                      f'Looking for stat maps in directory: {config.stat_map_folder}\n')
 
         # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
         Utils.save_config(cls.base_directory, 'fRAT_config')
@@ -150,6 +150,7 @@ class Participant:
         self.anat_brain = None
         self.anat_to_mni_mat = None
         self.anat_brain_no_ext = None
+        self.fsl_segmentation = None
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -171,18 +172,19 @@ class Participant:
                                          self.save_location,
                                          self.anat_brain,
                                          self.anat_to_mni_mat,
+                                         self.fsl_segmentation,
                                          environment_globals)
 
         return self
 
-    @classmethod
-    def setup_class(cls, base_directory, save_location, pool):
-        participant_dirs = cls.find_participant_dirs()
+    @staticmethod
+    def setup_class(base_directory, save_location, pool):
+        _, participants = Utils.find_participant_dirs(os.getcwd())
 
         participant_list = set()
-        for participant_dir in participant_dirs:
+        for participant in participants:
             # Initialise participants
-            participant_list.add(Participant(participant_dir, base_directory, save_location))
+            participant_list.add(Participant(participant, base_directory, save_location))
 
         # Set arguments to pass to run_analysis function
         iterable = zip(participant_list, itertools.repeat("setup_participant"),
@@ -217,7 +219,8 @@ class Participant:
             print(f'\nAnalysing fMRI files for participant: {self.participant_name}\n')
 
         orig_brain_num = len(self.brains)
-        self.brains = [brain for brain in self.brains if brain.parameters]  # Remove any brains that are set to be ignored
+        self.brains = [brain for brain in self.brains if
+                       brain.parameters]  # Remove any brains that are set to be ignored
 
         if config.verbose and orig_brain_num != len(self.brains):
             print(f'Ignoring {orig_brain_num - len(self.brains)}/{orig_brain_num} files.\n')
@@ -235,7 +238,7 @@ class Participant:
                 brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
             construct_combined_results(f'{self.save_location}')
-        
+
         if config.anat_align:
             self.anat_file_cleanup()
 
@@ -262,8 +265,14 @@ class Participant:
         self.anat_brain = f'{self.participant_path}/anat/{anat}'
         self.anat_brain_no_ext = anat.rsplit(".")[0]
         self.anat_to_mni_mat = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
-                                                'FLIRT', self.anat_brain, 'to_mni_from_',
-                                                f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+                                             'FLIRT', self.anat_brain, 'to_mni_from_',
+                                             f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+
+        if config.grey_matter_segment:
+            try:
+                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
+            except IndexError:
+                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*")[0]
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
@@ -272,10 +281,11 @@ class Participant:
 
         # Calculate MNI cost function value
         mni_cost = run_flirt_cost_function(fslfunc,
-                                                f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
-                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
-                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat')
+                                           f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                           f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
+                                           f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
+                                           f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat',
+                                           config)
 
         return mni_cost
 
@@ -295,11 +305,12 @@ class Participant:
 
 class Brain:
     def __init__(self, brain, participant_folder, participant_name, save_location,
-                 anat_brain, anat_to_mni_mat, environment_globals):
+                 anat_brain, anat_to_mni_mat, fsl_segmentation, environment_globals):
         self.brain = brain
         self.save_location = save_location
         self.anat_brain = anat_brain
         self.anat_to_mni_mat = anat_to_mni_mat
+        self.fsl_segmentation = fsl_segmentation
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
         self.roiResults = None
@@ -308,6 +319,7 @@ class Brain:
         self.file_list = []
         self.participant_name = participant_name
         self.parameters = []
+        self.noise_threshold = None
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
@@ -318,7 +330,7 @@ class Brain:
         self._labelArray = environment_globals['label_array']
         self.atlas_path = environment_globals['atlas_path']
 
-    def fmri_flirt_cost_and_mean_displacement(self, brain_number_current, brain_number_total, config):
+    def fmri_get_additional_info(self, brain_number_current, brain_number_total, config):
         if config.verbose:
             print(f'Calculating cost function and mean displacement values for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
@@ -327,24 +339,24 @@ class Brain:
                             schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
-        anat_cost, mni_cost = 0, 0
+        anat_cost, mni_cost = None, None
 
         if config.anat_align:  # Calculate anatomical cost function value
             anat_cost = run_flirt_cost_function(fslfunc,
-                                                          self.anat_brain,
-                                                          f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
-                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
-                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
-                                                     config)
+                                                self.anat_brain,
+                                                f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
+                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
+                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
+                                                config)
 
         else:
             # Calculate MNI cost function value
             mni_cost = run_flirt_cost_function(fslfunc,
-                                                         f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                         f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
-                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
-                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
-                                                    config)
+                                               f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                               f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
+                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
+                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
+                                               config)
 
         # Find absolute and relative mean displacement files
         suffixes = ['_abs_mean.rms', '_rel_mean.rms']
@@ -354,7 +366,7 @@ class Brain:
                       f"{self.no_ext_brain}{suffix}", 'r') as file:
                 displacement_vals.append(float(file.read().replace('\n', '')))
 
-        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1]
+        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1], self.noise_threshold
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -428,25 +440,20 @@ class Brain:
 
         return roiTempStore, roiResults
 
-    def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
+    def segmentation_to_fmri(self, anat_aligned_mat, fMRI_volume, brain_number_current, brain_number_total):
         if config.verbose:
             print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
-
-        try:
-            source_loc = glob(f"fslfast/*_pve_1*")[0]
-        except IndexError:
-            source_loc = glob(f"fslfast/*")[0]
 
         prefix = 'fslfast_to_'
         interp = 'trilinear'
 
         # Save inverse of fMRI to anat
         inverse_mat = fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
-                                         'inverse_anat_to_')
+                                    'inverse_anat_to_')
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
-                                                  prefix, inverse_mat, current_brain, interp)
+        segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM',
+                                             self.fsl_segmentation, prefix, inverse_mat, fMRI_volume, interp)
 
         return segmentation_to_fmri
 
@@ -465,40 +472,40 @@ class Brain:
         pack_vars = [self, self.save_location, self.no_ext_brain]
 
         # Motion correction
-        current_brain = fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mcf_")
+        fMRI_volume = fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mcf_")
 
         # Turn 4D scan into 3D
-        current_brain = fsl_functions(*pack_vars, 'MeanImage', current_brain, "mean_")
+        fMRI_volume = fsl_functions(*pack_vars, 'MeanImage', fMRI_volume, "mean_")
 
         # Brain extraction
-        current_brain = fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
+        fMRI_volume = fsl_functions(*pack_vars, 'BET', fMRI_volume, "bet_")
 
         if config.anat_align:
             if config.verbose:
                 print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
 
             # Align to anatomical
-            fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self.anat_brain)
+            fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_anat_from_", self.anat_brain)
 
             # Combine fMRI-anat and anat-mni matrices
             mat = fsl_functions(*pack_vars, 'ConvertXFM', fmri_to_anat_mat, 'combined_mat_', 'concat_xfm')
 
         else:
             # Align to MNI
-            mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
-                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+            mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_mni_from_",
+                                f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
         # Get inverse of matrix
         inverse_mat = fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
 
         # Apply inverse of matrix to chosen atlas to convert it into native space
         fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path,
-                      'mni_to_', inverse_mat, current_brain,
+                      'mni_to_', inverse_mat, fMRI_volume,
                       'nearestneighbour')
 
         if config.grey_matter_segment:
             # Convert segmentation to fMRI native space
-            segmentation_to_fmri = self.segmentation_to_fmri(fmri_to_anat_mat, current_brain,
+            segmentation_to_fmri = self.segmentation_to_fmri(fmri_to_anat_mat, fMRI_volume,
                                                              brain_number_current, brain_number_total)
 
             grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
@@ -519,7 +526,9 @@ class Brain:
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-        roiResults = compile_roi_stats(roiTempStore, roiResults, config)  # Compile ROI statistics
+        # Compile ROI statistics
+        roiResults, self.noise_threshold = compile_roi_stats(roiTempStore, roiResults, config,
+                                                             individual_analysis=True)
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
@@ -561,7 +570,7 @@ class MatchedBrain:
         for param_combination in matched_brains:
             # Initialise participants
             matched_brain_list.add(MatchedBrain(matched_brains[param_combination], param_combination))
-            
+
         cls.assign_parameters_to_brains(matched_brain_list, participant_list)
 
         return matched_brain_list
@@ -574,7 +583,8 @@ class MatchedBrain:
 
         matched_brains = dict()
         for index, row in table.iterrows():
-            if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in ('yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
+            if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in (
+                    'yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
                 continue
 
             elif tuple(row[critical_column_locs]) not in matched_brains.keys():
@@ -630,11 +640,16 @@ class MatchedBrain:
         # Collapse overall results and calculate total excluded voxels
         self.overall_results = np.sum(self.overall_results, axis=0)
 
-        self.raw_results = np.concatenate(self.raw_results, axis=1)  # Combine raw results
+        # Combine raw results
+        self.raw_results = np.concatenate(self.raw_results, axis=1)
 
-        self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
+        # Compile ROI statistics
+        self.overall_results, _ = compile_roi_stats(self.raw_results, self.overall_results, config,
+                                                    individual_analysis=False)
+
+        # Save results
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
-                       self.save_location, self.parameters, config)  # Save results
+                       self.save_location, self.parameters, config)
 
         return self
 
@@ -709,16 +724,38 @@ class MatchedBrain:
         return unscaled_stat, within_roi_stat, mixed_roi_stat
 
 
-def compile_roi_stats(roiTempStore, roiResults, config):
+def compile_roi_stats(roiTempStore, roiResults, config, individual_analysis):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-    if config.noise_cutoff:
-        noise_threshold = np.nanmean(roiTempStore[0, :])
-        rois = roiTempStore[1:, :]
-        below_threshold = np.count_nonzero(rois < noise_threshold, axis=1)
+    # todo: from sklearn.svm import OneClassSVM
+    #  clf = OneClassSVM(gamma='auto').fit(data.reshape(-1, 1))
+    #  anoms = clf.predict(data.reshape(-1, 1))
+
+    # for num in range(roiTempStore.shape[0]):
+    #     data = roiTempStore[num, :].copy()
+    #     data = data[~np.isnan(data)]
+    #
+    #     from sklearn.ensemble import IsolationForest
+    #     model = IsolationForest()
+    #     model.fit(data.reshape(-1, 1))
+    #
+    #     anoms = model.predict(data.reshape(-1, 1))
+    #     bad = [x for counter, x in enumerate(data) if anoms[counter] == -1]
+    #
+    #     roiTempStore[num, :][np.isin(roiTempStore[num, :], bad)] = np.nan
+    #     below_threshold = len(bad)
+    #     roiResults[7, 1:-1] += below_threshold
+
+    noise_threshold = None
+    if config.noise_cutoff and individual_analysis:
+        noise_threshold = np.true_divide(np.nansum(roiTempStore[0, :]), np.count_nonzero(roiTempStore[0, :]))
+
+        # Count how many voxels are below noise threshold
+        below_threshold = np.count_nonzero(roiTempStore[1:, :] < noise_threshold, axis=1)
+
+        # Assign voxels below threshold to excluded voxels column
         roiResults[7, 1:-1] += below_threshold
-        rois[rois < noise_threshold] = np.nan
-        roiTempStore[1:, :] = rois
+        roiTempStore[1:, :][roiTempStore[1:, :] < noise_threshold] = np.nan
 
     axis = 1
     read_start = 0
@@ -731,10 +768,10 @@ def compile_roi_stats(roiTempStore, roiResults, config):
                                                                 axis=axis)  # Count number of non-nan voxels
         roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
         roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
+        # Confidence interval calculation
         roiResults[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
                                                * roiResults[2, write_start:write_end] \
-                                               / np.sqrt(
-            roiResults[0, write_start:write_end])  # 95% confidence interval calculation
+                                               / np.sqrt(roiResults[0, write_start:write_end])
         roiResults[4, write_start:write_end] = np.nanmedian(roiTempStore[read_start:, :], axis=axis)
         roiResults[5, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
         roiResults[6, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
@@ -754,7 +791,7 @@ def compile_roi_stats(roiTempStore, roiResults, config):
 
     warnings.filterwarnings('default')  # Reactivate warnings
 
-    return roiResults
+    return roiResults, noise_threshold
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):

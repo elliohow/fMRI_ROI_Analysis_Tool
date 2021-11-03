@@ -1,12 +1,14 @@
 from pathlib import Path
-
 from nipype.interfaces.fsl import ImageStats, TemporalFilter, maths
 import logging
+import time
 
 from utils import *
 
 
 def file_setup(func):
+    file_location = 'func'  # TODO: Make this user-changable so more than fmri files can be analysed
+
     if config.output_folder_name != 'DEFAULT':
         output_folder = config.output_folder_name
     elif func == 'Image SNR':
@@ -14,14 +16,23 @@ def file_setup(func):
     elif func == 'Temporal SNR':
         output_folder = 'temporalSNR_report'
 
-    file_location = Utils.file_browser()
+    if config.fMRI_file_location in ("", " "):
+        print('Select the directory which contains the subject folders.')
+        base_sub_location = Utils.file_browser(title='Select the directory which contains the subject folders')
 
-    # Find all nifti and analyze files
-    files = Utils.find_files(f"{file_location}", "hdr", "nii.gz", "nii")
+    else:
+        base_sub_location = config.fMRI_file_location
 
-    Utils.check_and_make_dir(f"{file_location}/{output_folder}")
+    # Create dictionary from each participant directory
+    participants = {participant_dir: None for participant_dir in Utils.find_participant_dirs(base_sub_location)}
 
-    return file_location, files, f"{file_location}/{output_folder}"
+    for participant in participants:
+        # Find all nifti and analyze files
+        participants[participant] = Utils.find_files(f"{participant}/{file_location}", "hdr", "nii.gz", "nii")
+        Utils.check_and_make_dir(f"{participant}/{output_folder}")
+        Utils.save_config(f"{participant}/{output_folder}", 'statmap_config')
+
+    return participants, output_folder, file_location
 
 
 def load_brain(file_path):
@@ -135,10 +146,10 @@ def create_maps(func, file, no_ext_file, noise_file, output_folder):
         temporalSNR_calc(file, no_ext_file, output_folder)
 
 
-def clean_files(file, no_ext_file, output_folder):
+def prepare_files(file, no_ext_file, output_folder):
     noise_file = config.manual_noise_value
-    redundant_files = []
 
+    redundant_files = []
     if config.noise_volume:
         file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder)
         redundant_files.extend([file, noise_file])
@@ -151,7 +162,7 @@ def clean_files(file, no_ext_file, output_folder):
         file, redundant_file = highpass_filtering(file, output_folder, no_ext_file)
         redundant_files.extend([file, redundant_file])
 
-    if config.spatial_smoothing:
+    if config.spatial_smoothing: # todo: Where should this be in the process
         fsl.SUSAN(in_file=file, fwhm=config.smoothing_fwhm, brightness_threshold=config.smoothing_brightness_threshold,
                   out_file=f'{output_folder}/{no_ext_file}_smoothed.nii.gz').run()
         file = f'{output_folder}/{no_ext_file}_smoothed.nii.gz'
@@ -159,24 +170,62 @@ def clean_files(file, no_ext_file, output_folder):
     return file, noise_file, redundant_files
 
 
-def process_files(file, file_location, output_folder, func, cfg):
+def process_files(file, participant, output_folder, file_location, func, cfg):
     global config
 
     config = cfg
 
     no_ext_file = Utils.strip_ext(file)
-    file = f"{file_location}/{file}"
+    file = f"{participant}/{file_location}/{file}"
+    output_folder = f'{participant}/{output_folder}'
 
-    file, noise_file, redundant_files = clean_files(file, no_ext_file, output_folder)
+    file, noise_file, redundant_files = prepare_files(file, no_ext_file, output_folder)
     create_maps(func, file, no_ext_file, noise_file, output_folder)
 
     delete_files(redundant_files)
 
 
+def calculate_statistical_maps(participants, output_folder, file_location, func):
+    if config.multicore_processing:
+        pool = Utils.start_processing_pool()
+    else:
+        pool = None
+
+    for participant_dir, files in participants.items():
+        if config.verbose:
+            print(f'\nCreating statistical maps for participant: {participant_dir.split("/")[-1]}')
+
+        iterable = zip(files,
+                       itertools.repeat(participant_dir),
+                       itertools.repeat(output_folder),
+                       itertools.repeat(file_location),
+                       itertools.repeat(func),
+                       itertools.repeat(config))
+
+        if config.multicore_processing:
+            pool.starmap(process_files, iterable)
+        else:
+            list(itertools.starmap(process_files, iterable))
+
+    if config.multicore_processing:
+        Utils.join_processing_pool(pool, restart=False)
+
+
 def main(func):
+    start_time = time.time()
+    Utils.checkversion()
+
     global config
 
-    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'statmap_config.toml')  # Reload config file incase GUI has changed it
+    # Reload config file incase GUI has changed it
+    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'statmap_config.toml')
+
+    if config.verbose:
+        print('\n--------------------------------\n'
+              '--- Statistical map creation ---\n'
+              '--------------------------------\n'
+              f'\nCreating {func} maps.\n')
+
     logging.getLogger('nipype.workflow').setLevel(0)  # Suppress workflow terminal output
 
     if func == 'Image SNR' and not config.noise_volume and config.manual_noise_value == '':
@@ -187,29 +236,8 @@ def main(func):
         warnings.warn('"Noise volume" is true and a manual noise value has also been given. Using noise volume for '
                       'image SNR calculation. If this is not correct, set "Noise volume" to false.')
 
-    file_location, files, output_folder = file_setup(func)
-
-    Utils.save_config(output_folder, 'statmap_config')
-
-    calculate_statistical_maps(files, file_location, output_folder, func)
+    participants, output_folder, file_location = file_setup(func)
+    calculate_statistical_maps(participants, output_folder, file_location, func)
 
     if config.verbose:
-        print(f"{func} images created in {output_folder}.")
-
-
-def calculate_statistical_maps(files, file_location, output_folder, func):
-    if config.multicore_processing:
-        pool = Utils.start_processing_pool()
-    else:
-        pool = None
-
-    iterable = zip(files, itertools.repeat(file_location), itertools.repeat(output_folder),
-                   itertools.repeat(func), itertools.repeat(config))
-
-    if config.multicore_processing:
-        pool.starmap(process_files, iterable)
-    else:
-        list(itertools.starmap(process_files, iterable))
-
-    if config.multicore_processing:
-        Utils.join_processing_pool(pool, restart=False)
+        print(f"\n--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")

@@ -2,6 +2,8 @@ import argparse
 import ast
 import os
 import shutil
+import sys
+
 import toml
 import re
 from glob import glob
@@ -240,3 +242,29 @@ class Utils:
         extensions = "".join(path.suffixes)
 
         return str(path).replace(extensions, "")
+
+    @staticmethod
+    def find_participant_dirs(directory):
+        # Searches for folders that start with p
+        participant_path = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+", direc)]
+        participant_names = [participant.split('/')[-1] for participant in participant_path]
+
+        if len(participant_path) == 0:
+            raise FileNotFoundError('Participant directories not found.')
+        elif config.verbose:
+            print(f'Found {len(participant_path)} participant folders.')
+
+        return participant_path, participant_names
+
+    @staticmethod
+    def checkversion():
+        # Check Python version:
+        expect_major = 3
+        expect_minor = 8
+        expect_rev = 0
+
+        print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
+        if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):
+            current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
+            print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "
+                  f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running the fRAT.")
