@@ -2,8 +2,8 @@
 version = '0.15.0'
 
 # General
-run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
-run_plotting = true                                                               # true or false.
+run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
+run_plotting = false                                                              # true or false.
 run_statistics = false                                                            # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
@@ -15,15 +15,16 @@ file_cleanup = 'move'                                                           
 
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
-output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
+output_folder = 'TESTTEST'                                                        # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
 anat_align = false                                                                # true or false. Recommended: true.
 grey_matter_segment = false                                                       # true or false. Recommended: true.  Note: Requires anatomical align be true to function.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
-noise_cutoff = false                                                              # true or false. Recommended: true.
-stat_map_folder = 'QA_report/'                                                    # Folder name which contains the statistical map files. Example: QA_report/
-stat_map_suffix = '_tSNR.img'                                                     # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
-bootstrap = false                                                                 # True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations
+noise_cutoff = true                                                               # true or false. Calculate a noise cutoff based on voxels not assigned an ROI or that have been excluded from analysis. Voxels with values of 0 are not included when calculating the noise cutoff, Recommended: true.
+gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
+gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
+stat_map_folder = 'temporalSNR_report/'                                           # Folder name which contains the statistical map files. Example: temporalSNR_report/
+stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
@@ -35,38 +36,38 @@ parameter_dict2 = ['hb', 'ip']                                                  
 plot_dpi = 200                                                                    # Recommended value 600
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
-make_violin_plot = false                                                          # True or False.
-make_brain_table = false                                                          # True or False.
-make_one_region_fig = false                                                       # True or False.
-make_histogram = false                                                            # True or False.
+make_violin_plot = false                                                          # true or false.
+make_brain_table = true                                                           # true or false.
+make_one_region_fig = false                                                       # true or false.
+make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 # Violin_plot
 table_x_label = 'tSNR mean'                                                       # 
 table_y_label = 'ROI'                                                             # 
-violin_show_data = true                                                           # True or False.
-violin_jitter = true                                                              # True or False.
+violin_show_data = true                                                           # true or false.
+violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 table_cols = 'Hyperband'                                                          # 
 table_rows = 'Inplane acceleration'                                               # 
 
 # Brain_table
-brain_tight_layout = false                                                        # True or False. Use a tight layout when laying out the figure. Recommended: false
-brain_fig_value_min = 0                                                           # Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black. Recommended value: 0
-brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
+brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
+brain_fig_value_min = 0                                                           # Provides the minimum value of the colourbar when creating mean and median images. For example, set minimum to 50 to make areas with values below 50 appear black. Recommended value: 0
+brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'IA'                                                     # Label for columns.
-brain_table_row_labels = 'HB'                                                     # Label for rows.
-brain_table_cols = 'Inplane acceleration'                                         # 
-brain_table_rows = 'Hyperband'                                                    # 
+brain_table_col_labels = 'HB'                                                     # Label for columns.
+brain_table_row_labels = 'IPA'                                                    # Label for rows.
+brain_table_cols = 'Hyperband'                                                    # 
+brain_table_rows = 'Inplane acceleration'                                         # 
 
 # Region_barchart
-single_roi_fig_label_x = 'Multiband factor'                                       # 
+single_roi_fig_label_x = 'Hyperband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
-single_roi_fig_label_fill = 'SENSE factor'                                        # 
+single_roi_fig_label_fill = 'IPA factor'                                          # 
 single_roi_fig_x_axis = 'Hyperband'                                               # 
 single_roi_fig_colour = 'Inplane acceleration'                                    # 
 
@@ -75,9 +76,9 @@ histogram_binwidth = 5                                                          
 histogram_fig_label_x = 'temporal Signal to Noise Ratio'                          # 
 histogram_fig_label_y = 'Frequency'                                               # 
 histogram_stat_line_size = 1.5                                                    # 
-histogram_show_mean = true                                                        # True or False.
-histogram_show_median = true                                                      # True or False.
-histogram_show_legend = true                                                      # True or False.
+histogram_show_mean = true                                                        # true or false.
+histogram_show_median = true                                                      # true or false.
+histogram_show_legend = true                                                      # true or false.
 histogram_fig_x_facet = 'Hyperband'                                               # 
 histogram_fig_y_facet = 'Inplane acceleration'                                    # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.

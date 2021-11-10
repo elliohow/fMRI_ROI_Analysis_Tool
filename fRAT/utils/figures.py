@@ -45,14 +45,14 @@ class Figures:
 
     @classmethod
     def make_figures(cls):
-        if not os.path.exists('Figures'):
-            os.makedirs('Figures')
-
         try:
             combined_results_df = pd.read_json("Overall/Summarised_results/combined_results.json")
         except ValueError:
             raise Exception("combined_results.json in relative path 'Overall/Summarised_results/' not found, "
                             "check correct directory has been selected.")
+
+        if not os.path.exists('Figures'):
+            os.makedirs('Figures')
 
         if cls.config.multicore_processing & (cls.config.make_one_region_fig or cls.config.make_histogram):
             pool = Utils.start_processing_pool()
@@ -170,6 +170,10 @@ class Figures:
     def make_raw_df(config, jsons, combined_df):
         combined_raw_df = pd.DataFrame()
 
+        # Make a list of significant columns and remove any blank values
+        # TODO: remove references to histogram to make it more generalisable
+        signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"]))
+
         for json_file in jsons:
             with open(f"{os.getcwd()}/Overall/Raw_results/{json_file}", 'r') as f:
                 current_json = Utils.dict_to_dataframe(json.load(f))
@@ -182,18 +186,16 @@ class Figures:
             combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
             combined_df_search.columns = [x.lower() for x in combined_df_search.columns]
 
-            try:  # TODO: remove references to histogram to make it more generalisable
-                current_json[config.histogram_fig_x_facet] = combined_df_search[config.histogram_fig_x_facet.lower()].iloc[0]
-                current_json[config.histogram_fig_y_facet] = combined_df_search[config.histogram_fig_y_facet.lower()].iloc[0]
+            try:
+                for column in signif_columns[:-1]: # TODO: check this works with file_name in signif_columns, do I need [:-1]
+                    current_json[column] = combined_df_search[column.lower()].iloc[0]
             except IndexError:
                 continue
 
             combined_raw_df = combined_raw_df.append(current_json)
 
-        combined_raw_df = combined_raw_df.melt(
-            id_vars=[config.histogram_fig_x_facet, config.histogram_fig_y_facet, "File_name"],
-            var_name='ROI', value_name='voxel_value')
-
+        # Convert it from wide format into long format
+        combined_raw_df = combined_raw_df.melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
         combined_raw_df.dropna(inplace=True)  # Drop rows that have NA for voxel value
 
         return combined_raw_df
@@ -237,7 +239,7 @@ class BrainGrid(Figures):
         # Create new list of files which exist in NIFTI_ROI folder
         json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
 
-        plot_values, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
+        critical_params, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
         if x_axis_size in (1, 2):
             brain_table_x_size = 32
@@ -250,27 +252,34 @@ class BrainGrid(Figures):
         plt.rcParams['figure.subplot.wspace'] = 0.01
         plt.rcParams['figure.subplot.hspace'] = 0.1
 
-        vmax = vmax_storage = cls.config.brain_fig_value_max
+        if statistic in ['Mean', 'Median']:
+            vmax = vmax_storage = cls.config.brain_fig_value_max
+            vmin = cls.config.brain_fig_value_min
+        else:
+            vmax = vmax_storage = None
+            vmin = 0
+
         if vmax_storage is None:
             vmax_storage = []
 
         while True:
             if base_extension != f"_{statistic}.nii.gz":
+                # For within and mixed scaled tables
                 vmax = 100
-
+                vmin = 0
             elif base_extension == f"_{statistic}.nii.gz" and vmax is not None:
                 base_ext_clean += "_same_scale"
 
             if cls.config.verbose:
                 print(f"Saving {base_ext_clean} table.")
 
-            indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums,
-                                              col_nums, indiv_brain_imgs, json_array, plot_values, row_nums,
-                                              statistic, vmax, vmax_storage, x_axis_size, y_axis_size)
+            indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array,
+                                              critical_params, statistic, vmax, vmax_storage, vmin, x_axis_size,
+                                              y_axis_size)
 
-            if base_extension != f"_{statistic}.nii.gz" or "same_scale" in base_ext_clean \
-                    or cls.config.brain_fig_value_max is not None:
+            if vmax is not None:
                 break
+
             else:
                 # Find highest ROI value seen to create figures with the same scale
                 vmax_storage = sorted(vmax_storage)[-1]
@@ -283,12 +292,11 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def make_table(cls, base_ext_clean, base_extension, cell_nums, col_nums, indiv_brain_imgs,
-                   json_array, plot_values, row_nums, statistic, vmax, vmax_storage, x_axis_size,
-                   y_axis_size):
+    def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params, statistic,
+                   vmax, vmax_storage, vmin, x_axis_size, y_axis_size):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
-                                                                    vmax, vmax_storage, indiv_brain_imgs,
+                                                                    vmax, vmax_storage, vmin, indiv_brain_imgs,
                                                                     statistic)
 
             # Import saved image into subplot
@@ -303,15 +311,17 @@ class BrainGrid(Figures):
             ax.set_xticks([])  # Remove x-axis ticks
             ax.axes.xaxis.set_ticklabels([])  # Remove x-axis labels
 
-            if row_nums[file_num] == 0:
-                plt.title(cls.config.brain_table_col_labels + " " + plot_values[0][col_nums[file_num]],
+            if critical_params['rows']['order'][file_num] == 0 and len(critical_params['cols']['values']) != 1:
+                plt.title(cls.config.brain_table_col_labels + " "
+                          + str(critical_params['cols']['values'][critical_params['cols']['order'][file_num]]),
                           fontsize=cls.config.plot_font_size)
 
-            if col_nums[file_num] == 0:
-                plt.ylabel(cls.config.brain_table_row_labels + " " + plot_values[1][row_nums[file_num]],
+            if critical_params['cols']['order'][file_num] == 0 and len(critical_params['rows']['values']) != 1:
+                plt.ylabel(cls.config.brain_table_row_labels + " "
+                           + str(critical_params['rows']['values'][critical_params['rows']['order'][file_num]]),
                            fontsize=cls.config.plot_font_size)
 
-        cls.label_blank_cell_axes(plot_values, cell_nums, x_axis_size, y_axis_size, dims)
+        cls.label_blank_cell_axes(critical_params, cell_nums, x_axis_size, y_axis_size, dims)
 
         if cls.config.brain_tight_layout:
             plt.tight_layout()
@@ -323,7 +333,7 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, indiv_brain_imgs, statistic):
+    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs, statistic):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
@@ -341,7 +351,7 @@ class BrainGrid(Figures):
 
         plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{json}{base_extension}",
                                   draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
-                                  vmin=cls.config.brain_fig_value_min, vmax=vmax,
+                                  vmin=vmin, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
                                   cmap='inferno')
         plot.savefig(brain_img)
@@ -355,9 +365,6 @@ class BrainGrid(Figures):
     @classmethod
     def table_setup(cls, df):
         unique_params = []
-        current_params = []
-        col_nums = []
-        row_nums = []
         cell_nums = []
 
         for key in cls.config.parameter_dict:
@@ -367,35 +374,45 @@ class BrainGrid(Figures):
 
         plot_values = unique_params  # Get axis values
         axis_titles = list(cls.config.parameter_dict.keys())  # Get axis titles
-        plot_values_sorted = [plot_values[axis_titles.index(cls.config.brain_table_cols)],  # Sort axis values
-                              plot_values[axis_titles.index(cls.config.brain_table_rows)]]
 
-        x_axis_size = len(plot_values_sorted[0])
-        y_axis_size = len(plot_values_sorted[1])
+        critical_params = {'cols': {'param': cls.config.brain_table_cols, 'values': [0], 'order': []},
+                           'rows': {'param': cls.config.brain_table_rows, 'values': [0], 'order': []}}
+
+        for axis in critical_params:
+            if critical_params[axis]['param'] == '':
+                continue
+            else:
+                critical_params[axis]['values'] = plot_values[axis_titles.index(critical_params[axis]['param'])] # Sort axis values
+
+        x_axis_size = len(critical_params['cols']['values'])
+        y_axis_size = len(critical_params['rows']['values'])
 
         for file_num, file_name in enumerate(df['File_name'].unique()):
-            temp_param_store = []
+            temp_order_store = []
             file_name_row = df[df['File_name'] == file_name].iloc[0]  # Get the first row of the relevant file name
 
-            temp_param_store.append(str(file_name_row[cls.config.brain_table_cols]))
-            temp_param_store.append(str(file_name_row[cls.config.brain_table_rows]))
+            for axis in critical_params:
+                if critical_params[axis]['values'] != [0]:
+                    # Extract parameter from df for file
+                    file_param = str(file_name_row[critical_params[axis]['param']])
+                    # Work out row/col order
+                    critical_params[axis]['order'].append(critical_params['cols']['values'].index(file_param))
+                    temp_order_store.append(critical_params['cols']['values'].index(file_param))
+                else:
+                    critical_params[axis]['order'].append(0)
+                    temp_order_store.append(0)
 
-            current_params.append(temp_param_store)  # Store parameters used for file
-
-            col_nums.append(plot_values_sorted[0].index(current_params[file_num][0]))  # Work out col number
-            row_nums.append(plot_values_sorted[1].index(current_params[file_num][1]))  # Work out row number
-
-            cell_nums.append(np.ravel_multi_index((row_nums[file_num], col_nums[file_num]),
+            cell_nums.append(np.ravel_multi_index((temp_order_store[1], temp_order_store[0]),
                                                   (y_axis_size, x_axis_size)))  # Find linear index of figure
 
-        return plot_values_sorted, current_params, col_nums, row_nums, cell_nums, y_axis_size, x_axis_size
+        return critical_params, cell_nums, y_axis_size, x_axis_size
 
     @classmethod
-    def label_blank_cell_axes(cls, plot_values, cell_nums, x_axis_size, y_axis_size, dims):
+    def label_blank_cell_axes(cls, critical_params, cell_nums, x_axis_size, y_axis_size, dims):
         # Make blank image with the same dimensions as previous images
         img = Image.new("RGB", (dims[0], dims[1]), (255, 255, 255))
 
-        for counter, x_title in enumerate(plot_values[0]):
+        for counter, x_title in enumerate(critical_params['cols']['values']):
             hidden_cell = np.ravel_multi_index((0, counter), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums:
@@ -406,9 +423,10 @@ class BrainGrid(Figures):
                 plt.title(cls.config.brain_table_col_labels + " " + x_title, fontsize=cls.config.plot_font_size)
 
                 if hidden_cell == 0:
-                    plt.ylabel(cls.config.brain_table_row_labels + " " + plot_values[1][0], fontsize=cls.config.plot_font_size)
+                    plt.ylabel(cls.config.brain_table_row_labels + " " + critical_params['rows']['values'][0],
+                               fontsize=cls.config.plot_font_size)
 
-        for counter, y_title in enumerate(plot_values[1]):
+        for counter, y_title in enumerate(critical_params['rows']['values']):
             hidden_cell = np.ravel_multi_index((counter, 0), (y_axis_size, x_axis_size))
 
             if hidden_cell not in cell_nums and hidden_cell != 0:
@@ -435,12 +453,17 @@ class ViolinPlot(Figures):
         Utils.check_and_make_dir("Figures/Violin_plots")
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
-        df = df.groupby([cls.config.table_cols, cls.config.table_rows]).apply(
-            lambda x: x.sort_values(['Mean']))  # Group by parameters and sort
-        df = df.reset_index(drop=True)  # Reset index to remove grouping
+        if not cls.config.table_cols == '' and not cls.config.table_rows == '':
+            # If parameter to plot for both columns and rows is set then group by both parameters and then sort by mean
+            df = df.groupby([cls.config.table_cols, cls.config.table_rows]).apply(lambda x: x.sort_values(['Mean']))
 
-        if cls.config.verbose:
-            print(f"Saved violin plot!")
+        elif not cls.config.table_cols == '':
+            df = df.groupby(cls.config.table_cols).apply(lambda x: x.sort_values(['Mean']))
+
+        elif not cls.config.table_rows == '':
+            df = df.groupby(cls.config.table_rows).apply(lambda x: x.sort_values(['Mean']))
+
+        df = df.reset_index(drop=True)  # Reset index to remove grouping
 
         df['constant'] = 1
 
@@ -450,14 +473,14 @@ class ViolinPlot(Figures):
         right_shift = pltn.aes(x=pltn.stage('constant', after_scale='x+shift'))  # shift outward
         left_shift = pltn.aes(x=pltn.stage('constant', after_scale='x-shift'))  # shift inward
 
-        figure = (pltn.ggplot(df, pltn.aes(x="constant", y="Mean"))
+        figure = (pltn.ggplot(df)
+                  + pltn.aes(x="constant", y="Mean")
                   + pltn.geom_violin(left_shift, na_rm=True, style='left', fill=cls.config.violin_colour, size=0.6)
                   + pltn.geom_boxplot(width=0.1, outlier_alpha=0, fill=cls.config.boxplot_colour, size=0.6)
                   + pltn.xlim(0.4, 1.4)
                   + pltn.ylab(cls.config.table_x_label)
                   + pltn.xlab("")
-                  + pltn.facet_grid('{rows}~{cols}'.format(rows=cls.config.table_rows, cols=cls.config.table_cols),
-                                    drop=True, labeller="label_both")
+                  + pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True, labeller="label_both")
                   + pltn.theme_538()  # Set theme
                   + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
                                panel_grid_major_x=pltn.themes.element_line(alpha=0),
@@ -479,10 +502,16 @@ class ViolinPlot(Figures):
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
+        if cls.config.verbose:
+            print(f"Saved violin plot!")
+
 
 class Barchart(Figures):
     @classmethod
     def setup(cls, df, pool):
+        if cls.config.single_roi_fig_x_axis == '':
+            raise Exception('Parameter to plot along the x-axes of the barcharts has not been set.')
+
         Utils.check_and_make_dir("Figures/Barcharts")
         list_rois = list(df['index'].unique())
 
@@ -532,21 +561,20 @@ class Barchart(Figures):
         config.single_roi_fig_colour = config.single_roi_fig_colour.replace(" ", "_")
 
         figure = (
-                pltn.ggplot(current_df, pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
-                                                 ymin="Mean-Conf_Int_95", ymax="Mean+Conf_Int_95",
-                                                 fill=f'factor({config.single_roi_fig_colour})'))
+                pltn.ggplot(current_df)
                 + pltn.theme_538()
                 + pltn.geom_col(position=pltn.position_dodge(preserve='single', width=0.8), width=0.8, na_rm=True)
                 + pltn.geom_errorbar(size=1, position=pltn.position_dodge(preserve='single', width=0.8))
-                + pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
-                            fill=config.single_roi_fig_label_fill)
                 + pltn.scale_x_discrete(labels=[])
                 + pltn.theme(panel_grid_major_x=pltn.element_line(alpha=0),
+                             panel_background=pltn.element_rect(fill='white', alpha=.2),
                              axis_title_x=pltn.element_text(weight='bold', color='black', size=20),
                              axis_title_y=pltn.element_text(weight='bold', color='black', size=20),
                              axis_text_y=pltn.element_text(size=20, color='black'),
-                             legend_title=pltn.element_text(size=20, color='black'),
-                             legend_text=pltn.element_text(size=18, color='black'),
+                             legend_title=pltn.element_text(size=20, weight='bold', color='black', margin={'b': 20}),
+                             legend_text=pltn.element_text(size=20, color='black', margin={'l': 5}),
+                             legend_entry_spacing=10,
+                             legend_key_size=30,
                              subplots_adjust={'right': 0.85},
                              legend_position=(0.9, 0.8),
                              dpi=config.plot_dpi
@@ -555,6 +583,19 @@ class Barchart(Figures):
                                  color='black', size=20, va='top')
                 + pltn.scale_fill_manual(values=config.colorblind_friendly_plot_colours)
         )
+
+        conf_int_string = [x for x in current_df.keys() if 'Conf_Int' in x][0]
+
+        if not config.single_roi_fig_colour == '':
+            figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
+                               ymin=f"Mean-{conf_int_string}", ymax=f"Mean+{conf_int_string}",
+                               fill=f'factor({config.single_roi_fig_colour})')
+        else:
+            figure += pltn.aes(x=config.single_roi_fig_x_axis, y='Mean',
+                               ymin=f"Mean-{conf_int_string}", ymax=f"Mean+{conf_int_string}")
+
+        figure += pltn.labs(x=config.single_roi_fig_label_x, y=config.single_roi_fig_label_y,
+                            fill=config.single_roi_fig_label_fill)
 
         if ylimit:
             # Set y limit of figure (used to make it the same for every barchart)
@@ -639,13 +680,14 @@ class Histogram(Figures):
         combined_df = combined_df.rename(
             columns={"index": "ROI"})  # Rename column to maintain parity with combined_df column naming convention
 
+        # Make a list of significant columns and remove any blank values
+        signif_columns = list(filter(None, [cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet]))
         current_df = current_df.merge(combined_df,
-                                      on=['ROI', cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet],
+                                      on=['ROI', *signif_columns],
                                       how='left')
 
         # Keep only the necessary columns
-        keys = [cls.config.histogram_fig_x_facet, cls.config.histogram_fig_y_facet,
-                'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
+        keys = [*signif_columns, 'ROI', 'voxel_value', 'Voxels', 'Mean', 'Median']
 
         for column in current_df.columns:
             if column not in keys:

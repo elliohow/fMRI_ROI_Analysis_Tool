@@ -28,11 +28,11 @@ General = {
                        'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
 
     'brain_file_loc': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                       'label': 'NIFTI/ANALYZE folder location',
+                       'label': 'Base directory of subjects',
                        'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'report_output_folder': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                          'label': 'fRAT report output folder location',
+                          'label': 'fRAT output directory location',
                           'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',
@@ -77,19 +77,34 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
-    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'false',
-                             'Description': 'true or false. Recommended: true.'},
+    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
+                             'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
+                                            'ROI or that have been excluded from analysis. Voxels with values of 0 are '
+                                            'not included when calculating the noise cutoff, Recommended: true.'},
 
-    'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string',
+    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. '
+                                    'Recommended: true.'},
+
+    'gaussian_outlier_location': {'type': 'OptionMenu', 'Recommended': 'below gaussian',
+                                  'Options': ['below gaussian', 'above gaussian', 'both'],
+                                  'save_as': 'string',
+                                  'Description': 'Data to remove (if gaussian outlier detection is true).\n'
+                                                 'For example: if set to below gaussian, data below the gaussian will be removed.\n'
+                                                 'Recommended: below gaussian.'},
+
+    'stat_map_folder': {'type': 'Entry', 'Recommended': 'temporalSNR_report/', 'save_as': 'string',
                         'label': 'Statistical map folder',
-                        'Description': 'Folder name which contains the statistical map files. Example: QA_report/'},
+                        'Description': 'Folder name which contains the statistical map files. '
+                                       'Example: temporalSNR_report/'},
 
-    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.img', 'save_as': 'string',
+    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
                         'label': 'Statistical map suffix',
-                        'Description': 'File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img'},
+                        'Description': 'File name suffix of the statistical map files. Include the file extension. '
+                                       'Example: _tSNR.img'},
 
-    'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
-                  'Description': 'True or False. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
+    # 'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
+    #               'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
 
     'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
                           'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
@@ -132,36 +147,41 @@ Plotting = {
                    'Description': 'Recommended value 10'},
 
     'make_violin_plot': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make violin plots',
-                         'Description': 'True or False.'},
+                         'Description': 'true or false.'},
 
     'make_brain_table': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make brain visualisations',
-                         'Description': 'True or False.'},
+                         'Description': 'true or false.'},
 
     'make_one_region_fig': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make regional barcharts',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'make_histogram': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Make regional histograms',
-                       'Description': 'True or False.'},
+                       'Description': 'true or false.'},
 
     'colorblind_friendly_plot_colours': {'type': 'Entry', 'Recommended': '#ffeda0, #feb24c, #fc4e2a, #bd0026',
                                          'save_as': 'list',
                                          'Description': 'Hex values of colourblind friendly colour scale.'},
 
     'regional_fig_rois': {'type': 'Entry', 'Recommended': 'all', 'save_as': 'list', 'label': 'ROIs to plot',
-                          'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime."},
+                          'Description': "Provide a comma-separated list of regions to plot e.g. [3, 5], the string "
+                                         "'all' for all rois or the string 'Runtime' to provide regions at runtime."},
 }
 
 '''Brain table settings'''
 Brain_table = {
     'brain_tight_layout': {'type': 'CheckButton', 'Recommended': 'false',
-                           'Description': 'True or False. Use a tight layout when laying out the figure. Recommended: false'},
+                           'Description': 'true or false. Use a tight layout when laying out the figure. Recommended: false'},
 
-    'brain_fig_value_min': {'type': 'Entry', 'Recommended': 0,
-                            'Description': 'Provides the minimum value of the colourbar. For example, set minimum to 50 to make areas with values below 50 appear black.\n'
+    'brain_fig_value_min': {'type': 'Entry', 'Recommended': 0, 'label': 'Minimum median and mean value',
+                            'Description': 'Provides the minimum value of the colourbar when creating mean and median '
+                                           'images. For example, set minimum to 50 to make areas with values below 50 '
+                                           'appear black.\n'
                                            'Recommended value: 0'},
 
-    'brain_fig_value_max': {'type': 'Entry', 'Recommended': None,
-                            'Description': 'Provides the maximum value of the colourbar. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar.\n'
+    'brain_fig_value_max': {'type': 'Entry', 'Recommended': None, 'label': 'Maximum median and mean value',
+                            'Description': 'Provides the maximum value of the colourbar when creating mean and median '
+                                           'images. For example, set maximum to 50 to make areas with values above 50 '
+                                           'appear as the brighest colour on the colourbar.\n'
                                            'Recommended value: None. Note: will default to 100 for scaled maps.'},
 
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
@@ -195,10 +215,10 @@ Violin_plot = {
                       'Description': ''},
 
     'violin_show_data': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show data points',
-                         'Description': 'True or False.'},
+                         'Description': 'true or false.'},
 
     'violin_jitter': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Jitter data points',
-                      'Description': 'True or False.'},
+                      'Description': 'true or false.'},
 
     'violin_colour': {'type': 'Dynamic', 'Recommended': '#fc4e2a',
                       'Options': 'Plotting["colorblind_friendly_plot_colours"]',
@@ -256,13 +276,13 @@ Region_histogram = {
                                  'Description': ''},
 
     'histogram_show_mean': {'type': 'CheckButton', 'Recommended': 'true',
-                            'Description': 'True or False.'},
+                            'Description': 'true or false.'},
 
     'histogram_show_median': {'type': 'CheckButton', 'Recommended': 'true',
-                              'Description': 'True or False.'},
+                              'Description': 'true or false.'},
 
     'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true',
-                              'Description': 'True or False.'},
+                              'Description': 'true or false.'},
 
     'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,

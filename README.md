@@ -3,7 +3,7 @@
 >
 > A GUI-based pipeline to analyse and plot ROI-level analyses for **MacOS** and **Linux**. 
 >
-> Tested and developed using **Python version 3.7.5**. 
+> Tested and developed using **Python version 3.8.0**. 
 
 ## Table of Contents
 <!--ts-->

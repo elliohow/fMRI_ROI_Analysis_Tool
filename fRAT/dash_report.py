@@ -53,7 +53,7 @@ def df_setup():
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    df = pd.read_json(f"{folder}/Summarised_results/combined_results.json")
+    df = pd.read_json(f"{folder}/Overall/Summarised_results/combined_results.json")
 
     r = re.compile("Conf_Int_*")
     Conf_Int = list(filter(r.match, df.columns))[0]  # Find confidence interval level

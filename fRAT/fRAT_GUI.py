@@ -169,22 +169,12 @@ class Config_GUI:
                 elif curr_page == 'Version Info':
                     continue
 
-                elif line is not '\n':
+                elif line != '\n':
                     setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
 
-                    try:
-                        if setting[1] in ['true', 'false']:
-                            setting[1] = setting[1].title()
+                    current_setting = Utils.convert_toml_input_to_python_object(setting[1])
 
-                        setting[1] = ast.literal_eval(setting[1])
-
-                        if isinstance(setting[1], tuple):
-                            setting[1] = list(setting[1])
-
-                    except (ValueError, SyntaxError):
-                        pass
-
-                    eval(curr_page)[setting[0]]['Current'] = setting[1]
+                    eval(curr_page)[setting[0]]['Current'] = current_setting
 
     def refresh_frame(self):
         """ refresh the content of the label every second """
@@ -629,31 +619,47 @@ class Config_GUI:
 class Tooltip(object):
     def __init__(self, widget):
         self.widget = widget
-        self.tipwindow = None
+        self.widget_type = widget.winfo_class()
+        self.tooltip_window = None
         self.id = None
         self.x = self.y = 0
 
     def showtip(self, text):
         "Display text in tooltip window"
         self.text = text
-        if self.tipwindow or not self.text:
+
+        if self.tooltip_window or not self.text:
             return
+
+        if self.widget_type == 'TButton':
+            x_offset = 120
+            y_offset = 32
+        else:
+            x_offset = 57
+            y_offset = 27
+
         x, y, cx, cy = self.widget.bbox("insert")
-        x = x + self.widget.winfo_rootx() + 57
-        y = y + cy + self.widget.winfo_rooty() +27
-        self.tipwindow = tw = tk.Toplevel(self.widget)
-        tw.wm_overrideredirect(1)
-        tw.wm_geometry("+%d+%d" % (x, y))
-        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+        x = x + self.widget.winfo_rootx() + x_offset
+        y = y + cy + self.widget.winfo_rooty() + y_offset
+
+        self.tooltip_window = tooltip_window = tk.Toplevel(self.widget)
+        tooltip_window.overrideredirect(True)
+        tooltip_window.wm_geometry(f"+{x}+{y}")
+
+        label = tk.Label(tooltip_window, text=self.text, justify=tk.LEFT,
                       background="#ffffe0", relief=tk.SOLID, borderwidth=1,
                       font=("tahoma", "12", "normal"))
         label.pack(ipadx=1)
 
+        tooltip_window.update_idletasks()
+        tooltip_window.lift()
+
     def hidetip(self):
-        tw = self.tipwindow
-        self.tipwindow = None
-        if tw:
-            tw.destroy()
+        tooltip_window = self.tooltip_window
+        self.tooltip_window = None
+
+        if tooltip_window:
+            tooltip_window.destroy()
 
     @staticmethod
     def CreateToolTip(widget, text):
@@ -710,6 +716,10 @@ def Button_handler(command, *args):
 
 def check_stale_state():
     current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
+
+    if current_critical_params == ['']:
+        raise Exception('No critical parameters set in Parsing options.')
+
     dynamic_widgets = (Violin_plot['table_cols'], Violin_plot['table_rows'],
                        Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
                        Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],
@@ -721,7 +731,7 @@ def check_stale_state():
 
     stale_pages = []
     for counter, widget in enumerate(dynamic_widgets):
-        if widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
+        if not widget['Current'] == '' and widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
             stale_pages.append(plot_pages[counter])
 
     if stale_pages:

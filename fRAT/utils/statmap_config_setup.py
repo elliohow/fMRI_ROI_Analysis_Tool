@@ -13,9 +13,10 @@ Statistical_maps = {
                                       " manually select number of cores to use. Recommended: 'max'"},
 
     'fMRI_file_location': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                           'label': 'NIFTI/ANALYZE folder location',
-                           'Description': 'Either the absolute location of brain files or blank, if blank then a '
-                                          'browser window will allow you to search for the files at runtime.'},
+                           'label': 'Base folder location',
+                           'Description': 'Either the absolute location of the folder containing the subjects or blank, '
+                                          'if blank then a browser window will allow you to search for the files at '
+                                          'runtime.'},
 
     'output_folder_name': {'type': 'Entry', 'Recommended': "DEFAULT", 'save_as': 'string',
                            'Description': 'Directory to save output. If set to DEFAULT, output directory name will be '

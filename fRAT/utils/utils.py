@@ -1,38 +1,73 @@
 import argparse
+import ast
 import os
 import shutil
+import sys
+
 import toml
 import re
 from glob import glob
 from tkinter import Tk, filedialog
 import multiprocess as mp
 import pandas as pd
+import nibabel as nib
 import warnings
 from pathlib import Path
 from types import SimpleNamespace
+
+from utils.fRAT_config_setup import *
 
 config = None
 
 
 class Utils:
     @staticmethod
+    def convert_toml_input_to_python_object(x):
+        try:
+            if x in ['true', 'false']:
+                x = x.title()
+
+            x = ast.literal_eval(x)
+
+            if isinstance(x, tuple):
+                x = list(x)
+
+        except (ValueError, SyntaxError):
+            pass
+
+        return x
+
+    @staticmethod
     def argparser():
         # Create the parser
-        parser = argparse.ArgumentParser(prog='fRAT.py',
-                                         description='Convert voxelwise statistics to regionwise statistics for fMRI data.')
+        parser = argparse.ArgumentParser(prog='fRAT.py', usage='%(prog)s [arguments]',
+                                         description='Convert voxelwise statistics to regionwise statistics for fMRI '
+                                                     'data.',
+                                         epilog='Supplying arguments in this way is for advanced users only. It is '
+                                                'recommended that settings are changed using the GUI or by '
+                                                'editing the fRAT_config.toml file. '
+                                                'Arguments should be given in toml format. For example: '
+                                                'true should be used instead of True and strings should be in '
+                                                'quotation marks. Where a comma-separated list is supposed to be '
+                                                'given, this should be in the format: ["mb", "sense"].')
 
         # Add the arguments
-        parser.add_argument('--brain_loc', dest='brain_loc', action='store', type=str,
-                            help='Directory location of brain files for analysis.')
+        parser.add_argument('--make_table', dest='make_table',
+                            help='true or false. Use this flag to create a csv file to store parameter information '
+                                 'about files. Recommended that this file is created and filled in before fRAT '
+                                 'execution.')
 
-        parser.add_argument('--output_loc', dest='output_loc', action='store', type=str,
-                            help='Location of folder produced by the fRAT.')
+        arg_categories = pages[1:]
 
-        parser.add_argument('--make_table', dest='make_table', action='store_true',
-                            help='Use this flag to create a csv file to store parameter information about files.'
-                                 'Recommended that this file is created and filled in before fRAT execution'
-                                 ' (this setting can alternatively be set to True or False in fRAT_config.toml).')
+        for category in arg_categories:
+            for arg in eval(category):
+                help_text = eval(category)[arg]["Description"].replace("%", "%%")
 
+                if help_text == "":
+                    help_text = f"Recommended value: {eval(category)[arg]['Recommended']}"
+
+                parser.add_argument(f'--{arg}', dest=arg, help=help_text)
+        
         # Execute the parse_args() method
         args = parser.parse_args()
 
@@ -171,22 +206,13 @@ class Utils:
                 config = SimpleNamespace(**parse)
 
                 if filename == 'fRAT_config.toml':
-                    # Cleans config output
-                    atlas_options = ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort',
-                                     'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
-                                     'SMATT-labels', 'STN',
-                                     'striatum-structural', 'Talairach-labels', 'Thalamus']
-                    config.atlas_number = atlas_options.index(config.atlas_number)
-
                     config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
                                                 'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
 
-                    conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
-                    config.bootstrap_alpha = 1 - float(f"0.{re.split('%', config.conf_level_number)[0]}")
-                    config.conf_level_number = conf_level_options.index(config.conf_level_number)
-
                     config.parameter_dict = {config.parameter_dict1[i]:
                                                  config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
+
+                    Utils.clean_config_options(config)
 
                 return config
 
@@ -194,8 +220,61 @@ class Utils:
                 raise Exception('Config file not in correct format or missing entries.')
 
     @staticmethod
+    def clean_config_options(config):
+        atlas_options = ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort',
+                         'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI',
+                         'SMATT-labels', 'STN',
+                         'striatum-structural', 'Talairach-labels', 'Thalamus']
+
+        if not type(config.atlas_number) is int:
+            config.atlas_number = atlas_options.index(config.atlas_number)
+
+        conf_level_options = ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58']
+
+        if not type(config.conf_level_number) is int:
+            config.bootstrap_alpha = 1 - float(f"0.{re.split('%', config.conf_level_number)[0]}")
+            config.conf_level_number = conf_level_options.index(config.conf_level_number)
+
+        return config
+
+    @staticmethod
+    def load_brain(file_path):
+        data = nib.load(file_path)
+
+        header = data.header
+        data = data.get_fdata()
+
+        return data, header
+
+    @staticmethod
     def strip_ext(path):
         path = Path(path)
         extensions = "".join(path.suffixes)
 
         return str(path).replace(extensions, "")
+
+    @staticmethod
+    def find_participant_dirs(directory):
+        # Searches for folders that start with p
+        participant_path = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+", direc)]
+        participant_names = [participant.split('/')[-1] for participant in participant_path]
+
+        if len(participant_path) == 0:
+            raise FileNotFoundError('Participant directories not found.')
+        elif config.verbose:
+            print(f'Found {len(participant_path)} participant folders.')
+
+        return participant_path, participant_names
+
+    @staticmethod
+    def checkversion():
+        # Check Python version:
+        expect_major = 3
+        expect_minor = 8
+        expect_rev = 0
+
+        print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
+        if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):
+            current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
+            print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "
+                  f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running the fRAT.")

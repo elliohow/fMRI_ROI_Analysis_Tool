@@ -16,9 +16,10 @@ import bootstrapped.stats_functions as bs_stats
 from os.path import splitext
 from glob import glob
 from nipype.interfaces import fsl
+from sklearn.covariance import EllipticEnvelope
+from sklearn.cluster import KMeans
 
 from .utils import Utils
-
 
 config = None
 
@@ -80,15 +81,15 @@ class Environment_Setup:
     @classmethod
     def setup_save_location(cls, config):
         cls.atlas_name = os.path.splitext(cls.atlas_label_list[int(config.atlas_number)][1])[0]
-        
+
         if config.output_folder == 'DEFAULT':
             cls.save_location = f'{cls.atlas_name}_ROI_report/'
         else:
             cls.save_location = f'{config.output_folder}/'
-            
+
         if config.verbose:
-            print(f'Using the {cls.atlas_name} atlas.'
-                  f'\n    Saving output in directory: {cls.save_location}\n')
+            print(f'Saving output in directory: {cls.save_location}\n'
+                  f'Using the {cls.atlas_name} atlas.\n')
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}", delete_old=True)
@@ -111,7 +112,8 @@ class Environment_Setup:
             cls.base_directory = config.brain_file_loc
 
             if config.verbose:
-                print(f'Gathering brain files from {config.brain_file_loc}.')
+                print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
+                      f'Looking for stat maps in directory: {config.stat_map_folder}\n')
 
         # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
         Utils.save_config(cls.base_directory, 'fRAT_config')
@@ -150,6 +152,7 @@ class Participant:
         self.anat_brain = None
         self.anat_to_mni_mat = None
         self.anat_brain_no_ext = None
+        self.fsl_segmentation = None
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -171,18 +174,19 @@ class Participant:
                                          self.save_location,
                                          self.anat_brain,
                                          self.anat_to_mni_mat,
+                                         self.fsl_segmentation,
                                          environment_globals)
 
         return self
 
-    @classmethod
-    def setup_class(cls, base_directory, save_location, pool):
-        participant_dirs = cls.find_participant_dirs()
+    @staticmethod
+    def setup_class(base_directory, save_location, pool):
+        _, participants = Utils.find_participant_dirs(os.getcwd())
 
         participant_list = set()
-        for participant_dir in participant_dirs:
+        for participant in participants:
             # Initialise participants
-            participant_list.add(Participant(participant_dir, base_directory, save_location))
+            participant_list.add(Participant(participant, base_directory, save_location))
 
         # Set arguments to pass to run_analysis function
         iterable = zip(participant_list, itertools.repeat("setup_participant"),
@@ -217,7 +221,8 @@ class Participant:
             print(f'\nAnalysing fMRI files for participant: {self.participant_name}\n')
 
         orig_brain_num = len(self.brains)
-        self.brains = [brain for brain in self.brains if brain.parameters]  # Remove any brains that are set to be ignored
+        self.brains = [brain for brain in self.brains if
+                       brain.parameters]  # Remove any brains that are set to be ignored
 
         if config.verbose and orig_brain_num != len(self.brains):
             print(f'Ignoring {orig_brain_num - len(self.brains)}/{orig_brain_num} files.\n')
@@ -235,7 +240,7 @@ class Participant:
                 brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
             construct_combined_results(f'{self.save_location}')
-        
+
         if config.anat_align:
             self.anat_file_cleanup()
 
@@ -262,8 +267,14 @@ class Participant:
         self.anat_brain = f'{self.participant_path}/anat/{anat}'
         self.anat_brain_no_ext = anat.rsplit(".")[0]
         self.anat_to_mni_mat = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
-                                                'FLIRT', self.anat_brain, 'to_mni_from_',
-                                                f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+                                             'FLIRT', self.anat_brain, 'to_mni_from_',
+                                             f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+
+        if config.grey_matter_segment:
+            try:
+                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
+            except IndexError:
+                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*")[0]
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
@@ -272,10 +283,11 @@ class Participant:
 
         # Calculate MNI cost function value
         mni_cost = run_flirt_cost_function(fslfunc,
-                                                f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
-                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
-                                                f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat')
+                                           f'{Environment_Setup.fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                           f'{self.save_location}Intermediate_files/to_mni_from_{self.anat_brain_no_ext}.mat',
+                                           f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.nii.gz',
+                                           f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat',
+                                           config)
 
         return mni_cost
 
@@ -295,11 +307,12 @@ class Participant:
 
 class Brain:
     def __init__(self, brain, participant_folder, participant_name, save_location,
-                 anat_brain, anat_to_mni_mat, environment_globals):
+                 anat_brain, anat_to_mni_mat, fsl_segmentation, environment_globals):
         self.brain = brain
         self.save_location = save_location
         self.anat_brain = anat_brain
         self.anat_to_mni_mat = anat_to_mni_mat
+        self.fsl_segmentation = fsl_segmentation
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
         self.roiResults = None
@@ -308,6 +321,7 @@ class Brain:
         self.file_list = []
         self.participant_name = participant_name
         self.parameters = []
+        self.noise_threshold = None
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
@@ -318,7 +332,7 @@ class Brain:
         self._labelArray = environment_globals['label_array']
         self.atlas_path = environment_globals['atlas_path']
 
-    def fmri_flirt_cost_and_mean_displacement(self, brain_number_current, brain_number_total, config):
+    def fmri_get_additional_info(self, brain_number_current, brain_number_total, config):
         if config.verbose:
             print(f'Calculating cost function and mean displacement values for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
@@ -327,24 +341,24 @@ class Brain:
                             schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
-        anat_cost, mni_cost = 0, 0
+        anat_cost, mni_cost = None, None
 
         if config.anat_align:  # Calculate anatomical cost function value
             anat_cost = run_flirt_cost_function(fslfunc,
-                                                          self.anat_brain,
-                                                          f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
-                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
-                                                          f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
-                                                     config)
+                                                self.anat_brain,
+                                                f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
+                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
+                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
+                                                config)
 
         else:
             # Calculate MNI cost function value
             mni_cost = run_flirt_cost_function(fslfunc,
-                                                         f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                                         f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
-                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
-                                                         f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
-                                                    config)
+                                               f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
+                                               f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
+                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
+                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
+                                               config)
 
         # Find absolute and relative mean displacement files
         suffixes = ['_abs_mean.rms', '_rel_mean.rms']
@@ -354,7 +368,8 @@ class Brain:
                       f"{self.no_ext_brain}{suffix}", 'r') as file:
                 displacement_vals.append(float(file.read().replace('\n', '')))
 
-        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1]
+        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[
+            1], self.noise_threshold
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -415,7 +430,7 @@ class Brain:
         return roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum
 
     @staticmethod
-    def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, GM_bool):
+    def compile_voxel_values(roiTempStore, roiResults, idxMNI, idxBrain, GM_bool):
         for counter, roi in enumerate(idxMNI):
             if not config.grey_matter_segment or GM_bool[counter] == 1:
                 roiTempStore[int(roi), counter] = idxBrain[counter]
@@ -428,25 +443,20 @@ class Brain:
 
         return roiTempStore, roiResults
 
-    def segmentation_to_fmri(self, anat_aligned_mat, current_brain, brain_number_current, brain_number_total):
+    def segmentation_to_fmri(self, anat_aligned_mat, fMRI_volume, brain_number_current, brain_number_total):
         if config.verbose:
             print(f'Aligning fslfast segmentation to fMRI volume {brain_number_current + 1}/{brain_number_total}.')
-
-        try:
-            source_loc = glob(f"fslfast/*_pve_1*")[0]
-        except IndexError:
-            source_loc = glob(f"fslfast/*")[0]
 
         prefix = 'fslfast_to_'
         interp = 'trilinear'
 
         # Save inverse of fMRI to anat
         inverse_mat = fsl_functions(self, self.save_location, self.no_ext_brain, 'ConvertXFM', anat_aligned_mat,
-                                         'inverse_anat_to_')
+                                    'inverse_anat_to_')
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
-        segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM', source_loc,
-                                                  prefix, inverse_mat, current_brain, interp)
+        segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM',
+                                             self.fsl_segmentation, prefix, inverse_mat, fMRI_volume, interp)
 
         return segmentation_to_fmri
 
@@ -465,40 +475,40 @@ class Brain:
         pack_vars = [self, self.save_location, self.no_ext_brain]
 
         # Motion correction
-        current_brain = fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mcf_")
+        fMRI_volume = fsl_functions(*pack_vars, 'MCFLIRT', self.brain, "mcf_")
 
         # Turn 4D scan into 3D
-        current_brain = fsl_functions(*pack_vars, 'MeanImage', current_brain, "mean_")
+        fMRI_volume = fsl_functions(*pack_vars, 'MeanImage', fMRI_volume, "mean_")
 
         # Brain extraction
-        current_brain = fsl_functions(*pack_vars, 'BET', current_brain, "bet_")
+        fMRI_volume = fsl_functions(*pack_vars, 'BET', fMRI_volume, "bet_")
 
         if config.anat_align:
             if config.verbose:
                 print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
 
             # Align to anatomical
-            fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_anat_from_", self.anat_brain)
+            fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_anat_from_", self.anat_brain)
 
             # Combine fMRI-anat and anat-mni matrices
             mat = fsl_functions(*pack_vars, 'ConvertXFM', fmri_to_anat_mat, 'combined_mat_', 'concat_xfm')
 
         else:
             # Align to MNI
-            mat = fsl_functions(*pack_vars, 'FLIRT', current_brain, "to_mni_from_",
-                                     f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+            mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_mni_from_",
+                                f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
         # Get inverse of matrix
         inverse_mat = fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
 
         # Apply inverse of matrix to chosen atlas to convert it into native space
         fsl_functions(*pack_vars, 'ApplyXFM', self.atlas_path,
-                      'mni_to_', inverse_mat, current_brain,
+                      'mni_to_', inverse_mat, fMRI_volume,
                       'nearestneighbour')
 
         if config.grey_matter_segment:
             # Convert segmentation to fMRI native space
-            segmentation_to_fmri = self.segmentation_to_fmri(fmri_to_anat_mat, current_brain,
+            segmentation_to_fmri = self.segmentation_to_fmri(fmri_to_anat_mat, fMRI_volume,
                                                              brain_number_current, brain_number_total)
 
             grey_matter_bool = self.find_gm_from_segment(segmentation_to_fmri)
@@ -513,25 +523,128 @@ class Brain:
         roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
 
         # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
-        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults,
-                                                              idxMNI, idxBrain,
-                                                              GM_bool)
+        roiTempStore, roiResults = self.compile_voxel_values(roiTempStore, roiResults,
+                                                             idxMNI, idxBrain,
+                                                             GM_bool)
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-        roiResults = compile_roi_stats(roiTempStore, roiResults, config)  # Compile ROI statistics
+        roiResults, roiTempStore, header, statmap_shape, save_location = self.create_no_roi_volume(roiResults,
+                                                                                                   roiTempStore)
+
+        # Remove outliers from ROIs
+        roiTempStore, roiResults = self.outlier_detection(roiResults, roiTempStore, save_location, statmap_shape,
+                                                          header)
+
+        # Compile ROI statistics
+        roiResults = compile_roi_stats(roiTempStore, roiResults, config)
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
-        if config.bootstrap:
-            roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
-                                                  brain_number_total)  # Bootstrapping
+        # if config.bootstrap: # TODO: uncomment this when bootstrapping reimplemented
+        #     roiResults = roi_stats_bootstrap(roiTempStore, roiResults, roiNum, brain_number_current,
+        #                                           brain_number_total)  # Bootstrapping
 
         roi_stats_save(roiTempStore, roiResults, self._labelArray,
                        self.save_location, self.parameters, config)  # Save results
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
         self.roiTempStore = roiTempStore  # Retain variable for atlas_scale function
+
+    def create_no_roi_volume(self, roiResults, roiTempStore):
+        Utils.check_and_make_dir(f"{self.save_location}/Excluded_voxels/")
+        save_location = f"{self.save_location}/Excluded_voxels/{self.no_ext_brain}"
+
+        statmap, header = Utils.load_brain(self.stat_brain)
+        statmap_shape = statmap.shape
+
+        create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi.nii.gz",
+                             statmap_shape, header)
+
+        return roiResults, roiTempStore, header, statmap_shape, save_location
+
+    def outlier_detection(self, roiResults, roiTempStore, save_location, statmap_shape, header):
+        if config.noise_cutoff:
+            # Calculate noise threshold
+            self.noise_threshold = np.true_divide(np.nansum(roiTempStore[0, :]), np.count_nonzero(roiTempStore[0, :]))
+
+            outlier_bool_array = roiTempStore[1:, :] < self.noise_threshold
+            roiResults = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roiResults)
+
+            roiTempStore = self.remove_outliers(outlier_bool_array, roiTempStore)
+
+            create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi_noise_thresh.nii.gz", statmap_shape, header)
+
+        if config.gaussian_outlier_detection:
+            # Fit a gaussian to the data using EllipticEnvelope
+            outliers = self.outlier_detection_using_model(data=roiTempStore[1:, :],
+                                                          model=EllipticEnvelope(),
+                                                          outlier_location=-1)
+
+            if config.gaussian_outlier_location != 'both':
+                outliers.sort()  # Sort to make it easier to find start and end
+
+                if config.gaussian_outlier_location == 'below gaussian':
+                    outlier_location = 0
+                elif config.gaussian_outlier_location == 'above gaussian':
+                    outlier_location = -1
+                else:
+                    raise Exception('gaussian_outlier_location not valid')
+
+                # Use K-Means clustering to split the data into groups
+                outliers = self.outlier_detection_using_model(data=np.array(outliers).reshape(-1, 1),
+                                                              model=KMeans(n_clusters=2),
+                                                              outlier_location=outlier_location,
+                                                              salient_prediction_order=True)
+
+            outlier_bool_array = np.isin(roiTempStore[1:, :], outliers)
+
+            roiResults = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roiResults)
+
+            roiTempStore = self.remove_outliers(outlier_bool_array, roiTempStore)
+            create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi_elliptic_overall.nii.gz", statmap_shape, header)
+
+        return roiTempStore, roiResults
+
+    def outlier_detection_using_model(self, data, model, outlier_location, salient_prediction_order=False):
+        values = data.copy()
+        values = values[~np.isnan(values)]
+
+        prediction = model.fit_predict(values.reshape(-1, 1))
+
+        if salient_prediction_order is False:
+            outliers = [x for counter, x in enumerate(values) if prediction[counter] == outlier_location]
+        elif salient_prediction_order is True:
+            # For K-Means clustering where outliers does not necessarily equal -1
+            outliers = [x for counter, x in enumerate(values) if prediction[counter] == prediction[outlier_location]]
+
+        return outliers
+
+    def calculate_number_of_outliers_per_roi(self, outlier_bool_array, roiResults):
+        # Count how many voxels are below noise threshold for each ROI
+        below_threshold = np.count_nonzero(outlier_bool_array, axis=1)
+        # Assign voxels below threshold to excluded voxels column
+        roiResults[7, 1:-1] += below_threshold
+
+        return roiResults
+
+    def remove_outliers(self, outlier_bool_array, roiTempStore):
+        # Convert from bool to float64 to be able to assign values
+        outlier_float_array = np.max(outlier_bool_array, axis=0).astype('float64')
+
+        # Replace False with nans and True with statistic value
+        outlier_float_array[outlier_float_array == 0.0] = np.nan
+
+        # Use the transpose of roiTempStore and outlier bool array to make sure output is ordered by columns not rows
+        outlier_float_array[outlier_float_array == 1.0] = roiTempStore[1:, :].T[outlier_bool_array.T]
+
+        # Set any outlier ROI values to nan
+        roiTempStore[1:, :][outlier_bool_array] = np.nan
+
+        # Stack no ROI values on top of array containing outlier values, and then use nan max to condense into one array
+        roiTempStore[0, :] = np.nanmax(np.vstack((outlier_float_array, roiTempStore[0, :])), axis=0)
+
+        return roiTempStore
 
 
 class MatchedBrain:
@@ -561,7 +674,7 @@ class MatchedBrain:
         for param_combination in matched_brains:
             # Initialise participants
             matched_brain_list.add(MatchedBrain(matched_brains[param_combination], param_combination))
-            
+
         cls.assign_parameters_to_brains(matched_brain_list, participant_list)
 
         return matched_brain_list
@@ -574,7 +687,8 @@ class MatchedBrain:
 
         matched_brains = dict()
         for index, row in table.iterrows():
-            if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in ('yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
+            if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in (
+                    'yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
                 continue
 
             elif tuple(row[critical_column_locs]) not in matched_brains.keys():
@@ -630,14 +744,17 @@ class MatchedBrain:
         # Collapse overall results and calculate total excluded voxels
         self.overall_results = np.sum(self.overall_results, axis=0)
 
-        self.raw_results = np.concatenate(self.raw_results, axis=1)  # Combine raw results
+        # Combine raw results
+        self.raw_results = np.concatenate(self.raw_results, axis=1)
 
+        # Compile ROI statistics
         self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
+
+        # Save results
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
-                       self.save_location, self.parameters, config)  # Save results
+                       self.save_location, self.parameters, config)
 
         return self
-        # TODO implement bootstrapping
 
     @classmethod
     def assign_parameters_to_brains(cls, matched_brains, participant_list):
@@ -710,16 +827,17 @@ class MatchedBrain:
         return unscaled_stat, within_roi_stat, mixed_roi_stat
 
 
+def create_no_roi_volume(roiTempStore, save_location, statmap_shape, header):
+    data = roiTempStore[0, :].copy()
+    # data = np.nanmax(data, axis=0)
+    data = data.reshape(statmap_shape)
+
+    brain = nib.Nifti1Pair(data, None, header)
+    nib.save(brain, save_location)
+
+
 def compile_roi_stats(roiTempStore, roiResults, config):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
-
-    if config.noise_cutoff:
-        noise_threshold = np.nanmean(roiTempStore[0, :])
-        rois = roiTempStore[1:, :]
-        below_threshold = np.count_nonzero(rois < noise_threshold, axis=1)
-        roiResults[7, 1:-1] += below_threshold
-        rois[rois < noise_threshold] = np.nan
-        roiTempStore[1:, :] = rois
 
     axis = 1
     read_start = 0
@@ -732,10 +850,10 @@ def compile_roi_stats(roiTempStore, roiResults, config):
                                                                 axis=axis)  # Count number of non-nan voxels
         roiResults[1, write_start:write_end] = np.nanmean(roiTempStore[read_start:, :], axis=axis)
         roiResults[2, write_start:write_end] = np.nanstd(roiTempStore[read_start:, :], axis=axis)
+        # Confidence interval calculation
         roiResults[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
                                                * roiResults[2, write_start:write_end] \
-                                               / np.sqrt(
-            roiResults[0, write_start:write_end])  # 95% confidence interval calculation
+                                               / np.sqrt(roiResults[0, write_start:write_end])
         roiResults[4, write_start:write_end] = np.nanmedian(roiTempStore[read_start:, :], axis=axis)
         roiResults[5, write_start:write_end] = np.nanmin(roiTempStore[read_start:, :], axis=axis)
         roiResults[6, write_start:write_end] = np.nanmax(roiTempStore[read_start:, :], axis=axis)
@@ -869,7 +987,8 @@ def calculate_confidence_interval(data, alpha, roi=None):
         values = np.array([x for x in data[roi, :] if str(x) != 'nan'])
 
     results = bs.bootstrap(values, stat_func=bs_stats.mean, alpha=alpha, iteration_batch_size=10, num_threads=-1)
-    conf_int = (results.upper_bound - results.lower_bound) / 2  # TODO: URGENT CHANGE THIS
+    conf_int = (results.upper_bound - results.lower_bound) / 2
+    # TODO: Change this so it returns asymmetric bootstrap and implement bootstrapping for pooled analysis
 
     warnings.simplefilter(action='default', category=PendingDeprecationWarning)
 

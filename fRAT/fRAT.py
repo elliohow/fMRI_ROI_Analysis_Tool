@@ -10,10 +10,10 @@ from utils import *
 
 def fRAT():
     start_time = time.time()
-    checkversion()
+    Utils.checkversion()
 
     config, orig_path = load_config()
-    argparser(config)
+    config = argparser(config)
 
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
     # sys.exit()
@@ -49,14 +49,21 @@ def argparser(config):
     # Check arguments passed over command line
     args = Utils.argparser()
 
-    if args.make_table:
+    if args.make_table == 'true':
         from fRAT_GUI import make_table
         make_table()
         sys.exit()
-    if args.brain_loc is not None:
-        config.brain_file_loc = args.brain_loc
-    if args.output_loc is not None:
-        config.report_output_folder = args.output_loc
+    else:
+        args.__dict__.pop('make_table')
+
+    for arg in args.__dict__:
+        if args.__dict__[arg] is not None:
+            user_arg = Utils.convert_toml_input_to_python_object(args.__dict__[arg])
+            config.__dict__[arg] = user_arg
+
+    config = Utils.clean_config_options(config)
+
+    return config
 
 
 def plotting(config, orig_path):
@@ -70,7 +77,7 @@ def plotting(config, orig_path):
     # Create html report
     html_report.main(str(orig_path))
     if config.verbose:
-        print('\nCreated html report')
+        print('Created html report.')
 
 
 def analysis(config):
@@ -147,11 +154,11 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
                 print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
             anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
-            vals.append([participant.participant_name, participant.anat_brain_no_ext, 0,
-                         anat_to_mni_cost, 0, 0])
+            vals.append([participant.participant_name, participant.anat_brain_no_ext, None,
+                         anat_to_mni_cost, None, None, None])
 
-    # Set arguments to pass to calculate_fmri_flirt_cost function
-    iterable = zip(brain_list, itertools.repeat("fmri_flirt_cost_and_mean_displacement"),
+    # Set arguments to pass to fmri_get_additional_info
+    iterable = zip(brain_list, itertools.repeat("fmri_get_additional_info"),
                    range(len(brain_list)),
                    itertools.repeat(len(brain_list)),
                    itertools.repeat(config))
@@ -164,16 +171,17 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
     vals.extend(results)
 
     if config.verbose:
-        print(f'\nSaving dataframe as cost_displacement_vals.json')
+        print(f'\nSaving dataframe as additional_info.json')
 
     df = pd.DataFrame(vals, columns=['Participant',
                                      'File',
                                      '(FLIRT to anatomical) Cost function value',
                                      '(FLIRT to MNI) Cost function value',
                                      '(MCFLIRT) Mean Absolute displacement',
-                                     '(MCFLIRT) Mean Relative displacement'])
+                                     '(MCFLIRT) Mean Relative displacement',
+                                     'Noise Threshold'])
 
-    with open(f"{Environment_Setup.save_location}cost_displacement_vals.json", 'w') as file:
+    with open(f"{Environment_Setup.save_location}additional_info.json", 'w') as file:
         json.dump(df.to_dict(), file, indent=2)
 
 
@@ -213,19 +221,6 @@ def config_check(config):
     if config.grey_matter_segment and not config.anat_align:
         raise ImportError(f'grey_matter_segment is True but anat_align is set to False. '
                           f'grey_matter_segment requires anat_align to be true to function.')
-
-
-def checkversion():
-    # Check Python version:
-    expect_major = 3
-    expect_minor = 7
-    expect_rev = 5
-
-    print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
-    if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):
-        current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
-        print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "
-              f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running the fRAT.")
 
 
 if __name__ == '__main__':
