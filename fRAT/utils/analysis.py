@@ -16,6 +16,8 @@ import bootstrapped.stats_functions as bs_stats
 from os.path import splitext
 from glob import glob
 from nipype.interfaces import fsl
+from sklearn.covariance import EllipticEnvelope
+from sklearn.cluster import KMeans
 
 from .utils import Utils
 
@@ -366,7 +368,8 @@ class Brain:
                       f"{self.no_ext_brain}{suffix}", 'r') as file:
                 displacement_vals.append(float(file.read().replace('\n', '')))
 
-        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[1], self.noise_threshold
+        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[
+            1], self.noise_threshold
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -427,7 +430,7 @@ class Brain:
         return roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum
 
     @staticmethod
-    def calculate_voxel_stats(roiTempStore, roiResults, idxMNI, idxBrain, GM_bool):
+    def compile_voxel_values(roiTempStore, roiResults, idxMNI, idxBrain, GM_bool):
         for counter, roi in enumerate(idxMNI):
             if not config.grey_matter_segment or GM_bool[counter] == 1:
                 roiTempStore[int(roi), counter] = idxBrain[counter]
@@ -520,15 +523,21 @@ class Brain:
         roiTempStore, roiResults, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
 
         # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
-        roiTempStore, roiResults = self.calculate_voxel_stats(roiTempStore, roiResults,
-                                                              idxMNI, idxBrain,
-                                                              GM_bool)
+        roiTempStore, roiResults = self.compile_voxel_values(roiTempStore, roiResults,
+                                                             idxMNI, idxBrain,
+                                                             GM_bool)
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
+        roiResults, roiTempStore, header, statmap_shape, save_location = self.create_no_roi_volume(roiResults,
+                                                                                                   roiTempStore)
+
+        # Remove outliers from ROIs
+        roiTempStore, roiResults = self.outlier_detection(roiResults, roiTempStore, save_location, statmap_shape,
+                                                          header)
+
         # Compile ROI statistics
-        roiResults, self.noise_threshold = compile_roi_stats(roiTempStore, roiResults, config,
-                                                             individual_analysis=True)
+        roiResults = compile_roi_stats(roiTempStore, roiResults, config)
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
@@ -541,6 +550,101 @@ class Brain:
 
         self.roiResults = roiResults  # Retain variable for atlas_scale function
         self.roiTempStore = roiTempStore  # Retain variable for atlas_scale function
+
+    def create_no_roi_volume(self, roiResults, roiTempStore):
+        Utils.check_and_make_dir(f"{self.save_location}/Excluded_voxels/")
+        save_location = f"{self.save_location}/Excluded_voxels/{self.no_ext_brain}"
+
+        statmap, header = Utils.load_brain(self.stat_brain)
+        statmap_shape = statmap.shape
+
+        create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi.nii.gz",
+                             statmap_shape, header)
+
+        return roiResults, roiTempStore, header, statmap_shape, save_location
+
+    def outlier_detection(self, roiResults, roiTempStore, save_location, statmap_shape, header):
+        if config.noise_cutoff:
+            # Calculate noise threshold
+            self.noise_threshold = np.true_divide(np.nansum(roiTempStore[0, :]), np.count_nonzero(roiTempStore[0, :]))
+
+            outlier_bool_array = roiTempStore[1:, :] < self.noise_threshold
+            roiResults = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roiResults)
+
+            roiTempStore = self.remove_outliers(outlier_bool_array, roiTempStore)
+
+            create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi_noise_thresh.nii.gz", statmap_shape, header)
+
+        if config.gaussian_outlier_detection:
+            # Fit a gaussian to the data using EllipticEnvelope
+            outliers = self.outlier_detection_using_model(data=roiTempStore[1:, :],
+                                                          model=EllipticEnvelope(),
+                                                          outlier_location=-1)
+
+            if config.gaussian_outlier_location != 'both':
+                outliers.sort()  # Sort to make it easier to find start and end
+
+                if config.gaussian_outlier_location == 'below gaussian':
+                    outlier_location = 0
+                elif config.gaussian_outlier_location == 'above gaussian':
+                    outlier_location = -1
+                else:
+                    raise Exception('gaussian_outlier_location not valid')
+
+                # Use K-Means clustering to split the data into groups
+                outliers = self.outlier_detection_using_model(data=np.array(outliers).reshape(-1, 1),
+                                                              model=KMeans(n_clusters=2),
+                                                              outlier_location=outlier_location,
+                                                              salient_prediction_order=True)
+
+            outlier_bool_array = np.isin(roiTempStore[1:, :], outliers)
+
+            roiResults = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roiResults)
+
+            roiTempStore = self.remove_outliers(outlier_bool_array, roiTempStore)
+            create_no_roi_volume(roiTempStore, f"{save_location}_NoRoi_elliptic_overall.nii.gz", statmap_shape, header)
+
+        return roiTempStore, roiResults
+
+    def outlier_detection_using_model(self, data, model, outlier_location, salient_prediction_order=False):
+        values = data.copy()
+        values = values[~np.isnan(values)]
+
+        prediction = model.fit_predict(values.reshape(-1, 1))
+
+        if salient_prediction_order is False:
+            outliers = [x for counter, x in enumerate(values) if prediction[counter] == outlier_location]
+        elif salient_prediction_order is True:
+            # For K-Means clustering where outliers does not necessarily equal -1
+            outliers = [x for counter, x in enumerate(values) if prediction[counter] == prediction[outlier_location]]
+
+        return outliers
+
+    def calculate_number_of_outliers_per_roi(self, outlier_bool_array, roiResults):
+        # Count how many voxels are below noise threshold for each ROI
+        below_threshold = np.count_nonzero(outlier_bool_array, axis=1)
+        # Assign voxels below threshold to excluded voxels column
+        roiResults[7, 1:-1] += below_threshold
+
+        return roiResults
+
+    def remove_outliers(self, outlier_bool_array, roiTempStore):
+        # Convert from bool to float64 to be able to assign values
+        outlier_float_array = np.max(outlier_bool_array, axis=0).astype('float64')
+
+        # Replace False with nans and True with statistic value
+        outlier_float_array[outlier_float_array == 0.0] = np.nan
+
+        # Use the transpose of roiTempStore and outlier bool array to make sure output is ordered by columns not rows
+        outlier_float_array[outlier_float_array == 1.0] = roiTempStore[1:, :].T[outlier_bool_array.T]
+
+        # Set any outlier ROI values to nan
+        roiTempStore[1:, :][outlier_bool_array] = np.nan
+
+        # Stack no ROI values on top of array containing outlier values, and then use nan max to condense into one array
+        roiTempStore[0, :] = np.nanmax(np.vstack((outlier_float_array, roiTempStore[0, :])), axis=0)
+
+        return roiTempStore
 
 
 class MatchedBrain:
@@ -644,8 +748,7 @@ class MatchedBrain:
         self.raw_results = np.concatenate(self.raw_results, axis=1)
 
         # Compile ROI statistics
-        self.overall_results, _ = compile_roi_stats(self.raw_results, self.overall_results, config,
-                                                    individual_analysis=False)
+        self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
 
         # Save results
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
@@ -724,38 +827,17 @@ class MatchedBrain:
         return unscaled_stat, within_roi_stat, mixed_roi_stat
 
 
-def compile_roi_stats(roiTempStore, roiResults, config, individual_analysis):
+def create_no_roi_volume(roiTempStore, save_location, statmap_shape, header):
+    data = roiTempStore[0, :].copy()
+    # data = np.nanmax(data, axis=0)
+    data = data.reshape(statmap_shape)
+
+    brain = nib.Nifti1Pair(data, None, header)
+    nib.save(brain, save_location)
+
+
+def compile_roi_stats(roiTempStore, roiResults, config):
     warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
-
-    # todo: from sklearn.svm import OneClassSVM
-    #  clf = OneClassSVM(gamma='auto').fit(data.reshape(-1, 1))
-    #  anoms = clf.predict(data.reshape(-1, 1))
-
-    # for num in range(roiTempStore.shape[0]):
-    #     data = roiTempStore[num, :].copy()
-    #     data = data[~np.isnan(data)]
-    #
-    #     from sklearn.ensemble import IsolationForest
-    #     model = IsolationForest()
-    #     model.fit(data.reshape(-1, 1))
-    #
-    #     anoms = model.predict(data.reshape(-1, 1))
-    #     bad = [x for counter, x in enumerate(data) if anoms[counter] == -1]
-    #
-    #     roiTempStore[num, :][np.isin(roiTempStore[num, :], bad)] = np.nan
-    #     below_threshold = len(bad)
-    #     roiResults[7, 1:-1] += below_threshold
-
-    noise_threshold = None
-    if config.noise_cutoff and individual_analysis:
-        noise_threshold = np.true_divide(np.nansum(roiTempStore[0, :]), np.count_nonzero(roiTempStore[0, :]))
-
-        # Count how many voxels are below noise threshold
-        below_threshold = np.count_nonzero(roiTempStore[1:, :] < noise_threshold, axis=1)
-
-        # Assign voxels below threshold to excluded voxels column
-        roiResults[7, 1:-1] += below_threshold
-        roiTempStore[1:, :][roiTempStore[1:, :] < noise_threshold] = np.nan
 
     axis = 1
     read_start = 0
@@ -791,7 +873,7 @@ def compile_roi_stats(roiTempStore, roiResults, config, individual_analysis):
 
     warnings.filterwarnings('default')  # Reactivate warnings
 
-    return roiResults, noise_threshold
+    return roiResults
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):

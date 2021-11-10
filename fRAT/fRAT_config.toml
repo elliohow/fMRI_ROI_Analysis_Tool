@@ -20,8 +20,10 @@ dof = 12                                                                        
 anat_align = false                                                                # true or false. Recommended: true.
 grey_matter_segment = false                                                       # true or false. Recommended: true.  Note: Requires anatomical align be true to function.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
-noise_cutoff = false                                                              # true or false. Recommended: true.
-stat_map_folder = 'non_mot/'                                                      # Folder name which contains the statistical map files. Example: QA_report/
+noise_cutoff = true                                                               # true or false. Calculate a noise cutoff based on voxels not assigned an ROI or that have been excluded from analysis. Voxels with values of 0 are not included when calculating the noise cutoff, Recommended: true.
+gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
+gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
+stat_map_folder = 'temporalSNR_report/'                                           # Folder name which contains the statistical map files. Example: temporalSNR_report/
 stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
@@ -39,7 +41,7 @@ make_brain_table = true                                                         
 make_one_region_fig = false                                                       # true or false.
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
-regional_fig_rois = [48, 49]                                                      # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 # Violin_plot
 table_x_label = 'tSNR mean'                                                       # 

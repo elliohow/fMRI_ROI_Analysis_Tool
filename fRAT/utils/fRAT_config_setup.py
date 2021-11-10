@@ -77,16 +77,31 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
-    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'false',
-                             'Description': 'true or false. Recommended: true.'},
+    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
+                             'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
+                                            'ROI or that have been excluded from analysis. Voxels with values of 0 are '
+                                            'not included when calculating the noise cutoff, Recommended: true.'},
 
-    'stat_map_folder': {'type': 'Entry', 'Recommended': 'QA_report/', 'save_as': 'string',
+    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. '
+                                    'Recommended: true.'},
+
+    'gaussian_outlier_location': {'type': 'OptionMenu', 'Recommended': 'below gaussian',
+                                  'Options': ['below gaussian', 'above gaussian', 'both'],
+                                  'save_as': 'string',
+                                  'Description': 'Data to remove (if gaussian outlier detection is true).\n'
+                                                 'For example: if set to below gaussian, data below the gaussian will be removed.\n'
+                                                 'Recommended: below gaussian.'},
+
+    'stat_map_folder': {'type': 'Entry', 'Recommended': 'temporalSNR_report/', 'save_as': 'string',
                         'label': 'Statistical map folder',
-                        'Description': 'Folder name which contains the statistical map files. Example: QA_report/'},
+                        'Description': 'Folder name which contains the statistical map files. '
+                                       'Example: temporalSNR_report/'},
 
-    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.img', 'save_as': 'string',
+    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
                         'label': 'Statistical map suffix',
-                        'Description': 'File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img'},
+                        'Description': 'File name suffix of the statistical map files. Include the file extension. '
+                                       'Example: _tSNR.img'},
 
     # 'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
     #               'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},

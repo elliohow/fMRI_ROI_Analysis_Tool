@@ -10,6 +10,7 @@ from glob import glob
 from tkinter import Tk, filedialog
 import multiprocess as mp
 import pandas as pd
+import nibabel as nib
 import warnings
 from pathlib import Path
 from types import SimpleNamespace
@@ -235,6 +236,15 @@ class Utils:
             config.conf_level_number = conf_level_options.index(config.conf_level_number)
 
         return config
+
+    @staticmethod
+    def load_brain(file_path):
+        data = nib.load(file_path)
+
+        header = data.header
+        data = data.get_fdata()
+
+        return data, header
 
     @staticmethod
     def strip_ext(path):

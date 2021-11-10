@@ -35,15 +35,6 @@ def file_setup(func):
     return participants, output_folder, file_location
 
 
-def load_brain(file_path):
-    data = nib.load(file_path)
-
-    header = data.header
-    data = data.get_fdata()
-
-    return data, header
-
-
 def calculate_sigma_in_volumes(file_path):
     data = nib.load(file_path)
     TR = data.header['pixdim'][4]  # Find TR
@@ -102,7 +93,7 @@ def magnitude_correction(file_name):
 
 
 def separate_noise_from_func(file, no_ext_file, output_folder):
-    data, header = load_brain(file)
+    data, header = Utils.load_brain(file)
 
     if config.noise_volume_location == 'End':
         noise_data, func_data = data[:, :, :, -1], data[:, :, :, :-1]
@@ -158,14 +149,14 @@ def prepare_files(file, no_ext_file, output_folder):
         fsl.MCFLIRT(in_file=file, out_file=f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz').run()
         file = f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz'
 
-    if config.temporal_filter:
-        file, redundant_file = highpass_filtering(file, output_folder, no_ext_file)
-        redundant_files.extend([file, redundant_file])
-
-    if config.spatial_smoothing: # todo: Where should this be in the process
+    if config.spatial_smoothing:
         fsl.SUSAN(in_file=file, fwhm=config.smoothing_fwhm, brightness_threshold=config.smoothing_brightness_threshold,
                   out_file=f'{output_folder}/{no_ext_file}_smoothed.nii.gz').run()
         file = f'{output_folder}/{no_ext_file}_smoothed.nii.gz'
+
+    if config.temporal_filter:
+        file, redundant_file = highpass_filtering(file, output_folder, no_ext_file)
+        redundant_files.extend([file, redundant_file])
 
     return file, noise_file, redundant_files
 
