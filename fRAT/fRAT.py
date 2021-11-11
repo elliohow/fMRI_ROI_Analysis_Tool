@@ -125,8 +125,8 @@ def compile_results(brain_list, matched_brains, config, pool):
     for parameter_comb in matched_brains:
         for brain in brain_list:
             if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
-                parameter_comb.overall_results.append(brain.roiResults)
-                parameter_comb.raw_results.append(brain.roiTempStore)
+                parameter_comb.overall_results.append(brain.roi_results)
+                parameter_comb.raw_results.append(brain.roi_temp_store)
 
     # Save each raw and overall results for each parameter combination
     iterable = zip(matched_brains, itertools.repeat("compile_results"), itertools.repeat(config))
