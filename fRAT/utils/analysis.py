@@ -578,7 +578,7 @@ class Brain:
         if config.gaussian_outlier_detection:
             # Fit a gaussian to the data using EllipticEnvelope
             outliers = self.outlier_detection_using_model(data=roi_temp_store[1:, :],
-                                                          model=EllipticEnvelope(),
+                                                          model=EllipticEnvelope(contamination=config.gaussian_outlier_contamination),
                                                           outlier_location=-1)
 
             if config.gaussian_outlier_location != 'both':

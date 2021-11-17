@@ -82,13 +82,18 @@ Analysis = {
                                             'ROI or that have been excluded from analysis. Voxels with values of 0 are '
                                             'not included when calculating the noise cutoff, Recommended: true.'},
 
-    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true',
+    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Gaussian outlier (GauO) detection',
                      'Description': 'true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. '
                                     'Recommended: true.'},
 
+    'gaussian_outlier_contamination': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.01,
+                                       'label': 'GauO contamination percentage',
+                                                'Description': 'Percent of expected outliers in dataset\n'
+                                                               'Recommended: 0.1'},
+
     'gaussian_outlier_location': {'type': 'OptionMenu', 'Recommended': 'below gaussian',
                                   'Options': ['below gaussian', 'above gaussian', 'both'],
-                                  'save_as': 'string',
+                                  'save_as': 'string', 'label': 'GauO location',
                                   'Description': 'Data to remove (if gaussian outlier detection is true).\n'
                                                  'For example: if set to below gaussian, data below the gaussian will be removed.\n'
                                                  'Recommended: below gaussian.'},
