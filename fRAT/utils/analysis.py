@@ -16,6 +16,7 @@ import bootstrapped.stats_functions as bs_stats
 from os.path import splitext
 from glob import glob
 from nipype.interfaces import fsl
+from scipy.stats import norm
 from sklearn.covariance import EllipticEnvelope
 from sklearn.cluster import KMeans
 
@@ -289,7 +290,13 @@ class Participant:
                                            f'{self.save_location}Intermediate_files/{self.anat_brain_no_ext}_mni_redundant.mat',
                                            config)
 
-        return mni_cost
+        d = {'Participant': [self.participant_name],
+             'File': [self.anat_brain_no_ext],
+             '(FLIRT to MNI) Cost function value': [mni_cost]}
+
+        df = pd.DataFrame(data=d)
+
+        return df
 
     def anat_file_cleanup(self):
         """Clean up unnecessary output from either instance of class, or class itself."""
@@ -322,6 +329,8 @@ class Brain:
         self.participant_name = participant_name
         self.parameters = []
         self.noise_threshold = None
+        self.lower_gaussian_threshold = None
+        self.upper_gaussian_threshold = None
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
@@ -368,8 +377,24 @@ class Brain:
                       f"{self.no_ext_brain}{suffix}", 'r') as file:
                 displacement_vals.append(float(file.read().replace('\n', '')))
 
-        return self.participant_name, self.no_ext_brain, anat_cost, mni_cost, displacement_vals[0], displacement_vals[
-            1], self.noise_threshold
+        d = {'Participant': [self.participant_name],
+             'File': [self.no_ext_brain],
+             '(FLIRT to MNI) Cost function value': mni_cost,
+             '(MCFLIRT) Mean Absolute displacement': displacement_vals[0],
+             '(MCFLIRT) Mean Relative displacement': displacement_vals[1]}
+
+        if anat_cost:
+            d['(FLIRT to anatomical) Cost function value'] = anat_cost
+        if self.noise_threshold:
+            d['Noise Threshold'] = self.noise_threshold
+        if self.lower_gaussian_threshold:
+            d['Lower Gaussian Outlier Threshold'] = self.lower_gaussian_threshold
+        if self.upper_gaussian_threshold:
+            d['Upper Gaussian Outlier Threshold'] = self.upper_gaussian_threshold
+
+        df = pd.DataFrame(data=d)
+
+        return df
 
     def run_analysis(self, brain_number_current, brain_number_total, cfg):
         global config
@@ -381,7 +406,7 @@ class Brain:
         GM_bool = self.roi_flirt_transform(brain_number_current,
                                            brain_number_total)  # Convert MNI brain to native space
 
-        self.roi_stats(brain_number_current, brain_number_total, GM_bool)  # Calculate and save statistics
+        self.roi_stats(GM_bool)  # Calculate and save statistics
 
         self.file_cleanup()  # Clean up files
 
@@ -431,17 +456,25 @@ class Brain:
 
     @staticmethod
     def compile_voxel_values(roi_temp_store, roi_results, idxMNI, idxBrain, GM_bool):
+        if config.grey_matter_segment:
+            non_segmented_volume = roi_temp_store.copy()
+        else:
+            non_segmented_volume = None
+
         for counter, roi in enumerate(idxMNI):
+            if config.grey_matter_segment:
+                non_segmented_volume[int(roi), counter] = idxBrain[counter]
+
             if not config.grey_matter_segment or GM_bool[counter] == 1:
                 roi_temp_store[int(roi), counter] = idxBrain[counter]
 
             else:
                 roi_temp_store[0, counter] = idxBrain[counter]  # Assign to No ROI if voxel is excluded
 
-                if int(roi) != 0:  # If ROI is not 'No ROI'
+                if int(roi) != 0:  # If ROI is not 'No ROI' add to excluded voxels list
                     roi_results[7, int(roi)] += 1
 
-        return roi_temp_store, roi_results
+        return roi_temp_store, roi_results, non_segmented_volume
 
     def segmentation_to_fmri(self, anat_aligned_mat, fMRI_volume, brain_number_current, brain_number_total):
         if config.verbose:
@@ -515,7 +548,7 @@ class Brain:
 
             return grey_matter_bool
 
-    def roi_stats(self, brain_number_current, brain_number_total, GM_bool):
+    def roi_stats(self, GM_bool):
         """Function which uses the output from the roi_flirt_transform function to collate the statistical information
         per ROI."""
 
@@ -523,18 +556,25 @@ class Brain:
         roi_temp_store, roi_results, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
 
         # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
-        roi_temp_store, roi_results = self.compile_voxel_values(roi_temp_store, roi_results,
-                                                             idxMNI, idxBrain,
-                                                             GM_bool)
+        roi_temp_store, roi_results, non_segmented_volume = self.compile_voxel_values(roi_temp_store,
+                                                                                      roi_results,
+                                                                                      idxMNI,
+                                                                                      idxBrain,
+                                                                                      GM_bool)
 
         warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
 
-        roi_results, roi_temp_store, header, statmap_shape, save_location = self.create_no_roi_volume(roi_results,
-                                                                                                   roi_temp_store)
+        if non_segmented_volume is None:
+            volumes = {'noROI': roi_temp_store}
+        else:
+            volumes = {'noROI': non_segmented_volume, 'nonGreyMatter': roi_temp_store}
+
+        header, statmap_shape, save_location, stage = self.create_excluded_rois_volume(volumes)
 
         # Remove outliers from ROIs
-        roi_temp_store, roi_results = self.outlier_detection(roi_results, roi_temp_store, save_location, statmap_shape,
-                                                          header)
+        roi_temp_store, roi_results = self.outlier_detection(roi_results, roi_temp_store,
+                                                             save_location, statmap_shape,
+                                                             header, stage)
 
         # Compile ROI statistics
         roi_results = compile_roi_stats(roi_temp_store, roi_results, config)
@@ -551,72 +591,112 @@ class Brain:
         self.roi_results = roi_results  # Retain variable for atlas_scale function
         self.roi_temp_store = roi_temp_store  # Retain variable for atlas_scale function
 
-    def create_no_roi_volume(self, roi_results, roi_temp_store):
-        Utils.check_and_make_dir(f"{self.save_location}/Excluded_voxels/")
-        save_location = f"{self.save_location}/Excluded_voxels/{self.no_ext_brain}"
+    def create_excluded_rois_volume(self, volumes):
+        excluded_vox_save_location = f"{self.save_location}/Excluded_voxels/"
+        Utils.check_and_make_dir(excluded_vox_save_location)
 
         statmap, header = Utils.load_brain(self.stat_brain)
         statmap_shape = statmap.shape
 
-        create_no_roi_volume(roi_temp_store, f"{save_location}_NoRoi.nii.gz",
-                             statmap_shape, header)
+        stage = 1
 
-        return roi_results, roi_temp_store, header, statmap_shape, save_location
+        for file_name, volume in volumes.items():
+            file_location = f"{excluded_vox_save_location}/ExcludedVoxStage{stage}_{self.no_ext_brain}_{file_name}.nii.gz"
+            stage += 1
 
-    def outlier_detection(self, roi_results, roi_temp_store, save_location, statmap_shape, header):
+            create_no_roi_volume(
+                volume,
+                file_location,
+                statmap_shape,
+                header
+            )
+
+        return header, statmap_shape, excluded_vox_save_location, stage
+
+    def outlier_detection(self, roi_results, roi_temp_store, save_location, statmap_shape, header, stage):
+
         if config.noise_cutoff:
-            # Calculate noise threshold
-            self.noise_threshold = np.true_divide(np.nansum(roi_temp_store[0, :]), np.count_nonzero(roi_temp_store[0, :]))
+            roi_results, roi_temp_store = self.noise_threshold_outlier_detection(
+                header,
+                roi_results,
+                roi_temp_store,
+                save_location,
+                statmap_shape,
+                stage
+            )
 
-            outlier_bool_array = roi_temp_store[1:, :] < self.noise_threshold
-            roi_results = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
-
-            roi_temp_store = self.remove_outliers(outlier_bool_array, roi_temp_store)
-
-            create_no_roi_volume(roi_temp_store, f"{save_location}_NoRoi_noise_thresh.nii.gz", statmap_shape, header)
+            stage += 1
 
         if config.gaussian_outlier_detection:
-            # Fit a gaussian to the data using EllipticEnvelope
-            outliers = self.outlier_detection_using_model(data=roi_temp_store[1:, :],
-                                                          model=EllipticEnvelope(contamination=config.gaussian_outlier_contamination),
-                                                          outlier_location=-1)
+            roi_results, roi_temp_store = self.gaussian_outlier_detection(
+                header,
+                roi_results,
+                roi_temp_store,
+                save_location,
+                statmap_shape,
+                stage
+            )
 
-            if config.gaussian_outlier_location != 'both':
-                outliers.sort()  # Sort to make it easier to find start and end
-
-                if config.gaussian_outlier_location == 'below gaussian':
-                    outlier_location = 0
-                elif config.gaussian_outlier_location == 'above gaussian':
-                    outlier_location = -1
-                else:
-                    raise Exception('gaussian_outlier_location not valid')
-
-                # Use K-Means clustering to split the data into groups
-                outliers = self.outlier_detection_using_model(data=np.array(outliers).reshape(-1, 1),
-                                                              model=KMeans(n_clusters=2),
-                                                              outlier_location=outlier_location,
-                                                              salient_prediction_order=True)
-
-            outlier_bool_array = np.isin(roi_temp_store[1:, :], outliers)
-
-            roi_results = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
-
-            roi_temp_store = self.remove_outliers(outlier_bool_array, roi_temp_store)
-            create_no_roi_volume(roi_temp_store, f"{save_location}_NoRoi_gaussian_thresh.nii.gz", statmap_shape, header)
+            stage += 1
 
         return roi_temp_store, roi_results
 
-    def outlier_detection_using_model(self, data, model, outlier_location, salient_prediction_order=False):
+    def gaussian_outlier_detection(self, header, roi_results, roi_temp_store, save_location, statmap_shape, stage):
+        # Fit a gaussian to the data using EllipticEnvelope
+        outliers = self.outlier_detection_using_gaussian(data=roi_temp_store[1:, :],
+                                                         contamination=config.gaussian_outlier_contamination)
+        outliers.sort()  # Sort to make it easier to find start and end
+
+        outlier_bool_array = np.isin(roi_temp_store[1:, :], outliers)
+        roi_results = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
+        roi_temp_store = self.remove_outliers(outlier_bool_array, roi_temp_store)
+
+        create_no_roi_volume(roi_temp_store,
+                             f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_gaussianThreshOutliers.nii.gz",
+                             statmap_shape,
+                             header)
+
+        return roi_results, roi_temp_store
+
+    def noise_threshold_outlier_detection(self, header, roi_results, roi_temp_store, save_location, statmap_shape,
+                                          stage):
+        # Calculate noise threshold
+        self.noise_threshold = np.true_divide(np.nansum(roi_temp_store[0, :]),
+                                              np.count_nonzero(roi_temp_store[0, :]))
+
+        outlier_bool_array = roi_temp_store[1:, :] < self.noise_threshold
+        roi_results = self.calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
+        roi_temp_store = self.remove_outliers(outlier_bool_array, roi_temp_store)
+
+        create_no_roi_volume(roi_temp_store,
+                             f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz",
+                             statmap_shape,
+                             header)
+
+        return roi_results, roi_temp_store
+
+    def outlier_detection_using_gaussian(self, data, contamination):
         values = data.copy()
         values = values[~np.isnan(values)]
 
-        prediction = model.fit_predict(values.reshape(-1, 1))
+        prediction = norm(*norm.fit(values))
+        outlier_limits = prediction.interval(contamination)
 
-        if salient_prediction_order is False:
-            outliers = [x for counter, x in enumerate(values) if prediction[counter] == outlier_location]
-        elif salient_prediction_order is True:
-            # For K-Means clustering where outliers does not necessarily equal -1
-            outliers = [x for counter, x in enumerate(values) if prediction[counter] == prediction[outlier_location]]
+        if config.gaussian_outlier_location == 'below gaussian':
+            outliers = [value for value in values if value < outlier_limits[0]]
+            self.lower_gaussian_threshold = outlier_limits[0]
+
+        elif config.gaussian_outlier_location == 'above gaussian':
+            outliers = [value for value in values if value > outlier_limits[1]]
+            self.upper_gaussian_threshold = outlier_limits[1]
+
+        elif config.gaussian_outlier_location == 'both':
+            outliers = [value for value in values if value < outlier_limits[0] or value > outlier_limits[1]]
+            self.lower_gaussian_threshold = outlier_limits[0]
+            self.upper_gaussian_threshold = outlier_limits[1]
+
+        else:
+            raise Exception('gaussian_outlier_location not valid')
 
         return outliers
 
@@ -827,9 +907,8 @@ class MatchedBrain:
         return unscaled_stat, within_roi_stat, mixed_roi_stat
 
 
-def create_no_roi_volume(roi_temp_store, save_location, statmap_shape, header):
-    data = roi_temp_store[0, :].copy()
-    # data = np.nanmax(data, axis=0)
+def create_no_roi_volume(volume, save_location, statmap_shape, header):
+    data = volume[0, :].copy()
     data = data.reshape(statmap_shape)
 
     brain = nib.Nifti1Pair(data, None, header)
@@ -847,13 +926,13 @@ def compile_roi_stats(roi_temp_store, roi_results, config):
     # First loop calculates summary stats for normal ROIs, second loop calculates stats for overall ROI
     for i in range(2):
         roi_results[0, write_start:write_end] = np.count_nonzero(~np.isnan(roi_temp_store[read_start:, :]),
-                                                                axis=axis)  # Count number of non-nan voxels
+                                                                 axis=axis)  # Count number of non-nan voxels
         roi_results[1, write_start:write_end] = np.nanmean(roi_temp_store[read_start:, :], axis=axis)
         roi_results[2, write_start:write_end] = np.nanstd(roi_temp_store[read_start:, :], axis=axis)
         # Confidence interval calculation
         roi_results[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
-                                               * roi_results[2, write_start:write_end] \
-                                               / np.sqrt(roi_results[0, write_start:write_end])
+                                                * roi_results[2, write_start:write_end] \
+                                                / np.sqrt(roi_results[0, write_start:write_end])
         roi_results[4, write_start:write_end] = np.nanmedian(roi_temp_store[read_start:, :], axis=axis)
         roi_results[5, write_start:write_end] = np.nanmin(roi_temp_store[read_start:, :], axis=axis)
         roi_results[6, write_start:write_end] = np.nanmax(roi_temp_store[read_start:, :], axis=axis)
@@ -1003,12 +1082,12 @@ def roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_curren
 
         if counter < roiNum:
             roi_results[1, roi], roi_results[3, roi] = calculate_confidence_interval(roi_temp_store,
-                                                                                   config.bootstrap_alpha,
-                                                                                   roi=roi)
+                                                                                     config.bootstrap_alpha,
+                                                                                     roi=roi)
         else:
             # Calculate overall statistics
             roi_results[1, -1], roi_results[3, -1] = calculate_confidence_interval(roi_temp_store[1:, :],
-                                                                                 config.bootstrap_alpha)
+                                                                                   config.bootstrap_alpha)
     return roi_results
 
 

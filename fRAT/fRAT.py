@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import sys
 import time
@@ -9,7 +10,7 @@ from utils import *
 
 
 def fRAT():
-    start_time = time.time()
+    start_time = time.perf_counter()
     Utils.checkversion()
 
     config, orig_path = load_config()
@@ -35,7 +36,10 @@ def fRAT():
     os.chdir(orig_path)  # Reset path
 
     if config.verbose:
-        print(f"--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")
+        elapsed = datetime.timedelta(seconds=time.perf_counter() - start_time)
+        elapsed_min = elapsed.seconds // 60
+        elapsed_sec = elapsed.seconds % 60
+        print(f"--- Completed in {elapsed_min} minutes {elapsed_sec} seconds ---\n\n")
 
 
 def load_config():
@@ -153,9 +157,8 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
             if config.verbose:
                 print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
-            anat_to_mni_cost = participant.calculate_anat_flirt_cost_function()
-            vals.append([participant.participant_name, participant.anat_brain_no_ext, None,
-                         anat_to_mni_cost, None, None, None])
+            df = participant.calculate_anat_flirt_cost_function()
+            vals.append(df)
 
     # Set arguments to pass to fmri_get_additional_info
     iterable = zip(brain_list, itertools.repeat("fmri_get_additional_info"),
@@ -173,16 +176,10 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
     if config.verbose:
         print(f'\nSaving dataframe as additional_info.json')
 
-    df = pd.DataFrame(vals, columns=['Participant',
-                                     'File',
-                                     '(FLIRT to anatomical) Cost function value',
-                                     '(FLIRT to MNI) Cost function value',
-                                     '(MCFLIRT) Mean Absolute displacement',
-                                     '(MCFLIRT) Mean Relative displacement',
-                                     'Noise Threshold'])
+    df = pd.concat(vals).reset_index(drop=True).replace([np.nan], [None])
 
-    with open(f"{Environment_Setup.save_location}additional_info.json", 'w') as file:
-        json.dump(df.to_dict(), file, indent=2)
+    with open(f"{Environment_Setup.save_location}additional_info.txt", 'w') as file:
+        df.to_markdown(buf=file, floatfmt=".2f")
 
 
 def atlas_scale(matched_brains, config, pool):
