@@ -860,15 +860,24 @@ def make_table():
     participant_dirs = find_participant_dirs(config)
 
     data = []
-    for participant in participant_dirs:
-        brain_file_list = Utils.find_files(f"{participant}/func", "hdr", "nii.gz", "nii")
+    for participant_dir in participant_dirs:
+        if config.make_folder_structure:
+            func_loc = f'{participant_dir}'
+
+        else:
+            func_loc = f'{participant_dir}/func'
+
+        brain_file_list = Utils.find_files(func_loc, "hdr", "nii.gz", "nii")
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
         brain_file_list.sort()
 
         for file in brain_file_list:
             # Try to find parameters to prefill table
             brain_file_params = parse_params_from_file_name(file, config)
-            data.append([participant, file, *brain_file_params, np.NaN])
+            data.append([participant_dir, file, *brain_file_params, np.NaN])
+
+        if config.make_folder_structure:
+            create_folder_structure(participant_dir)
 
     df = pd.DataFrame(columns=['Participant', 'File name',
                                *config.parameter_dict.keys(), 'Ignore file? (y for yes, otherwise blank)'],
@@ -876,14 +885,27 @@ def make_table():
 
     df.to_csv('paramValues.csv', index=False)
 
-    print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv and change "
-          f"make_table_only to False in the config file to continue analysis. \nIf analysis has already been "
-          f"conducted, move paramValues.csv into the ROI report folder. \nIf the csv file contains unexpected "
-          f"parameters, update the parsing options in the GUI or parameter_dict2 in fRAT_config.toml.")
+    print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv to continue "
+          f"analysis. \nIf analysis has already been conducted, move paramValues.csv into the ROI report folder. "
+          f"\nIf the csv file contains unexpected parameters, update the parsing options in the GUI or parameter_dict2 "
+          f"in fRAT_config.toml.")
+
+    if config.make_folder_structure:
+        print(f"\nSet up folder structure and moved fMRI volumes into 'func' directory.")
+
+
+def create_folder_structure(participant):
+    direcs = ['func', 'anat', 'fslfast', 'statmaps']
+    for direc in direcs:
+        Utils.check_and_make_dir(f"{participant}/{direc}")
+
+    brain_file_list = Utils.find_files(participant, "hdr", "nii.gz", "nii", "json")
+    for file in brain_file_list:
+        Utils.move_file(file, participant, f'{participant}/func', rename_copy=False)
 
 
 def find_participant_dirs(config):
-    participant_dirs = [direc for direc in glob("*") if re.search("^p[0-9]+", direc)]
+    participant_dirs = [direc for direc in glob("*") if re.search("sub-[0-9]+", direc)]
 
     if len(participant_dirs) == 0:
         raise FileNotFoundError('Participant directories not found.')

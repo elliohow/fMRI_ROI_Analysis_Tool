@@ -32,6 +32,7 @@ binary_params = ['']                                                            
 # Parsing
 parameter_dict1 = ['Hyperband', 'Inplane acceleration']                           # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
 parameter_dict2 = ['hb', 'ip']                                                    # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
+make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
 
 # Plotting
 plot_dpi = 200                                                                    # Recommended value 600

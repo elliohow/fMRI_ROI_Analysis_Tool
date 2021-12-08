@@ -642,9 +642,12 @@ class Brain:
         return roi_temp_store, roi_results
 
     def gaussian_outlier_detection(self, header, roi_results, roi_temp_store, save_location, statmap_shape, stage):
+        # Convert gaussian outlier contamination into confidence interval to retain for scipy norm.interval function
+        confidence_interval = 1 - config.gaussian_outlier_contamination
+
         # Fit a gaussian to the data using EllipticEnvelope
         outliers = self.outlier_detection_using_gaussian(data=roi_temp_store[1:, :],
-                                                         contamination=config.gaussian_outlier_contamination)
+                                                         contamination=confidence_interval)
         outliers.sort()  # Sort to make it easier to find start and end
 
         outlier_bool_array = np.isin(roi_temp_store[1:, :], outliers)
@@ -680,20 +683,20 @@ class Brain:
         values = values[~np.isnan(values)]
 
         prediction = norm(*norm.fit(values))
-        outlier_limits = prediction.interval(contamination)
+        gaussian_lims = prediction.interval(contamination)
 
         if config.gaussian_outlier_location == 'below gaussian':
-            outliers = [value for value in values if value < outlier_limits[0]]
-            self.lower_gaussian_threshold = outlier_limits[0]
+            outliers = [value for value in values if value < gaussian_lims[0]]
+            self.lower_gaussian_threshold = gaussian_lims[0]
 
         elif config.gaussian_outlier_location == 'above gaussian':
-            outliers = [value for value in values if value > outlier_limits[1]]
-            self.upper_gaussian_threshold = outlier_limits[1]
+            outliers = [value for value in values if value > gaussian_lims[1]]
+            self.upper_gaussian_threshold = gaussian_lims[1]
 
         elif config.gaussian_outlier_location == 'both':
-            outliers = [value for value in values if value < outlier_limits[0] or value > outlier_limits[1]]
-            self.lower_gaussian_threshold = outlier_limits[0]
-            self.upper_gaussian_threshold = outlier_limits[1]
+            outliers = [value for value in values if value < gaussian_lims[0] or value > gaussian_lims[1]]
+            self.lower_gaussian_threshold = gaussian_lims[0]
+            self.upper_gaussian_threshold = gaussian_lims[1]
 
         else:
             raise Exception('gaussian_outlier_location not valid')

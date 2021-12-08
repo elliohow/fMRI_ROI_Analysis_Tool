@@ -89,7 +89,7 @@ Analysis = {
     'gaussian_outlier_contamination': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.01,
                                        'label': 'GauO contamination percentage',
                                                 'Description': 'Percent of expected outliers in dataset\n'
-                                                               'Recommended: 0.1'},
+                                                               f'Recommended: 0.1'},
 
     'gaussian_outlier_location': {'type': 'OptionMenu', 'Recommended': 'below gaussian',
                                   'Options': ['below gaussian', 'above gaussian', 'both'],
@@ -138,6 +138,9 @@ Parsing = {
                                        'verification, however if the file name contains this information it can use '
                                        'this information to auto-detect the critical parameters used for each fMRI '
                                        'volume.'},
+
+    'make_folder_structure': {'type': 'CheckButton', 'Recommended': 'true',
+                              'Description': 'true or false. Make folder structure when creating paramValues.csv'},
 }
 
 '''General plot settings'''
