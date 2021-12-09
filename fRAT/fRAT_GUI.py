@@ -13,6 +13,7 @@ except ImportError:
 import ast
 import re
 import os
+import textwrap
 import sys
 import logging
 import xmltodict
@@ -616,7 +617,7 @@ class Config_GUI:
         self.__init__(root, page, load_initial_values=False)
 
 
-class Tooltip(object):
+class Tooltip():
     def __init__(self, widget):
         self.widget = widget
         self.widget_type = widget.winfo_class()
@@ -664,6 +665,8 @@ class Tooltip(object):
     @staticmethod
     def CreateToolTip(widget, text):
         toolTip = Tooltip(widget)
+        text = '\n'.join(['\n'.join(textwrap.wrap(line, 120, break_long_words=False, replace_whitespace=False))
+                          for line in text.splitlines() if line.strip() != ''])
 
         def enter(event):
             toolTip.showtip(text)

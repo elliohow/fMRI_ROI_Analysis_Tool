@@ -67,12 +67,20 @@ Analysis = {
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
             'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
 
-    'anat_align': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Align to anatomical volume',
-                   'Description': 'true or false. Recommended: true.'},
+    'anat_align': {'type': 'CheckButton', 'Recommended': 'true',
+                   'label': 'Align to anatomical volume',
+                   'Description': 'true or false. Recommended: true.'
 
-    'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Grey matter segmentation',
+                                  '\nNote: anatomical file should: be placed in the sub-{id}/anat/ directory, already be '
+                                  'skull stripped and be the only file in this directory. optiBET is recommended for skull stripping.'},
+
+    'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
                             'Description': 'true or false. Recommended: true. '
-                                           '\nNote: Requires anatomical align be true to function.'},
+                                           '\nNote: Requires anatomical align be true to function. FSL FAST '
+                                           'segmentation files should be placed in the sub-{id}/fslfast/ '
+                                           'directory. Only the FSL FAST file appended with pve_1 needs to be in this '
+                                           'directory, however if all files output by FAST are placed in this '
+                                           'directory, then fRAT will find the necessary file.'},
 
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
