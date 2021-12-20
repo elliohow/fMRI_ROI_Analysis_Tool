@@ -114,15 +114,30 @@ def analysis(config):
     if config.multicore_processing:
         pool = Utils.join_processing_pool(pool, restart=True)
 
+    matched_brains = run_pooled_analysis(brain_list, matched_brains, config, pool)
+
+    if config.outlier_detection_method == 'pooled':
+        brain_list = assign_pooled_thresholds_to_brains(brain_list, matched_brains)
+
     calculate_cost_function_and_displacement_values(participant_list, brain_list, config, pool)
-    matched_brains = compile_results(brain_list, matched_brains, config, pool)
     atlas_scale(matched_brains, config, pool)
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)
 
 
-def compile_results(brain_list, matched_brains, config, pool):
+def assign_pooled_thresholds_to_brains(brain_list, matched_brains):
+    for parameter_comb in matched_brains:
+        for brain in brain_list:
+            if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
+                brain.noise_threshold = parameter_comb.noise_threshold
+                brain.lower_gaussian_threshold = parameter_comb.lower_gaussian_threshold
+                brain.upper_gaussian_threshold = parameter_comb.upper_gaussian_threshold
+
+    return brain_list
+
+
+def run_pooled_analysis(brain_list, matched_brains, config, pool):
     if config.verbose:
         print('\n--- Running pooled analysis ---')
 

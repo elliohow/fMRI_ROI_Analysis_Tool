@@ -12,7 +12,7 @@ General = {
                      'Description': 'true or false.', 'label': 'Run plotting'},
 
     'run_statistics': {'type': 'CheckButton', 'Recommended': 'true',
-                     'Description': 'true or false.', 'label': 'Run statistics'},
+                       'Description': 'true or false.', 'label': 'Run statistics'},
 
     'verbose': {'type': 'CheckButton', 'Recommended': 'true',
                 'Description': 'true or false.', 'label': 'Verbose fRAT stages'},
@@ -32,8 +32,8 @@ General = {
                        'Description': 'Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'report_output_folder': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                          'label': 'fRAT output directory location',
-                          'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
+                             'label': 'fRAT output directory location',
+                             'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',
                      'Description': 'Move or delete intermediate files.', 'label': 'File cleanup method'},
@@ -85,19 +85,33 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
-    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
-                             'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
-                                            'ROI or that have been excluded from analysis. Voxels with values of 0 are '
-                                            'not included when calculating the noise cutoff, Recommended: true.'},
+    'outlier_detection_method': {'type': 'OptionMenu', 'Recommended': 'individual',
+                                 'Options': ['individual', 'pooled'],
+                                 'save_as': 'string',
+                                 'Description': "Method to run outlier detection. Options: 'individual' or 'pooled'\n"
+                                                "If set to individual, outlier detection will take place for each subject "
+                                                "individual. If set to pooled, data will be pooled before running outlier "
+                                                "detection.\n"
+                                                "Note: if set to individual, NIFTI files will be created for each "
+                                                "subject, showing which files have been excluded using the outlier "
+                                                "detection methods selected. However this is not possible for pooled "
+                                                "outlier detection.\n"
+                                                "Recommended: individual."},
 
-    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Gaussian outlier (GauO) detection',
-                     'Description': 'true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. '
-                                    'Recommended: true.'},
+    'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
+                                    'ROI or that have been excluded from analysis. Voxels with values of 0 are '
+                                    'not included when calculating the noise cutoff, Recommended: true.'},
+
+    'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true',
+                                   'label': 'Gaussian outlier (GauO) detection',
+                                   'Description': 'true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. '
+                                                  'Recommended: true.'},
 
     'gaussian_outlier_contamination': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.01,
                                        'label': 'GauO contamination percentage',
-                                                'Description': 'Percent of expected outliers in dataset\n'
-                                                               f'Recommended: 0.1'},
+                                       'Description': 'Percent of expected outliers in dataset\n'
+                                                      f'Recommended: 0.1'},
 
     'gaussian_outlier_location': {'type': 'OptionMenu', 'Recommended': 'below gaussian',
                                   'Options': ['below gaussian', 'above gaussian', 'both'],
