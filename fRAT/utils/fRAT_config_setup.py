@@ -215,29 +215,30 @@ Brain_table = {
                                            'Recommended value: None. Note: will default to 100 for scaled maps.'},
 
     'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
-                      'Description': 'Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58'},
+                      'Description': 'Voxel location to slice the images at in the x axis. '
+                                     'Recommended settings for both variables: 91 or 58'},
 
     'brain_z_coord': {'type': 'Entry', 'Recommended': 91,
-                      'Description': 'Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58'},
+                      'Description': 'Voxel location to slice the images at in the z axis. '
+                                     'Recommended settings for both variables: 91 or 58'},
 
-    'brain_table_col_labels': {'type': 'Entry', 'Recommended': 'MB', 'save_as': 'string', 'label': 'Column labels',
-                               'Description': 'Label for columns.'},
+    'brain_table_col_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string', 'label': 'Column labels',
+                               'DefaultNumber': 0, 'Description': 'Label for columns.'},
 
-    'brain_table_row_labels': {'type': 'Entry', 'Recommended': 'SENSE', 'save_as': 'string', 'label': 'Row labels',
-                               'Description': 'Label for rows.'},
+    'brain_table_row_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string', 'label': 'Row labels',
+                               'DefaultNumber': 1, 'Description': 'Label for rows.'},
 
-    'brain_table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
+    'brain_table_cols': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                          'subtype': 'OptionMenu', 'save_as': 'string',
                          'DefaultNumber': 0, 'Description': ''},
 
-    'brain_table_rows': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]',
+    'brain_table_rows': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                          'subtype': 'OptionMenu', 'save_as': 'string',
                          'DefaultNumber': 1, 'Description': ''}
 }
 
 '''Violin plot settings'''
 Violin_plot = {
-
     'table_x_label': {'type': 'Entry', 'Recommended': 'tSNR mean', 'save_as': 'string',
                       'Description': ''},
 
@@ -260,11 +261,11 @@ Violin_plot = {
                        'subtype': 'OptionMenu', 'save_as': 'string',
                        'Description': 'Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.'},
 
-    'table_cols': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
+    'table_cols': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                    'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                    'Description': ''},
 
-    'table_rows': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]',
+    'table_rows': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                    'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
                    'Description': ''}
 }
@@ -281,11 +282,11 @@ Region_barchart = {
     'single_roi_fig_label_fill': {'type': 'Entry', 'Recommended': 'SENSE factor', 'save_as': 'string',
                                   'Description': ""},
 
-    'single_roi_fig_x_axis': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
+    'single_roi_fig_x_axis': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                               'Description': ''},
 
-    'single_roi_fig_colour': {'type': 'Dynamic', 'Recommended': 'SENSE', 'Options': 'Parsing["parameter_dict1"]',
+    'single_roi_fig_colour': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
                               'Description': ''},
 
@@ -293,7 +294,6 @@ Region_barchart = {
 
 '''Region histogram'''
 Region_histogram = {
-
     'histogram_binwidth': {'type': 'Entry', 'Recommended': 5, 'Description': ""},
 
     'histogram_fig_label_x': {'type': 'Entry', 'Recommended': 'temporal Signal to Noise Ratio', 'save_as': 'string',
@@ -314,11 +314,11 @@ Region_histogram = {
     'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true',
                               'Description': 'true or false.'},
 
-    'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'MB', 'Options': 'Parsing["parameter_dict1"]',
+    'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                               'Description': ''},
 
-    'histogram_fig_y_facet': {'type': 'Dynamic', 'Recommended': 'SENSE',
+    'histogram_fig_y_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT',
                               'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string',
                               'DefaultNumber': 1, 'Description': ''},

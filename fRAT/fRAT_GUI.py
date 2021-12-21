@@ -5,9 +5,11 @@ except ImportError:
 
 try:
     import ttk
+
     py3 = False
 except ImportError:
     import tkinter.ttk as ttk
+
     py3 = True
 
 import ast
@@ -200,7 +202,7 @@ class Config_GUI:
 
         width, height = img.size
         new_width = width + 88
-        result = Image.new('RGB', (new_width, height-20), (0, 0, 0))
+        result = Image.new('RGB', (new_width, height - 20), (0, 0, 0))
         result.paste(img, (44, -10))
 
         result = ImageTk.PhotoImage(result)
@@ -277,7 +279,8 @@ class Config_GUI:
         self.paramValues_button.place(x=2, y=12, height=42, width=150)
         self.paramValues_button.configure(command=lambda: Button_handler('Make paramValues.csv'))
         self.paramValues_button.configure(text='''Setup parameters''')
-        Tooltip.CreateToolTip(self.paramValues_button, 'Creates a csv table with prefilled parameter info for each file. Can be set using a command line flag instead')
+        Tooltip.CreateToolTip(self.paramValues_button,
+                              'Creates a csv table with prefilled parameter info for each file. Can be set using a command line flag instead')
 
         self.Print_button = ttk.Button(self.Run_frame)
         self.Print_button.place(x=156, y=12, height=42, width=150)
@@ -590,7 +593,8 @@ class Config_GUI:
                 params = widget.rsplit('_', 1)
 
                 if isinstance(eval(self.page)[params[0]]['Current'], str):
-                        eval(self.page)[params[0]]['Current'] = [x.strip() for x in eval(self.page)[params[0]]['Current'].split(',')]
+                    eval(self.page)[params[0]]['Current'] = [x.strip() for x in
+                                                             eval(self.page)[params[0]]['Current'].split(',')]
 
                 if self.dynamic_widgets[widget].val.get():  # If checkbutton is true
                     if params[1] not in eval(self.page)[params[0]]['Current']:
@@ -605,7 +609,8 @@ class Config_GUI:
                         eval(self.page)[params[0]]['Current'].remove(params[1])
 
                     if len(eval(self.page)[params[0]]['Current']) == 0:
-                        eval(self.page)[params[0]]['Current'].append('')  # If list is empty, set first element to blank string
+                        eval(self.page)[params[0]]['Current'].append(
+                            '')  # If list is empty, set first element to blank string
 
             else:
                 eval(self.page)[widget]['Current'] = self.dynamic_widgets[widget].val.get()
@@ -648,8 +653,8 @@ class Tooltip():
         tooltip_window.wm_geometry(f"+{x}+{y}")
 
         label = tk.Label(tooltip_window, text=self.text, justify=tk.LEFT,
-                      background="#ffffe0", relief=tk.SOLID, borderwidth=1,
-                      font=("tahoma", "12", "normal"))
+                         background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                         font=("tahoma", "12", "normal"))
         label.pack(ipadx=1)
 
         tooltip_window.update_idletasks()
@@ -681,14 +686,9 @@ class Tooltip():
 def Button_handler(command, *args):
     try:
         if command == 'Run_fRAT':
-            Save_settings(pages, 'fRAT_config.toml')
+            check_stale_state()
 
-            stale_pages = check_stale_state()
-            if stale_pages:
-                print(f"\nPlot settings for the following plots have not been updated to reflect new critical parameter settings: "
-                      f"\n * {stale_pages}"
-                      f"\nOpening these pages in the GUI will update these settings. Also make sure to update labels for these plots in their pages.\n")
-                return
+            Save_settings(pages, 'fRAT_config.toml')
 
             print('----- Running fRAT -----')
             fRAT()
@@ -726,19 +726,26 @@ def check_stale_state():
     dynamic_widgets = (Violin_plot['table_cols'], Violin_plot['table_rows'],
                        Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
                        Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],
-                       Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'])
-    plot_pages = {0: 'Scatterplot', 1: 'Scatterplot',
-                  2: 'Brain table', 3: 'Brain table',
-                  4: 'Regional barchart', 5: 'Regional barchart',
-                  6: 'Regional histogram', 7: 'Regional histogram'}
+                       Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'],
+                       Brain_table['brain_table_col_labels'], Brain_table['brain_table_row_labels'])
 
-    stale_pages = []
     for counter, widget in enumerate(dynamic_widgets):
-        if not widget['Current'] == '' and widget['Current'] not in current_critical_params and plot_pages[counter] not in stale_pages:
-            stale_pages.append(plot_pages[counter])
+        if widget['Current'] == '' and len(current_critical_params) > 1:
+            # If current value is blank but shouldnt be as number of critical params is above 1
+            dynamic_widgets[counter]['Current'] = current_critical_params[dynamic_widgets[counter]['DefaultNumber']]
 
-    if stale_pages:
-        return "\n * ".join(stale_pages)
+        elif widget['Recommended'] == 'CHANGE TO DESIRED LABEL' and widget['Current'] != 'CHANGE TO DESIRED LABEL':
+            # If brain table column and row labels have been changed, do not change again
+            # This allows these labels to be updated automatically if user never enters the brain table menu
+            # But does not change to the default value if labels have been set either manually or automatically
+            pass
+
+        elif not widget['Current'] == '' and widget['Current'] not in current_critical_params:
+            try:
+                dynamic_widgets[counter]['Current'] = current_critical_params[dynamic_widgets[counter]['DefaultNumber']]
+            except IndexError:
+                # If only one parameter has been given in critical params
+                dynamic_widgets[counter]['Current'] = ''
 
 
 def Print_atlas_ROIs(selection):
@@ -807,7 +814,8 @@ def Save_settings(page_list, file):
 
                     elif eval(page)[key]['save_as'] == 'string_or_list':
                         try:
-                            eval(page)[key]['Current'] = list(ast.literal_eval(eval(page)[key]['Current']))  # Try to convert to list
+                            eval(page)[key]['Current'] = list(
+                                ast.literal_eval(eval(page)[key]['Current']))  # Try to convert to list
 
                         except (ValueError, TypeError):  # Handles error if input is None or is string
                             convert = 'string'
@@ -830,7 +838,8 @@ def Save_settings(page_list, file):
                             f"{offset}# {description}\n")
 
                 elif convert == 'split_list':  # Split items then convert to list
-                    offset = ' ' * (80 - len(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}"))
+                    offset = ' ' * (
+                                80 - len(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}"))
                     f.write(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}  "
                             f"{offset}# {description}\n")
 
