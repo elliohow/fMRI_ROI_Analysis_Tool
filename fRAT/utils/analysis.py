@@ -1,24 +1,19 @@
 import itertools
 import os
 import re
-import shutil
-import sys
 import warnings
-from copy import deepcopy
+from glob import glob
+from os.path import splitext
 
+import bootstrapped.bootstrap as bs
+import bootstrapped.stats_functions as bs_stats
 import nibabel as nib
 import numpy as np
 import pandas as pd
 import simplejson as json
 import xmltodict
-import bootstrapped.bootstrap as bs
-import bootstrapped.stats_functions as bs_stats
-from os.path import splitext
-from glob import glob
 from nipype.interfaces import fsl
 from scipy.stats import norm
-from sklearn.covariance import EllipticEnvelope
-from sklearn.cluster import KMeans
 
 from .utils import Utils
 
@@ -858,10 +853,10 @@ def print_outlier_removal_methods(config, method, parameters=None, brain=None):
     if string:
         if method == 'pooled':
             print(f'Running {method} outlier removal using {" & ".join(string)} '
-                  f'for parameter combination: {parameters}\n')
+                  f'for parameter combination: {parameters}')
         elif method == 'individual':
             print(f'Running {method} outlier removal using {" & ".join(string)} '
-                  f'for parameter combination: {brain}\n')
+                  f'for parameter combination: {brain}')
 
 
 def compile_roi_stats(roi_temp_store, roi_results, config):

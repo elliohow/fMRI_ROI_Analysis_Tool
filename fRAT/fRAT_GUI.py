@@ -13,19 +13,17 @@ except ImportError:
     py3 = True
 
 import ast
-import re
-import os
-import textwrap
-import sys
 import logging
-import xmltodict
+import sys
+import textwrap
 from pathlib import Path
-from PIL import ImageTk, Image
 
-from fRAT import fRAT
-from statmap import main as statmap_calc
-from printResults import printResults
+from PIL import ImageTk
+
 import dash_report
+from fRAT import fRAT
+from printResults import printResults
+from statmap import main as statmap_calc
 from utils import *
 from utils.fRAT_config_setup import *
 from utils.statmap_config_setup import *

@@ -1,5 +1,3 @@
-import simplejson as json
-
 from utils import *
 
 

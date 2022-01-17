@@ -1,8 +1,6 @@
 import datetime
-import itertools
 import sys
 import time
-import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -70,13 +68,21 @@ def argparser(config):
     return config
 
 
+def statistics(config):
+    if config.verbose:
+        print('\n------------------\n--- Statistics ---\n------------------')
+
+    Utils.chdir_to_output_directory('Statistics', config)
+    statistics_main(config)
+
+
 def plotting(config, orig_path):
     if config.verbose:
         print('\n----------------\n--- Plotting ---\n----------------')
 
     # Plotting
-    Figures.setup_environment(Environment_Setup.save_location, config)
-    Figures.make_figures()
+    Utils.chdir_to_output_directory('Plotting', config)
+    Figures.make_figures(config)
 
     # Create html report
     html_report.main(str(orig_path))

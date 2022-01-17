@@ -1,19 +1,18 @@
 import argparse
 import ast
 import os
+import re
 import shutil
 import sys
-
-import toml
-import re
 from glob import glob
-from tkinter import Tk, filedialog
-import multiprocess as mp
-import pandas as pd
-import nibabel as nib
-import warnings
 from pathlib import Path
+from tkinter import Tk, filedialog
 from types import SimpleNamespace
+
+import multiprocess as mp
+import nibabel as nib
+import pandas as pd
+import toml
 
 from utils.fRAT_config_setup import *
 
@@ -278,3 +277,32 @@ class Utils:
             current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
             print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "
                   f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running the fRAT.")
+
+    @staticmethod
+    def chdir_to_output_directory(current_step, config):
+        if config.run_analysis:
+            from utils.analysis import Environment_Setup
+            json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
+
+            os.chdir(json_directory)
+
+        elif current_step == 'Statistics' and config.run_plotting:
+            return  # Will already be in the correct directory
+
+        elif config.report_output_folder in ("", " "):
+            print('Select the directory output by the fRAT.')
+            json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
+
+        else:
+            json_directory = config.report_output_folder
+
+            try:
+                os.chdir(json_directory)
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    'Output folder location (fRAT output folder location) in fRAT_config.toml is not a valid directory.')
+
+            if config.verbose:
+                print(f'Output folder selection: {json_directory}.')
+
+        return json_directory

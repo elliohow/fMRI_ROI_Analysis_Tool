@@ -21,30 +21,9 @@ class Figures:
     config = None
 
     @classmethod
-    def setup_environment(cls, save_location, cfg):
+    def make_figures(cls, cfg):
         cls.config = cfg
 
-        if cls.config.run_analysis:
-            os.chdir(save_location)
-
-        else:
-            if cls.config.report_output_folder in ("", " "):
-                print('Select the directory output by the fRAT.')
-                figure_directory = Utils.file_browser(title='Select the report directory output by the fRAT.')
-
-            else:
-                figure_directory = cls.config.report_output_folder
-
-                if cls.config.verbose:
-                    print(f'Finding files in {cls.config.report_output_folder}.')
-
-            try:
-                os.chdir(figure_directory)
-            except FileNotFoundError:
-                raise FileNotFoundError('report_output_folder in fRAT_config.toml is not a valid directory.')
-
-    @classmethod
-    def make_figures(cls):
         try:
             combined_results_df = pd.read_json("Overall/Summarised_results/combined_results.json")
         except ValueError:
@@ -827,33 +806,3 @@ class CompareOutputs(Figures):
         figure.save(f"TEST.png", height=config.plot_scale,
                     width=config.plot_scale * 3,
                     verbose=False, limitsize=False)
-
-
-def chdir_to_output_directory(current_step, config):  # TODO: Hook this up to figures step
-    if current_step in ('Plotting', 'Statistics') and config.run_analysis:
-        from utils.analysis import Environment_Setup
-        json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
-
-        os.chdir(json_directory)
-
-    elif current_step == 'Statistics' and config.run_plotting:
-        return
-
-    elif config.report_output_folder in ("", " "):
-        print('Select the directory output by the fRAT.')
-        json_directory = Utils.file_browser(title='Select the directory output by the fRAT', chdir=True)
-
-    else:
-        json_directory = config.report_output_folder
-        config.report_output_folder = json_directory
-
-        try:
-            os.chdir(json_directory)
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                'Output folder location (fRAT output folder location) in fRAT_config.toml is not a valid directory.')
-
-        if config.verbose:
-            print(f'Output folder selection: {config.report_output_folder}.')
-
-    return json_directory

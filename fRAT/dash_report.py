@@ -1,17 +1,16 @@
-import dash
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-from dash_table.Format import Format, Scheme
 import fnmatch
-import pandas as pd
-import numpy
-import re
-import webbrowser
-from flask import Flask
 import signal
 import threading
+import webbrowser
+
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_table
+import numpy
+from dash.dependencies import Input, Output
+from dash_table.Format import Format, Scheme
+from flask import Flask
 from gevent.pywsgi import WSGIServer
 
 from utils import *
