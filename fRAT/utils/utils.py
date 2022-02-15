@@ -119,8 +119,14 @@ class Utils:
         return directory
 
     @staticmethod
-    def save_config(newdir, config_file):
+    def save_config(newdir, config_file, additional_info=None):
         with open(f'{newdir}/config_log.toml', 'w') as f, open(f'{config_file}.toml', 'r') as r:
+            if additional_info:
+                for line in additional_info:
+                    f.write(line)
+
+                f.write('\n')
+
             for line in r:
                 f.write(line)
 
@@ -254,12 +260,14 @@ class Utils:
 
     @staticmethod
     def find_participant_dirs(directory):
-        # Searches for folders that start with p
-        participant_path = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+", direc)]
+        # Searches for folders that start with e.g. sub-01
+        participant_path = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+$", direc)]
         participant_names = [participant.split('/')[-1] for participant in participant_path]
 
         if len(participant_path) == 0:
-            raise FileNotFoundError('Participant directories not found.')
+            raise FileNotFoundError('Participant directories not found.\n'
+                                    'Make sure participant directories are labelled e.g. sub-01 and the selected '
+                                    'directory contains all participant directories.')
         elif config.verbose:
             print(f'Found {len(participant_path)} participant folders.')
 

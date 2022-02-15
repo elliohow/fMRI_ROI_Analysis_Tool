@@ -24,13 +24,15 @@ def file_setup(func):
         base_sub_location = config.fMRI_file_location
 
     # Create dictionary from each participant directory
-    participants = {participant_dir: None for participant_dir in Utils.find_participant_dirs(base_sub_location)}
+    participant_dir, _ = Utils.find_participant_dirs(base_sub_location)
+    participants = {participant: None for participant in participant_dir}
 
     for participant in participants:
         # Find all nifti and analyze files
         participants[participant] = Utils.find_files(f"{participant}/{file_location}", "hdr", "nii.gz", "nii")
         Utils.check_and_make_dir(f"{participant}/{output_folder}")
-        Utils.save_config(f"{participant}/{output_folder}", 'statmap_config')
+        Utils.save_config(f"{participant}/{output_folder}", 'statmap_config',
+                          additional_info=[f"statistical_map_created = '{func}'\n"])
 
     return participants, output_folder, file_location
 
@@ -74,7 +76,7 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
     if config.noise_volume:
         std = ImageStats(in_file=noise_file, op_string='-S',
                          terminal_output='allatonce').run()  # Std dev of entire volume  # TODO: Use -S or -s
-        noise_value = std.aggregate_outputs().get()['out_stat']
+        noise_value = std.outputs.get()['out_stat']
 
     else:
         noise_value = int(noise_file)

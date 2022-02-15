@@ -1097,7 +1097,9 @@ def load_paramValues_file():
         try:
             table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
         except FileNotFoundError:
-            raise Exception('Make sure a copy of paramValues.csv is in the chosen folder.')
+            raise Exception('Make sure a copy of paramValues.csv is in the chosen folder. \n'
+                            'Also make sure the selected folder contains all the participant directories '
+                            'in the necessary BIDS format e.g. sub-01.')
 
     return table
 
