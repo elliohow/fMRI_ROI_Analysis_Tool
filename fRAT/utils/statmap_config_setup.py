@@ -18,9 +18,9 @@ Statistical_maps = {
                                           'if blank then a browser window will allow you to search for the files at '
                                           'runtime.'},
 
-    'output_folder_name': {'type': 'Entry', 'Recommended': 'statmap', 'save_as': 'string',
+    'output_folder_name': {'type': 'Entry', 'Recommended': 'statmaps', 'save_as': 'string',
                            'Description': 'Directory to save output. '
-                                          'Recommended: statmap'},
+                                          'Recommended: statmaps'},
 
     'temporal_filter': {'type': 'CheckButton', 'Recommended': 'true',
                         'Description': 'true or false. Use a high pass filter to remove low frequency drift. '

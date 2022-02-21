@@ -351,7 +351,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
-        self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"{participant_folder}/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.roi_results = None
         self.roi_temp_store = None
         self.roi_stat_list = ""
