@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 import re
 import warnings
@@ -425,6 +426,8 @@ class Brain:
         global config
         config = cfg
 
+        logging.getLogger('nipype.interface').setLevel(0)  # Suppress nipype interface terminal output
+
         if config.verbose:
             print(f'Analysing fMRI volume {brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
@@ -542,7 +545,8 @@ class Brain:
         fMRI_volume = fsl_functions(*pack_vars, 'BET', fMRI_volume, "bet_")
 
         if config.verbose:
-            print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
+            print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume '
+                  f'using {config.anat_align_cost_function} cost function.')
 
         # Align to anatomical
         if config.anat_align_cost_function == 'BBR':
