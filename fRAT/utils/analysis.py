@@ -449,16 +449,18 @@ class Brain:
 
         elif config.file_cleanup == 'move':
             Utils.check_and_make_dir(f"{self.save_location}Intermediate_files")
+            Utils.check_and_make_dir(f"{self.save_location}/Intermediate_files/{self.no_ext_brain}")
 
             for file in self.file_list:
                 file = file.replace(self.save_location, "")  # Remove folder from start of file name
-                Utils.move_file(file, self.save_location, f"{self.save_location}Intermediate_files")
+                Utils.move_file(file, self.save_location,
+                                f"{self.save_location}/Intermediate_files/{self.no_ext_brain}")
 
         self.file_list = []
 
-        redundant_files = glob(f'{self.save_location}/white_matter_thresholded.nii.gz*') \
-                          + glob(f'{self.save_location}/*_fast_wmseg.nii.gz*') \
-                          + glob(f'{self.save_location}/*_init.mat')
+        redundant_files = glob(f'{self.save_location}/white_matter_thresholded_{self.no_ext_brain}.nii.gz') \
+                          + glob(f'{self.save_location}/{self.no_ext_brain}_fast_wmseg.nii.gz') \
+                          + glob(f'{self.save_location}/{self.no_ext_brain}_init.mat')
 
         for file in redundant_files:
             os.remove(file)
