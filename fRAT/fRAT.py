@@ -1,4 +1,5 @@
 import datetime
+import shutil
 import sys
 import time
 from copy import deepcopy
@@ -173,13 +174,12 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
 
     vals = []
 
-    if config.anat_align:
-        for counter, participant in enumerate(participant_list):
-            if config.verbose:
-                print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
+    for counter, participant in enumerate(participant_list):
+        if config.verbose:
+            print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
 
-            df = participant.calculate_anat_flirt_cost_function()
-            vals.append(df)
+        df = participant.calculate_anat_flirt_cost_function()
+        vals.append(df)
 
     # Set arguments to pass to fmri_get_additional_info
     iterable = zip(brain_list, itertools.repeat("fmri_get_additional_info"),
@@ -236,9 +236,7 @@ def atlas_scale(matched_brains, config, pool):
 
 
 def config_check(config):
-    if config.grey_matter_segment and not config.anat_align:
-        raise ImportError(f'grey_matter_segment is True but anat_align is set to False. '
-                          f'grey_matter_segment requires anat_align to be true to function.')
+    pass
 
 
 if __name__ == '__main__':

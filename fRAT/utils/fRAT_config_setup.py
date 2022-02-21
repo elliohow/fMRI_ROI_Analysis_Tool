@@ -65,14 +65,17 @@ Analysis = {
                                      '\nExample: HarvardOxford-Cortical_ROI_report/'},
 
     'dof': {'type': 'Entry', 'Recommended': 12, 'label': 'DOF',
-            'Description': 'Degrees of freedom for FLIRT. Recommended: 12'},
+            'Description': 'Degrees of freedom for FLIRT (only used for the fMRI to anatomical alignment when using '
+                           'Correlation Ratio cost function). Recommended: 12'},
 
-    'anat_align': {'type': 'CheckButton', 'Recommended': 'true',
-                   'label': 'Align to anatomical volume',
-                   'Description': 'true or false. Recommended: true.'
-
-                                  '\nNote: anatomical file should: be placed in the sub-{id}/anat/ directory, already be '
-                                  'skull stripped and be the only file in this directory. optiBET is recommended for skull stripping.'},
+    'anat_align_cost_function': {'type': 'OptionMenu',
+                                 'label': 'fMRI to anatomical cost function',
+                                 'Recommended': 'BBR',
+                                 'Options': ['BBR', 'Correlation Ratio'],
+                                 'save_as': 'string',
+                                 'Description': 'BBR or Correlation Ratio. Recommended: BBR.\n'
+                                                'Using BBR (Boundary-Based Registration) requires FSL FAST segmentation'
+                                                ' and wholehead anatomical placed in anat folder.'},
 
     'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
                             'Description': 'true or false. Recommended: true. '

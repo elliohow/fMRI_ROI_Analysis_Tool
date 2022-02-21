@@ -13,6 +13,7 @@ import pandas as pd
 import simplejson as json
 import xmltodict
 from nipype.interfaces import fsl
+from nipype.interfaces.fsl import maths
 from scipy.stats import norm
 
 from .utils import Utils
@@ -145,10 +146,12 @@ class Participant:
         self.anat_cost = 0
         self.brains = None
         self.file_list = []
+        self.anat_head = None
         self.anat_brain = None
         self.anat_to_mni_mat = None
         self.anat_brain_no_ext = None
-        self.fsl_segmentation = None
+        self.grey_matter_segmentation = None
+        self.white_matter_segmentation = None
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -159,8 +162,7 @@ class Participant:
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(self.save_location)
 
-        if config.anat_align:
-            self.anat_setup(environment_globals['fsl_path'])
+        self.anat_setup(environment_globals['fsl_path'])
 
         # Initialise brain class for each file found
         for counter, brain in enumerate(self.brains):
@@ -168,9 +170,11 @@ class Participant:
                                          self.participant_path,
                                          self.participant_name,
                                          self.save_location,
+                                         self.anat_head,
                                          self.anat_brain,
                                          self.anat_to_mni_mat,
-                                         self.fsl_segmentation,
+                                         self.grey_matter_segmentation,
+                                         self.white_matter_segmentation,
                                          environment_globals)
 
         return self
@@ -188,7 +192,7 @@ class Participant:
         iterable = zip(participant_list, itertools.repeat("setup_participant"),
                        itertools.repeat(Environment_Setup.__dict__), itertools.repeat(config))
 
-        if config.verbose and config.anat_align:
+        if config.verbose:
             print(f'\n--- Anatomical file alignment ---')
 
         # Setup each participant
@@ -237,8 +241,7 @@ class Participant:
 
             construct_combined_results(f'{self.save_location}')
 
-        if config.anat_align:
-            self.anat_file_cleanup()
+        self.anat_file_cleanup()
 
         return brain_list
 
@@ -249,28 +252,57 @@ class Participant:
         if len(self.brains) == 0:
             raise NameError("No files found.")
 
+    @staticmethod
+    def anat_file_check(files, filetype):
+        if len(files) > 1:
+            raise FileExistsError(f'More than one {filetype} images found in the anat folder.')
+        elif len(files) == 0:
+            raise FileExistsError(f'No {filetype} images found in the anat folder.')
+        else:
+            return files[0]
+
     def anat_setup(self, fsl_path):
         if config.verbose:
             print(f'Converting anatomical file to MNI space for participant: {self.participant_name}')
 
         anat = Utils.find_files(f'{self.participant_path}/anat/', "hdr", "nii.gz", "nii")
 
-        if len(anat) > 1:
-            raise FileExistsError('Multiple files found in anat folder.')
-        else:
-            anat = anat[0]
+        if config.anat_align_cost_function == 'BBR' and len(anat) < 2:
+            raise FileExistsError('When using the BBR cost function for the fMRI to structural registration, the anat '
+                                  'folder should contain both the whole head and brain extracted images labelled in '
+                                  'the filename with head and brain respectively e.g. "MPRAGE_head", "MPRAGE_brain".')
+        elif len(anat) > 2:
+            raise FileExistsError('The maximum number of files in the anat folder should be two: a whole head and brain '
+                                  'extracted images labelled in the filename with head and brain respectively e.g. '
+                                  '"MPRAGE_head", "MPRAGE_brain". \n NOTE: Wholehead image is only required when '
+                                  'aligning fMRI volume to anatomical volume with the BBR cost function.')
 
-        self.anat_brain = f'{self.participant_path}/anat/{anat}'
-        self.anat_brain_no_ext = anat.rsplit(".")[0]
+        if len(anat) == 1:
+            brain = anat[0]
+        else:
+            brain = [file for file in anat if 'brain' in file]
+            brain = self.anat_file_check(brain, 'brain')
+
+        if config.anat_align_cost_function == 'BBR':
+            head = [file for file in anat if 'brain' not in file]
+            head = self.anat_file_check(head, 'whole head')
+
+            self.anat_head = f'{self.participant_path}/anat/{head}'
+
+        self.anat_brain = f'{self.participant_path}/anat/{brain}'
+        self.anat_brain_no_ext = brain.rsplit(".")[0]
         self.anat_to_mni_mat = fsl_functions(self, self.save_location, self.anat_brain_no_ext,
                                              'FLIRT', self.anat_brain, 'to_mni_from_',
                                              f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
         if config.grey_matter_segment:
             try:
-                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
+                self.grey_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
+                self.white_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_2*")[0]
+
             except IndexError:
-                self.fsl_segmentation = glob(f"{self.participant_path}/fslfast/*")[0]
+                raise FileNotFoundError(f'fslfast directory for {self.participant_name} does not contain all files'
+                                        f'output by FAST.')
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
@@ -309,12 +341,15 @@ class Participant:
 
 class Brain:
     def __init__(self, brain, participant_folder, participant_name, save_location,
-                 anat_brain, anat_to_mni_mat, fsl_segmentation, environment_globals):
+                 anat_head, anat_brain, anat_to_mni_mat, grey_matter_segmentation, white_matter_segmentation,
+                 environment_globals):
         self.brain = brain
         self.save_location = save_location
+        self.anat_head = anat_head
         self.anat_brain = anat_brain
         self.anat_to_mni_mat = anat_to_mni_mat
-        self.fsl_segmentation = fsl_segmentation
+        self.grey_matter_segmentation = grey_matter_segmentation
+        self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}{self.no_ext_brain}{config.stat_map_suffix}"
         self.roi_results = None
@@ -347,22 +382,17 @@ class Brain:
 
         anat_cost, mni_cost = None, None
 
-        if config.anat_align:  # Calculate anatomical cost function value
-            anat_cost = run_flirt_cost_function(fslfunc,
-                                                self.anat_brain,
-                                                f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
-                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
-                                                f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
-                                                config)
+        # Calculate anatomical cost function value
+        wmseg = None
+        if config.anat_align_cost_function == 'BBR':
+            wmseg = f'{self.save_location}{self.no_ext_brain}_fast_wmseg.nii.gz'
 
-        else:
-            # Calculate MNI cost function value
-            mni_cost = run_flirt_cost_function(fslfunc,
-                                               f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz',
-                                               f'{self.save_location}/Intermediate_files/to_mni_from_{self.no_ext_brain}.mat',
-                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.nii.gz',
-                                               f'{self.save_location}/Intermediate_files/{self.no_ext_brain}_mni_redundant.mat',
-                                               config)
+        anat_cost = run_flirt_cost_function(fslfunc,
+                                            self.anat_brain,
+                                            f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
+                                            f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
+                                            f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
+                                            config, wmseg=wmseg)
 
         # Find absolute and relative mean displacement files
         suffixes = ['_abs_mean.rms', '_rel_mean.rms']
@@ -484,7 +514,7 @@ class Brain:
 
         # Apply inverse of matrix to chosen segmentation to convert it into native space
         segmentation_to_fmri = fsl_functions(self, self.save_location, self.no_ext_brain, 'ApplyXFM',
-                                             self.fsl_segmentation, prefix, inverse_mat, fMRI_volume, interp)
+                                             self.grey_matter_segmentation, prefix, inverse_mat, fMRI_volume, interp)
 
         return segmentation_to_fmri
 
@@ -511,20 +541,34 @@ class Brain:
         # Brain extraction
         fMRI_volume = fsl_functions(*pack_vars, 'BET', fMRI_volume, "bet_")
 
-        if config.anat_align:
-            if config.verbose:
-                print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
+        if config.verbose:
+            print(f'Aligning fMRI volume {brain_number_current + 1}/{brain_number_total} to anatomical volume.')
 
-            # Align to anatomical
+        # Align to anatomical
+        if config.anat_align_cost_function == 'BBR':
+            white_matter_thresholded = fsl_functions(*pack_vars,
+                                                     'maths.Threshold',
+                                                     self.white_matter_segmentation,
+                                                     "white_matter_thresholded_")
+
+            white_matter_binarised = fsl_functions(*pack_vars,
+                                                   'maths.UnaryMaths',
+                                                   white_matter_thresholded,
+                                                   "")
+
+            fmri_to_anat_mat = fsl_functions(*pack_vars, 'EpiReg',
+                                             fMRI_volume, "to_anat_from_",
+                                             self.anat_brain, self.anat_head,
+                                             white_matter_binarised)
+
+        elif config.anat_align_cost_function == 'Correlation Ratio':
             fmri_to_anat_mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_anat_from_", self.anat_brain)
 
-            # Combine fMRI-anat and anat-mni matrices
-            mat = fsl_functions(*pack_vars, 'ConvertXFM', fmri_to_anat_mat, 'combined_mat_', 'concat_xfm')
-
         else:
-            # Align to MNI
-            mat = fsl_functions(*pack_vars, 'FLIRT', fMRI_volume, "to_mni_from_",
-                                f'{self._fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
+            raise ValueError('fMRI to anatomical registration cost function type not valid.')
+
+        # Combine fMRI-anat and anat-mni matrices
+        mat = fsl_functions(*pack_vars, 'ConvertXFM', fmri_to_anat_mat, 'combined_mat_', 'concat_xfm')
 
         # Get inverse of matrix
         inverse_mat = fsl_functions(*pack_vars, 'ConvertXFM', mat, 'inverse_combined_mat_')
@@ -574,7 +618,7 @@ class Brain:
             # Remove outliers from ROIs
             if config.noise_cutoff:
                 roi_results, roi_temp_store, self.noise_threshold = noise_threshold_outlier_detection(roi_results,
-                                                                                                 roi_temp_store)
+                                                                                                      roi_temp_store)
 
                 create_no_roi_volume(roi_temp_store,
                                      f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz",
@@ -899,14 +943,18 @@ def compile_roi_stats(roi_temp_store, roi_results, config):
     return roi_results
 
 
-def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config):
+def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, wmseg=None):
     fslfunc.inputs.reference = ref
     fslfunc.inputs.args = f"-init {init}"  # args used as in_matrix_file method not working
     fslfunc.inputs.out_file = out_file
     fslfunc.inputs.out_matrix_file = matrix_file
 
+    if wmseg:
+        fslfunc.inputs.cost = 'bbr'
+        fslfunc.inputs.wm_seg = wmseg
+
     if config.verbose_cmd_line_args:
-        print(fslfunc.cmdline)
+        print(f"{fslfunc.cmdline}\n")
 
     output = fslfunc.run()
     cost_func = float(re.search("[0-9]*\.[0-9]+", output.runtime.stdout)[0])
@@ -935,6 +983,25 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         fslfunc.inputs.dof = config.dof
         current_mat = fslfunc.inputs.out_matrix_file = f'{save_location}{prefix}{no_ext_brain}.mat'
 
+    elif func == 'maths.Threshold':
+        fslfunc.inputs.thresh = 0.5
+
+    elif func == 'maths.UnaryMaths':
+        fslfunc.inputs.in_file = input
+        fslfunc.inputs.operation = 'bin'
+        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}_fast_wmseg.nii.gz"
+
+    elif func == 'EpiReg':
+        fslfunc.inputs.epi = input
+        fslfunc.inputs.t1_brain = argv[0]
+        fslfunc.inputs.t1_head = argv[1]
+        fslfunc.inputs.wmseg = argv[2]
+
+        # Gets around a bug in nipype code that only allows the wmseg value to be the outbase value with _fast_wmseg suffix
+        fslfunc.inputs.out_base = argv[2].replace('_fast_wmseg.nii.gz', '')
+        current_mat = f'{fslfunc.inputs.out_base}.mat'
+        current_brain = f'{fslfunc.inputs.out_base}.nii.gz'
+
     elif func == 'ConvertXFM':
         if len(argv) > 0 and argv[0] == 'concat_xfm':
             fslfunc.inputs.in_file2 = obj.anat_to_mni_mat
@@ -950,14 +1017,15 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         current_mat = fslfunc.inputs.out_matrix_file = f"{save_location}{prefix}{no_ext_brain}.mat"
 
     if config.verbose_cmd_line_args:
-        print(fslfunc.cmdline)
+        print(f"{fslfunc.cmdline}\n")
 
     fslfunc.run()
-
     fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix)
 
     if func == 'FLIRT':
         return current_mat
+    elif func == 'EpiReg':
+        return f'{save_location}{prefix}{no_ext_brain}.mat'
 
     return current_brain
 
@@ -965,6 +1033,17 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix):
     if func in ('FLIRT', 'ApplyXFM'):
         obj.file_list.extend([current_brain, current_mat])
+    elif func == 'EpiReg':
+        new_base = f'{save_location}{prefix}{no_ext_brain}'
+        renamed_brain = f'{new_base}.nii.gz'
+        renamed_mat = f'{new_base}.mat'
+        renamed_wmedge = f'{new_base}_fast_wmedge.nii.gz'
+
+        os.rename(current_brain, renamed_brain)
+        os.rename(current_mat, renamed_mat)
+        os.rename(f'{save_location}{no_ext_brain}_fast_wmedge.nii.gz', renamed_wmedge)
+
+        obj.file_list.extend([renamed_brain, renamed_mat, renamed_wmedge])
     elif func == 'BET':
         obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
     elif func == 'MCFLIRT':
@@ -976,19 +1055,27 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
         for file in mc_files:
             os.rename(f"{save_location}motion_correction_files/{file}",
                       f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
-
+    elif func in ('maths.Threshold', 'maths.UnaryMaths'):
+        return
     else:
         obj.file_list.append(current_brain)
 
 
 def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):
-    fslfunc = getattr(fsl, func)()
-    fslfunc.inputs.in_file = input
-    fslfunc.inputs.output_type = 'NIFTI_GZ'
+    if 'maths' in func:
+        func = func.split('.')[1]
+        fslfunc = getattr(maths, func)()
+    else:
+        fslfunc = getattr(fsl, func)()
 
     # Standard variables that may be changed for specific FSL functions
     suffix = '.nii.gz'
-    current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
+    fslfunc.inputs.output_type = 'NIFTI_GZ'
+
+    current_brain = None
+    if func not in ('EpiReg', 'UnaryMaths'):
+        fslfunc.inputs.in_file = input
+        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 
     if func == 'ConvertXFM':
         suffix = '.mat'

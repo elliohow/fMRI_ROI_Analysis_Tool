@@ -3,11 +3,11 @@ version = '0.15.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_plotting = true                                                               # true or false.
+run_plotting = false                                                              # true or false.
 run_statistics = false                                                            # true or false.
 verbose = true                                                                    # true or false.
-verbose_cmd_line_args = false                                                     # true or false.
-multicore_processing = false                                                      # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
+verbose_cmd_line_args = true                                                      # true or false.
+multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 report_output_folder = ''                                                         # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
@@ -16,8 +16,8 @@ file_cleanup = 'move'                                                           
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
 output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
-dof = 12                                                                          # Degrees of freedom for FLIRT. Recommended: 12
-anat_align = true                                                                 # true or false. Recommended: true. Note: anatomical file should: be placed in the sub-{id}/anat/ directory, already be skull stripped and be the only file in this directory. optiBET is recommended for skull stripping.
+dof = 12                                                                          # Degrees of freedom for FLIRT (only used for the fMRI to anatomical alignment when using Correlation Ratio cost function). Recommended: 12
+anat_align_cost_function = 'BBR'                                                  # BBR or Correlation Ratio. Recommended: BBR. Using BBR (Boundary-Based Registration) requires FSL FAST segmentation and wholehead anatomical placed in anat folder. Options: ['BBR', 'Correlation Ratio'].
 grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: Requires anatomical align be true to function. FSL FAST segmentation files should be placed in the sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 needs to be in this directory, however if all files output by FAST are placed in this directory, then fRAT will find the necessary file.
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
 outlier_detection_method = 'individual'                                           # Method to run outlier detection. Options: 'individual' or 'pooled' If set to individual, outlier detection will take place for each subject individual. If set to pooled, data will be pooled before running outlier detection. Note: if set to individual, NIFTI files will be created for each subject, showing which files have been excluded using the outlier detection methods selected. However this is not possible for pooled outlier detection. Recommended: individual. Options: ['individual', 'pooled'].
@@ -25,14 +25,14 @@ noise_cutoff = true                                                             
 gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
 gaussian_outlier_contamination = 0.1                                              # Percent of expected outliers in dataset Recommended: 0.1
 gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
-stat_map_folder = 'debug'                                                         # Folder name which contains the statistical map files. Example: temporalSNR_report/
+stat_map_folder = 'statmaps/'                                                     # Folder name which contains the statistical map files. Example: temporalSNR_report/
 stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 # Parsing
-parameter_dict1 = ['Hyperband', 'Inplane acceleration']                           # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
-parameter_dict2 = ['hb', 'ip']                                                    # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
+parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
+parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
 make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
 
 # Plotting
@@ -40,9 +40,9 @@ plot_dpi = 200                                                                  
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
 make_violin_plot = true                                                           # true or false.
-make_brain_table = false                                                          # true or false.
-make_one_region_fig = false                                                       # true or false.
-make_histogram = false                                                            # true or false.
+make_brain_table = true                                                           # true or false.
+make_one_region_fig = true                                                        # true or false.
+make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
@@ -53,8 +53,8 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'Hyperband'                                                          # 
-table_rows = 'Inplane acceleration'                                               # 
+table_cols = 'MB'                                                                 # 
+table_rows = 'SENSE'                                                              # 
 
 # Brain_table
 brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
@@ -64,15 +64,15 @@ brain_x_coord = 91                                                              
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
 brain_table_col_labels = 'MB'                                                     # Label for columns.
 brain_table_row_labels = 'SENSE'                                                  # Label for rows.
-brain_table_cols = 'Hyperband'                                                    # 
-brain_table_rows = 'Inplane acceleration'                                         # 
+brain_table_cols = 'MB'                                                           # 
+brain_table_rows = 'SENSE'                                                        # 
 
 # Region_barchart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'Hyperband'                                               # 
-single_roi_fig_colour = 'Inplane acceleration'                                    # 
+single_roi_fig_x_axis = 'MB'                                                      # 
+single_roi_fig_colour = 'SENSE'                                                   # 
 
 # Region_histogram
 histogram_binwidth = 5                                                            # 
@@ -82,7 +82,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # true or false.
 histogram_show_median = true                                                      # true or false.
 histogram_show_legend = true                                                      # true or false.
-histogram_fig_x_facet = 'Hyperband'                                               # 
-histogram_fig_y_facet = 'Inplane acceleration'                                    # 
+histogram_fig_x_facet = 'MB'                                                      # 
+histogram_fig_y_facet = 'SENSE'                                                   # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

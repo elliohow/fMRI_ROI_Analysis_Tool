@@ -83,8 +83,7 @@ Base folder
 │   └── skull stripped anatomy file
 │
 ├── fslfast (optional but recommended)
-│   ├── fslfast pve_1 file
-│   └── (Other files output by fast can be placed in this folder, however will not be used by the fRAT)
+│   └── ... (All files output by fslfast)
 │
 ├── NIFTI/Analyze fMRI files
 └── paramValues.csv (created through GUI)
@@ -101,7 +100,7 @@ Base folder
 │   └── MPRAGE.nii
 │
 ├── fslfast (optional but recommended)
-│   └── MPRAGE_pve_1.nii.gz
+│   └── ... (fslfast files)
 │
 ├── P1_MB3_S2_matchBW.nii
 ├── P2_MB1_S1P5_matchBW.nii
@@ -157,13 +156,15 @@ Output folder
   be successfully parsed from the file names.
 
 ### If aligning to anatomical (recommended):
-* A single skull stripped anatomical volume should be placed in a folder called "anat".
+* A single skull stripped anatomical volume should be placed in a folder called "anat" with the suffix "_brain".
+* If you are using the BBR cost function for functional to anatomical registration -- which also requires a FAST 
+  segmentation to have been ran (see below) -- then a second, whole head, non-brain extracted volume should also be 
+  placed in the "anat" folder.
 
 ### If aligning to FSL FAST segmentation (recommended):
 * FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be
   completed before running fRAT analysis.
-* Output of FAST should be placed in a folder called "fslfast". All files output by fast can be placed in this folder, 
-  however only the file with the suffix "pve_1" will be used.
+* Output of FAST should be placed in a folder called "fslfast". All files output by fast should be placed in this folder.
 * FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
   be added in the future.
 * As FAST requires a skull stripped anatomical volume, it is highly recommended that the accuracy of this skull 
@@ -171,7 +172,10 @@ Output folder
   resulting image, which FAST may then misidentify as grey matter. Conversely, overly liberal skull stripping can lead to
   parts of the brain being removed, meaning that these voxels will also not be included in any ROIs.
 * Consider using [optiBET](https://montilab.psych.ucla.edu/fmri-wiki/optibet/) if having issues with standard skull
-  stripping methods as this method has produced the best results so far. Although be aware it can take a while to run.
+  stripping methods as this method has produced the best results so far.
+* If aligning to FAST segmentation, it will also be possible to use the more accurate BBR cost function when aligning 
+  the functional volumes to anatomical volumes. This will require an additional whole head, non-brain extracted volume
+  to be placed in the "anat" folder.
 
 ### Shell scripts
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
