@@ -273,10 +273,11 @@ class Participant:
                                   'folder should contain both the whole head and brain extracted images labelled in '
                                   'the filename with head and brain respectively e.g. "MPRAGE_head", "MPRAGE_brain".')
         elif len(anat) > 2:
-            raise FileExistsError('The maximum number of files in the anat folder should be two: a whole head and brain '
-                                  'extracted images labelled in the filename with head and brain respectively e.g. '
-                                  '"MPRAGE_head", "MPRAGE_brain". \n NOTE: Wholehead image is only required when '
-                                  'aligning fMRI volume to anatomical volume with the BBR cost function.')
+            raise FileExistsError(
+                'The maximum number of files in the anat folder should be two: a whole head and brain '
+                'extracted images labelled in the filename with head and brain respectively e.g. '
+                '"MPRAGE_head", "MPRAGE_brain". \n NOTE: Wholehead image is only required when '
+                'aligning fMRI volume to anatomical volume with the BBR cost function.')
 
         if len(anat) == 1:
             brain = anat[0]
@@ -454,6 +455,13 @@ class Brain:
                 Utils.move_file(file, self.save_location, f"{self.save_location}Intermediate_files")
 
         self.file_list = []
+
+        redundant_files = glob(f'{self.save_location}/white_matter_thresholded.nii.gz*') \
+                          + glob(f'{self.save_location}/*_fast_wmseg.nii.gz*') \
+                          + glob(f'{self.save_location}/*_init.mat')
+
+        for file in redundant_files:
+            os.remove(file)
 
     def roi_stats_setup(self):
         # Load original brain (with statistical map)

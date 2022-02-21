@@ -195,12 +195,12 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
     vals.extend(results)
 
     if config.verbose:
-        print(f'\nSaving dataframe as additional_info.json')
+        print(f'\nSaving dataframe as additional_info.csv')
 
     df = pd.concat(vals).reset_index(drop=True).replace([np.nan], [None])
 
-    with open(f"{Environment_Setup.save_location}additional_info.txt", 'w') as file:
-        df.to_markdown(buf=file, floatfmt=".2f")
+    with open(f"{Environment_Setup.save_location}additional_info.csv", 'w') as file:
+        df.to_csv(buf=file, floatfmt=".2f")
 
 
 def atlas_scale(matched_brains, config, pool):
