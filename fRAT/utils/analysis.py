@@ -378,7 +378,7 @@ class Brain:
             print(f'Calculating cost function and mean displacement values for fMRI volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
-        fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/bet_{self.no_ext_brain}.nii.gz',
+        fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/{self.no_ext_brain}/bet_{self.no_ext_brain}.nii.gz',
                             schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
                             terminal_output='allatonce', dof=config.dof)
 
@@ -387,7 +387,7 @@ class Brain:
         # Calculate anatomical cost function value
         wmseg = None
         if config.anat_align_cost_function == 'BBR':
-            wmseg = f'{self.save_location}{self.no_ext_brain}_fast_wmseg.nii.gz'
+            wmseg = f'{self.save_location}Intermediate_files/{self.no_ext_brain}/{self.no_ext_brain}_fast_wmseg.nii.gz'
 
         anat_cost = run_flirt_cost_function(fslfunc,
                                             self.anat_brain,
@@ -459,7 +459,6 @@ class Brain:
         self.file_list = []
 
         redundant_files = glob(f'{self.save_location}/white_matter_thresholded_{self.no_ext_brain}.nii.gz') \
-                          + glob(f'{self.save_location}/{self.no_ext_brain}_fast_wmseg.nii.gz') \
                           + glob(f'{self.save_location}/{self.no_ext_brain}_init.mat')
 
         for file in redundant_files:
@@ -1052,12 +1051,14 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
         renamed_brain = f'{new_base}.nii.gz'
         renamed_mat = f'{new_base}.mat'
         renamed_wmedge = f'{new_base}_fast_wmedge.nii.gz'
+        renamed_wmseg = f'{new_base}_fast_wmseg.nii.gz'
 
         os.rename(current_brain, renamed_brain)
         os.rename(current_mat, renamed_mat)
         os.rename(f'{save_location}{no_ext_brain}_fast_wmedge.nii.gz', renamed_wmedge)
+        os.rename(f'{save_location}{no_ext_brain}_fast_wmseg.nii.gz', renamed_wmseg)
 
-        obj.file_list.extend([renamed_brain, renamed_mat, renamed_wmedge])
+        obj.file_list.extend([renamed_brain, renamed_mat, renamed_wmedge, renamed_wmseg])
     elif func == 'BET':
         obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
     elif func == 'MCFLIRT':
