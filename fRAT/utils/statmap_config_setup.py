@@ -18,10 +18,9 @@ Statistical_maps = {
                                           'if blank then a browser window will allow you to search for the files at '
                                           'runtime.'},
 
-    'output_folder_name': {'type': 'Entry', 'Recommended': "DEFAULT", 'save_as': 'string',
-                           'Description': 'Directory to save output. If set to DEFAULT, output directory name will be '
-                                          'for example "temporalSNR_report" if calculating temporalSNR stat maps. '
-                                          'Recommended: DEFAULT'},
+    'output_folder_name': {'type': 'Entry', 'Recommended': 'statmap', 'save_as': 'string',
+                           'Description': 'Directory to save output. '
+                                          'Recommended: statmap'},
 
     'temporal_filter': {'type': 'CheckButton', 'Recommended': 'true',
                         'Description': 'true or false. Use a high pass filter to remove low frequency drift. '
