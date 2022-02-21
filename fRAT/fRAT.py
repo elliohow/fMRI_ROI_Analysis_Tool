@@ -200,7 +200,7 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
     df = pd.concat(vals).reset_index(drop=True).replace([np.nan], [None])
 
     with open(f"{Environment_Setup.save_location}additional_info.csv", 'w') as file:
-        df.to_csv(buf=file, floatfmt=".2f")
+        df.to_csv(path_or_buf=file)
 
 
 def atlas_scale(matched_brains, config, pool):

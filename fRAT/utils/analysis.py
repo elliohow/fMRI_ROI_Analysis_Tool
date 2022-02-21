@@ -299,12 +299,33 @@ class Participant:
 
         if config.grey_matter_segment:
             try:
-                self.grey_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
-                self.white_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_2*")[0]
+                self.find_fslfast_files()
 
             except IndexError:
-                raise FileNotFoundError(f'fslfast directory for {self.participant_name} does not contain all files'
-                                        f'output by FAST.')
+                if config.run_fsl_fast == 'Run if files not found':
+                    if config.verbose:
+                        print(f'Participant {self.participant_name} missing FSL FAST files. '
+                              f'Running FSL FAST (get a cup of coffee this may take a while).')
+
+                    # Need to change directory here to get around error caused by nipype trying to find fslfast output
+                    # in current working directory
+                    orig_direc = os.getcwd()
+                    os.chdir(f'{self.participant_path}/fslfast/')
+
+                    fsl_functions(self, f'{self.participant_path}/fslfast/{self.anat_brain_no_ext}',
+                                  '', 'FAST', self.anat_brain, '')
+
+                    os.chdir(orig_direc)
+
+                    self.find_fslfast_files()
+
+                else:
+                    raise FileNotFoundError(f'fslfast directory for {self.participant_name} does not contain all files'
+                                            f'output by FAST.')
+
+    def find_fslfast_files(self):
+        self.grey_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_1*")[0]
+        self.white_matter_segmentation = glob(f"{self.participant_path}/fslfast/*_pve_2*")[0]
 
     def calculate_anat_flirt_cost_function(self):
         fslfunc = fsl.FLIRT(in_file=self.anat_brain,
@@ -391,7 +412,7 @@ class Brain:
 
         anat_cost = run_flirt_cost_function(fslfunc,
                                             self.anat_brain,
-                                            f'{self.save_location}Intermediate_files/to_anat_from_{self.no_ext_brain}.mat',
+                                            f'{self.save_location}Intermediate_files/{self.no_ext_brain}/to_anat_from_{self.no_ext_brain}.mat',
                                             f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.nii.gz',
                                             f'{self.save_location}Intermediate_files/{self.no_ext_brain}_anat_redundant.mat',
                                             config, wmseg=wmseg)
@@ -1000,7 +1021,6 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         fslfunc.inputs.thresh = 0.5
 
     elif func == 'maths.UnaryMaths':
-        fslfunc.inputs.in_file = input
         fslfunc.inputs.operation = 'bin'
         current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}_fast_wmseg.nii.gz"
 
@@ -1014,6 +1034,10 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         fslfunc.inputs.out_base = argv[2].replace('_fast_wmseg.nii.gz', '')
         current_mat = f'{fslfunc.inputs.out_base}.mat'
         current_brain = f'{fslfunc.inputs.out_base}.nii.gz'
+
+    elif func == 'FAST':
+        fslfunc.inputs.in_files = input
+        fslfunc.inputs.out_basename = save_location
 
     elif func == 'ConvertXFM':
         if len(argv) > 0 and argv[0] == 'concat_xfm':
@@ -1039,6 +1063,8 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         return current_mat
     elif func == 'EpiReg':
         return f'{save_location}{prefix}{no_ext_brain}.mat'
+    elif func == 'FAST':
+        return
 
     return current_brain
 
@@ -1070,7 +1096,7 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
         for file in mc_files:
             os.rename(f"{save_location}motion_correction_files/{file}",
                       f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
-    elif func in ('maths.Threshold', 'maths.UnaryMaths'):
+    elif func in ('maths.Threshold', 'maths.UnaryMaths', 'FAST'):
         return
     else:
         obj.file_list.append(current_brain)
@@ -1088,7 +1114,7 @@ def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):
     fslfunc.inputs.output_type = 'NIFTI_GZ'
 
     current_brain = None
-    if func not in ('EpiReg', 'UnaryMaths'):
+    if func not in ('EpiReg', 'FAST'):
         fslfunc.inputs.in_file = input
         current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}{suffix}"
 

@@ -85,6 +85,14 @@ Analysis = {
                                            'directory, however if all files output by FAST are placed in this '
                                            'directory, then fRAT will find the necessary file.'},
 
+    'run_fsl_fast': {'type': 'OptionMenu',
+                     'Options': ['Run if files not found', 'Never run'],
+                     'Recommended': 'Run if files not found',
+                     'Description': 'Recommended: "Run if files not found".\n These files will only be searched for '
+                                    '(and thus created) if "Use FSL FAST segmentation" is set to true.',
+                     'Label': 'Run FSL FAST',
+                     'save_as': 'string'},
+
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
 
