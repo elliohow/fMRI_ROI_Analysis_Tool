@@ -78,8 +78,11 @@ Analysis = {
                                  'Options': ['BBR', 'Correlation Ratio'],
                                  'save_as': 'string',
                                  'Description': 'BBR or Correlation Ratio. Recommended: BBR.\n'
-                                                'Using BBR (Boundary-Based Registration) requires FSL FAST segmentation'
-                                                ' and wholehead anatomical placed in anat folder.'},
+                                                'Using BBR (Boundary-Based Registration) requires an FSL FAST '
+                                                'segmentation (this will be automatically created if necessary if '
+                                                'the Run FSL FAST option is set to "Run if files not found")'
+                                                'and a wholehead non-brain extracted anatomical placed in the anat '
+                                                'folder.'},
 
     'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
                             'Description': 'true or false. Recommended: true. '

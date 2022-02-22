@@ -46,12 +46,8 @@ For more detailed instructions [see here](docs/Virtual_environments.md).
 
 ## Running
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
-settings can be changed in the GUI, alternatively they can be changed directly in the config.toml file. 
-The recommended critical parameter validation method requires the creation of a paramValues.csv file containing 
-information about critical parameters ([further information here](#paramvaluescsv)). If the paramValues.csv file is 
-created before running the fRAT analysis, it should be placed in the 'base folder' (a copy of this file will then be 
-placed in  the output folder for logging purposes); alternatively, if it is created after analysis it can be placed in 
-the output folder (whose name changes depending on the atlas used for analysis).
+settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files. 
+The critical parameter validation method requires the creation of a paramValues.csv file ([further information here](#paramvaluescsv)).
 
 `combined_results.json` (found in `output_folder/Summarised_results/`) contains the summary results of all fMRI volumes 
 combined into one file. If paramValues.csv was created before running the analysis, this file will be created during the
@@ -141,25 +137,25 @@ Output folder
 
 ### paramValues.csv:
 * A `paramValues.csv` file containing the MRI parameter values of each scan should be in the base folder. To create this
-  file, select the 'Setup parameters' option in the GUI. Alternatively, when running `fRAT.py`, the "make_table_only"
-  variable in config.toml can be set to "True", or pass the --make_table flag when running `fRAT.py`, e.g.
-  `fRAT.py --make_table`.
+  file, select the 'Setup parameters' option in the GUI. Alternatively, when running without the GUI, pass 
+  the --make_table flag when running `fRAT.py`, e.g. `fRAT.py --make_table`. 
+  
+  If "make_folder_structure" is true in `fRAT_config.toml`, then when one of these options to create `paramValues.csv`
+  is used, the folder structure required by fRAT will also be created.
 * To change which keywords to extract from file names when creating this table, edit the two critical parameters
   options in the Parsing menu of the GUI. Alternatively edit the "parameter_dict1" and "parameter_dict2" options in
   `config.toml`. Each critical parameter/parameter_dict list entry represents the name of the parameter and how it would
-  be represented in file name (if at all). Critical parameters are also used for labelling plots.
+  be represented in file name Even if not present in the file name, these options must still be filled in as they are 
+  used elsewhere such as for labelling plots.
 * If the file names do not contain information about which parameters were used (such as the file name
   `P1_MB3_S2_matchBW.nii` showing that multiband 3 and SENSE 2 were used), edit paramValues.csv so it contains the correct
   information.
-* As an alternative to using paramValues.csv, the critical parameter selection method can be changed to 'manual' where
-  the user will be prompted at runtime to enter the correct values, or 'name' if the user is certain the parameters can
-  be successfully parsed from the file names.
 
-### If aligning to anatomical (recommended):
+### anat folder:
 * A single skull stripped anatomical volume should be placed in a folder called "anat" with the suffix "_brain".
 * If you are using the BBR cost function for functional to anatomical registration -- which also requires a FAST 
   segmentation to have been ran (see below) -- then a second, whole head, non-brain extracted volume should also be 
-  placed in the "anat" folder.
+  placed in the "anat" folder. This second file should not contain the word "brain" in the file name.
 
 ### If aligning to FSL FAST segmentation (recommended):
 * FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be

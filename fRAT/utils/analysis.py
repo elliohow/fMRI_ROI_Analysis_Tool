@@ -297,7 +297,7 @@ class Participant:
                                              'FLIRT', self.anat_brain, 'to_mni_from_',
                                              f'{fsl_path}/data/standard/MNI152_T1_1mm_brain.nii.gz')
 
-        if config.grey_matter_segment:
+        if config.grey_matter_segment or config.anat_align_cost_function == 'BBR':
             try:
                 self.find_fslfast_files()
 
