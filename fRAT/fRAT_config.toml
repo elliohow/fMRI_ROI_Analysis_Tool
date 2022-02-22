@@ -3,8 +3,8 @@ version = '0.15.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_plotting = false                                                              # true or false.
-run_statistics = false                                                            # true or false.
+run_plotting = true                                                               # true or false.
+run_statistics = true                                                             # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
@@ -15,9 +15,10 @@ file_cleanup = 'move'                                                           
 
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
+input_folder_name = 'func'                                                        # Folder found in each subjects directory containing the files to be analysed.
 output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT (only used for the fMRI to anatomical alignment when using Correlation Ratio cost function). Recommended: 12
-anat_align_cost_function = 'Correlation Ratio'                                    # BBR or Correlation Ratio. Recommended: BBR. Using BBR (Boundary-Based Registration) requires FSL FAST segmentation and wholehead anatomical placed in anat folder. Options: ['BBR', 'Correlation Ratio'].
+anat_align_cost_function = 'BBR'                                                  # BBR or Correlation Ratio. Recommended: BBR. Using BBR (Boundary-Based Registration) requires FSL FAST segmentation and wholehead anatomical placed in anat folder. Options: ['BBR', 'Correlation Ratio'].
 grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: Requires anatomical align be true to function. FSL FAST segmentation files should be placed in the sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 needs to be in this directory, however if all files output by FAST are placed in this directory, then fRAT will find the necessary file.
 run_fsl_fast = 'Run if files not found'                                           # Recommended: "Run if files not found".  These files will only be searched for (and thus created) if "Use FSL FAST segmentation" is set to true. Options: ['Run if files not found', 'Never run'].
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
@@ -54,8 +55,8 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'MB'                                                                 # 
-table_rows = 'SENSE'                                                              # 
+table_cols = 'DEFAULT'                                                            # 
+table_rows = 'DEFAULT'                                                            # 
 
 # Brain_table
 brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
@@ -63,17 +64,17 @@ brain_fig_value_min = 0                                                         
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'MB'                                                     # Label for columns.
-brain_table_row_labels = 'SENSE'                                                  # Label for rows.
-brain_table_cols = 'MB'                                                           # 
-brain_table_rows = 'SENSE'                                                        # 
+brain_table_col_labels = 'CHANGE TO DESIRED LABEL'                                # Label for columns.
+brain_table_row_labels = 'CHANGE TO DESIRED LABEL'                                # Label for rows.
+brain_table_cols = 'DEFAULT'                                                      # 
+brain_table_rows = 'DEFAULT'                                                      # 
 
 # Region_barchart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'MB'                                                      # 
-single_roi_fig_colour = 'SENSE'                                                   # 
+single_roi_fig_x_axis = 'DEFAULT'                                                 # 
+single_roi_fig_colour = 'DEFAULT'                                                 # 
 
 # Region_histogram
 histogram_binwidth = 5                                                            # 
@@ -83,7 +84,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # true or false.
 histogram_show_median = true                                                      # true or false.
 histogram_show_legend = true                                                      # true or false.
-histogram_fig_x_facet = 'MB'                                                      # 
-histogram_fig_y_facet = 'SENSE'                                                   # 
+histogram_fig_x_facet = 'DEFAULT'                                                 # 
+histogram_fig_y_facet = 'DEFAULT'                                                 # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

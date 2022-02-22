@@ -75,9 +75,9 @@ class Config_GUI:
             _compcolor = '#d9d9d9'  # X11 color: 'gray85'
             _ana1color = '#d9d9d9'  # X11 color: 'gray85'
             _ana2color = '#ececec'  # Closest X11 color: 'gray92'
-            window.geometry("512x780+100+100")
-            window.minsize(512, 780)
-            window.maxsize(512, 780)
+            window.geometry("512x800+100+100")
+            window.minsize(512, 800)
+            window.maxsize(512, 800)
             window.resizable(1, 1)
             window.title("fRAT GUI")
             window.configure(background=self.background)

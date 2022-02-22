@@ -12,11 +12,15 @@ Statistical_maps = {
                        'Description': "'max' to select number of cores available on the system, alternatively an int to"
                                       " manually select number of cores to use. Recommended: 'max'"},
 
-    'fMRI_file_location': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                           'label': 'Base folder location',
-                           'Description': 'Either the absolute location of the folder containing the subjects or blank, '
-                                          'if blank then a browser window will allow you to search for the files at '
-                                          'runtime.'},
+    'base_folder': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
+                    'label': 'Base folder location',
+                    'Description': 'Either the absolute location of the folder containing the subjects or blank, '
+                                   'if blank then a browser window will allow you to search for the files at '
+                                   'runtime.'},
+
+    'input_folder_name': {'type': 'Entry', 'Recommended': "func", 'save_as': 'string',
+                          'Description': 'Folder found in each subjects directory containing the files to be analysed.'
+                          },
 
     'output_folder_name': {'type': 'Entry', 'Recommended': 'statmaps', 'save_as': 'string',
                            'Description': 'Directory to save output. '
@@ -48,13 +52,17 @@ Statistical_maps = {
                                                       'edges to be preserved. Recommended: 2000.0'},
 
     'magnitude_correction': {'type': 'CheckButton', 'Recommended': 'true',
-                             'Description': 'true or false. Temporary option. Will be removed in the future.'},
+                             'Description': 'true or false. Correction factor of 0.7 applied when running iSNR '
+                                            'calculations, to correct for Rayleigh distributed noise when using '
+                                            'magnitude vs complex images. \nReference: Constantinides, C. D., Atalar, '
+                                            'E., & McVeigh, E. R. (1997). Signal-to-Noise Measurements in Magnitude '
+                                            'Images from NMR Phased Arrays.'},
 
-    'noise_volume': {'type': 'CheckButton', 'Recommended': 'false', 'label': 'Noise volume (for image SNR)',
+    'noise_volume': {'type': 'CheckButton', 'Recommended': 'false', 'label': 'Noise volume included in time series',
                      'Description': 'true or false. Select true if a noise volume has been collected as part of the fMRI '
                                     'time series.\n'
-                                    'NOTE: If true, the noise volume will not be used during temporal filtering and will '
-                                    'only used if image SNR statistical maps are being created.\n'
+                                    'NOTE: If true, the noise volume in the time series will be separated from the '
+                                    'functional volumes and will be placed into the folder "func_noiseVolumeRemoved".\n'
                                     'If "noise volume" is true and "noise value" is not none, the noise volume'
                                     'will be used in image SNR calculation rather than the user defined noise value'},
 

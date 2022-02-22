@@ -7,15 +7,15 @@ from utils import *
 
 
 def file_setup(func):
-    file_location = 'func'  # TODO: Make this user-changable so more than fmri files can be analysed
+    file_location = config.input_folder_name
     output_folder = config.output_folder_name
 
-    if config.fMRI_file_location in ("", " "):
+    if config.base_folder in ("", " "):
         print('Select the directory which contains the subject folders.')
         base_sub_location = Utils.file_browser(title='Select the directory which contains the subject folders')
 
     else:
-        base_sub_location = config.fMRI_file_location
+        base_sub_location = config.base_folder
 
     # Create dictionary from each participant directory
     participant_dir, _ = Utils.find_participant_dirs(base_sub_location)
@@ -41,7 +41,7 @@ def calculate_sigma_in_volumes(file_path):
 
 def save_brain(data, ext, no_ext_file, output_folder, header=None):
     brain = nib.Nifti1Pair(data, None, header)
-    nib.save(brain, f"{output_folder}/{no_ext_file}_{ext}.nii.gz")
+    nib.save(brain, f"{output_folder}/{no_ext_file}{ext}.nii.gz")
 
     return f"{output_folder}/{no_ext_file}_{ext}.nii.gz"
 
@@ -59,9 +59,6 @@ def temporalSNR_calc(file, no_ext_file, output_folder):
     # Threshold volume so any tSNR values above 1000 are set to 0
     maths.Threshold(in_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz', thresh=1000.0, direction='above',
                     out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
-
-    if config.magnitude_correction:
-        magnitude_correction(f'{output_folder}/{no_ext_file}_tSNR.nii.gz')
 
 
 def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
@@ -88,7 +85,7 @@ def magnitude_correction(file_name):
     maths.BinaryMaths(in_file=file_name, operation='mul', operand_value=0.7, out_file=file_name).run()
 
 
-def separate_noise_from_func(file, no_ext_file, output_folder):
+def separate_noise_from_func(file, no_ext_file, output_folder, participant):
     data, header = Utils.load_brain(file)
 
     if config.noise_volume_location == 'End':
@@ -98,8 +95,10 @@ def separate_noise_from_func(file, no_ext_file, output_folder):
     else:
         raise Exception('Noise volume location not valid.')
 
-    noise_file = save_brain(noise_data, 'noise_data', no_ext_file, output_folder, header)
-    func_file = save_brain(func_data, 'func_data', no_ext_file, output_folder, header)
+    noise_file = save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
+
+    Utils.check_and_make_dir(f'{participant}/func_noiseVolumeRemoved')
+    func_file = save_brain(func_data, '', no_ext_file, f'{participant}/func_noiseVolumeRemoved', header)
 
     return func_file, noise_file
 
@@ -133,13 +132,13 @@ def create_maps(func, file, no_ext_file, noise_file, output_folder):
         temporalSNR_calc(file, no_ext_file, output_folder)
 
 
-def prepare_files(file, no_ext_file, output_folder):
+def prepare_files(file, no_ext_file, output_folder, participant):
     noise_file = config.manual_noise_value
 
     redundant_files = []
     if config.noise_volume:
-        file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder)
-        redundant_files.extend([file, noise_file])
+        file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder, participant)
+        redundant_files.extend([noise_file])
 
     if config.motion_correction:
         fsl.MCFLIRT(in_file=file, out_file=f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz').run()
@@ -167,7 +166,7 @@ def process_files(file, participant, file_location, func, cfg):
     file = f"{participant}/{file_location}/{file}"
     output_folder = f'{participant}/{output_folder}'
 
-    file, noise_file, redundant_files = prepare_files(file, no_ext_file, output_folder)
+    file, noise_file, redundant_files = prepare_files(file, no_ext_file, output_folder, participant)
     create_maps(func, file, no_ext_file, noise_file, output_folder)
 
     delete_files(redundant_files)

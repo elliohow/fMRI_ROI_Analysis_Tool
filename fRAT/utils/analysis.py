@@ -167,7 +167,7 @@ class Participant:
 
         # Initialise brain class for each file found
         for counter, brain in enumerate(self.brains):
-            self.brains[counter] = Brain(f"{self.participant_path}/func/{brain}",
+            self.brains[counter] = Brain(f"{self.participant_path}/{config.input_folder_name}/{brain}",
                                          self.participant_path,
                                          self.participant_name,
                                          self.save_location,

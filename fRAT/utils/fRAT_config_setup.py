@@ -59,6 +59,10 @@ Analysis = {
                      ],
                      'Description': ''},
 
+    'input_folder_name': {'type': 'Entry', 'Recommended': "func", 'save_as': 'string',
+                          'Description': 'Folder found in each subjects directory containing the files to be analysed.'
+                          },
+
     'output_folder': {'type': 'Entry', 'Recommended': 'DEFAULT', 'save_as': 'string', 'label': 'Output directory',
                       'Description': 'Directory to save output. If set to DEFAULT, output directory will be set to '
                                      'the cortical atlas used appended with "_ROI_report". '
