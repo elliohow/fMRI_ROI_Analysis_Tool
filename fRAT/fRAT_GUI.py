@@ -872,12 +872,12 @@ def make_table():
     data = []
     for participant_dir in participant_dirs:
         if config.make_folder_structure:
-            func_loc = f'{participant_dir}'
+            file_loc = f'{participant_dir}'
 
         else:
-            func_loc = f'{participant_dir}/func'
+            file_loc = f'{participant_dir}/{config.parsing_folder}'
 
-        brain_file_list = Utils.find_files(func_loc, "hdr", "nii.gz", "nii")
+        brain_file_list = Utils.find_files(file_loc, "hdr", "nii.gz", "nii")
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
         brain_file_list.sort()
 
@@ -887,7 +887,7 @@ def make_table():
             data.append([participant_dir, file, *brain_file_params, np.NaN])
 
         if config.make_folder_structure:
-            create_folder_structure(participant_dir)
+            create_folder_structure(participant_dir, config)
 
     df = pd.DataFrame(columns=['Participant', 'File name',
                                *config.parameter_dict.keys(), 'Ignore file? (y for yes, otherwise blank)'],
@@ -901,17 +901,21 @@ def make_table():
           f"in fRAT_config.toml.")
 
     if config.make_folder_structure:
-        print(f"\nSet up folder structure and moved fMRI volumes into 'func' directory.")
+        print(f"\nSet up folder structure and moved fMRI volumes into {config.parsing_folder} directory.")
 
 
-def create_folder_structure(participant):
+def create_folder_structure(participant, config):
     direcs = ['func', 'anat', 'fslfast', 'statmaps']
+
+    if config.parsing_folder not in direcs:
+        direcs.append(config.parsing_folder)
+
     for direc in direcs:
         Utils.check_and_make_dir(f"{participant}/{direc}")
 
     brain_file_list = Utils.find_files(participant, "hdr", "nii.gz", "nii", "json")
     for file in brain_file_list:
-        Utils.move_file(file, participant, f'{participant}/func', rename_copy=False)
+        Utils.move_file(file, participant, f'{participant}/{config.parsing_folder}', rename_copy=False)
 
 
 def find_participant_dirs(config):

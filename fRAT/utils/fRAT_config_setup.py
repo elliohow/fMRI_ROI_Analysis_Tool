@@ -181,6 +181,11 @@ Parsing = {
 
     'make_folder_structure': {'type': 'CheckButton', 'Recommended': 'true',
                               'Description': 'true or false. Make folder structure when creating paramValues.csv'},
+
+    'parsing_folder': {'type': 'Entry', 'Recommended': "func", 'save_as': 'string',
+                       'Description': 'Folder to find files to add to paramValues.csv. If using "Make folder '
+                                      'structure" option, this will be the directory the files in the participant '
+                                      'folder will be moved to.'},
 }
 
 '''General plot settings'''

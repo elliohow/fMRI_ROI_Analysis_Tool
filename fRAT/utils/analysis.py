@@ -274,9 +274,9 @@ class Participant:
                                   'the filename with head and brain respectively e.g. "MPRAGE_head", "MPRAGE_brain".')
         elif len(anat) > 2:
             raise FileExistsError(
-                'The maximum number of files in the anat folder should be two: a whole head and brain '
-                'extracted images labelled in the filename with head and brain respectively e.g. '
-                '"MPRAGE_head", "MPRAGE_brain". \n NOTE: Wholehead image is only required when '
+                'The maximum number of files NIFTI in the anat folder should be two: a whole head and a brain '
+                'extracted image, where the brain extracted image has "brain" in the filename e.g. '
+                '"MPRAGE_brain". \n NOTE: Wholehead image is only required when '
                 'aligning fMRI volume to anatomical volume with the BBR cost function.')
 
         if len(anat) == 1:
@@ -408,7 +408,7 @@ class Brain:
         # Calculate anatomical cost function value
         wmseg = None
         if config.anat_align_cost_function == 'BBR':
-            wmseg = f'{self.save_location}Intermediate_files/{self.no_ext_brain}/{self.no_ext_brain}_fast_wmseg.nii.gz'
+            wmseg = f'{self.save_location}Intermediate_files/{self.no_ext_brain}/to_anat_from_{self.no_ext_brain}_fast_wmseg.nii.gz'
 
         anat_cost = run_flirt_cost_function(fslfunc,
                                             self.anat_brain,
