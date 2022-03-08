@@ -28,7 +28,7 @@ class Figures:
             combined_results_df = pd.read_json("Overall/Summarised_results/combined_results.json")
         except ValueError:
             raise Exception("combined_results.json in relative path 'Overall/Summarised_results/' not found, "
-                            "check correct directory has been selected.")
+                            "check the directory output by fRAT has been selected.")
 
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
@@ -375,8 +375,8 @@ class BrainGrid(Figures):
                     # Extract parameter from df for file
                     file_param = str(file_name_row[critical_params[axis]['param']])
                     # Work out row/col order
-                    critical_params[axis]['order'].append(critical_params['cols']['values'].index(file_param))
-                    temp_order_store.append(critical_params['cols']['values'].index(file_param))
+                    critical_params[axis]['order'].append(critical_params[axis]['values'].index(file_param))
+                    temp_order_store.append(critical_params[axis]['values'].index(file_param))
                 else:
                     critical_params[axis]['order'].append(0)
                     temp_order_store.append(0)

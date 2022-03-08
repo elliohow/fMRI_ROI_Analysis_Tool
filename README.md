@@ -50,9 +50,8 @@ settings can be changed in the GUI, alternatively they can be changed directly i
 The critical parameter validation method requires the creation of a paramValues.csv file ([further information here](#paramvaluescsv)).
 
 `combined_results.json` (found in `output_folder/Summarised_results/`) contains the summary results of all fMRI volumes 
-combined into one file. If paramValues.csv was created before running the analysis, this file will be created during the
-analysis, otherwise this file will be created once the plotting step has been run.
-`printResults.py` (or the print results GUI option) can be used to print the desired results to the terminal once
+combined into one file. If paramValues.csv should be created before running the analysis, using the "Setup parameters"
+option in the GUI. `printResults.py` (or the print results GUI option) can be used to print the desired results to the terminal once
 `combined_results.json` has been created. A `config_log.py` file will be created in the output folder during 
 analysis to record which config settings were used for analysis.
 
@@ -75,8 +74,9 @@ Base folder
 ├── stat_maps (name can be chosen by user)
 │   └── NIFTI/Analyze statistical map files
 │
-├── anat (optional but recommended)
-│   └── skull stripped anatomy file
+├── anat
+│   ├── skull stripped anatomy file (should have '_brain' extension)
+│   └── anatomical file (necessary if using BBR cost function)
 │
 ├── fslfast (optional but recommended)
 │   └── ... (All files output by fslfast)
@@ -92,8 +92,8 @@ Base folder
 │   ├── P1_MB3_S2_matchBW_tSNR.nii
 │   └── P2_MB1_S1P5_matchBW_tSNR.nii
 │
-├── anat (optional but recommended)
-│   └── MPRAGE.nii
+├── anat
+│   └── MPRAGE_brain.nii
 │
 ├── fslfast (optional but recommended)
 │   └── ... (fslfast files)
@@ -158,8 +158,8 @@ Output folder
   placed in the "anat" folder. This second file should not contain the word "brain" in the file name.
 
 ### If aligning to FSL FAST segmentation (recommended):
-* FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations should be
-  completed before running fRAT analysis.
+* FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations do not need 
+  to be completed before running fRAT analysis.
 * Output of FAST should be placed in a folder called "fslfast". All files output by fast should be placed in this folder.
 * FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
   be added in the future.

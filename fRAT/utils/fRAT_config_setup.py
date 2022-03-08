@@ -60,8 +60,11 @@ Analysis = {
                      'Description': ''},
 
     'input_folder_name': {'type': 'Entry', 'Recommended': "func", 'save_as': 'string',
-                          'Description': 'Folder found in each subjects directory containing the files to be analysed.'
-                          },
+                          'Description': 'Folder found in each subjects directory containing the files to be analysed. '
+                          'If the "Noise volume included in time series" option was set to true when creating '
+                          'the statmaps, "func_noiseVolumeRemoved" will be created automatically and contains a copy '
+                          'of the functional files with the noise volumes removed. This should then be set here as the '
+                          'input folder for the analysis.'},
 
     'output_folder': {'type': 'Entry', 'Recommended': 'DEFAULT', 'save_as': 'string', 'label': 'Output directory',
                       'Description': 'Directory to save output. If set to DEFAULT, output directory will be set to '

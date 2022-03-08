@@ -43,7 +43,7 @@ def save_brain(data, ext, no_ext_file, output_folder, header=None):
     brain = nib.Nifti1Pair(data, None, header)
     nib.save(brain, f"{output_folder}/{no_ext_file}{ext}.nii.gz")
 
-    return f"{output_folder}/{no_ext_file}_{ext}.nii.gz"
+    return f"{output_folder}/{no_ext_file}{ext}.nii.gz"
 
 
 def temporalSNR_calc(file, no_ext_file, output_folder):

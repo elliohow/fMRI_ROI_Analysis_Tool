@@ -878,6 +878,12 @@ def make_table():
             file_loc = f'{participant_dir}/{config.parsing_folder}'
 
         brain_file_list = Utils.find_files(file_loc, "hdr", "nii.gz", "nii")
+
+        if config.make_folder_structure and not brain_file_list:
+            raise FileNotFoundError(f'No files found in {participant_dir}. As make folder structure is set to true, '
+                                    f'files to be scanned should be placed into this root directory and not a '
+                                    f'subdirectory.')
+
         brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
         brain_file_list.sort()
 
@@ -946,7 +952,7 @@ def parse_params_from_file_name(json_file_name, cfg=config):
 
         else:
             # Float search
-            param = re.search("{}[0-9]p[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
+            param = re.search("{}[0-9][p|.][0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
             if param is not None:
                 param_nums.append(param[0][1] + "." + param[0][-1])
                 continue

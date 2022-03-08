@@ -253,10 +253,12 @@ class Utils:
 
     @staticmethod
     def strip_ext(path):
-        path = Path(path)
-        extensions = "".join(path.suffixes)
+        extensions = ['.nii.gz', '.nii', '.hdr', '.json']
 
-        return str(path).replace(extensions, "")
+        for extension in extensions:
+            path = path.replace(extension, "")
+
+        return path
 
     @staticmethod
     def find_participant_dirs(directory):

@@ -4,7 +4,6 @@ import os
 import re
 import warnings
 from glob import glob
-from os.path import splitext
 
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
@@ -248,7 +247,7 @@ class Participant:
 
     def find_fmri_files(self):
         # Find all nifti and analyze files
-        self.brains = Utils.find_files(f"{self.participant_path}/func", "hdr", "nii.gz", "nii")
+        self.brains = Utils.find_files(f"{self.participant_path}/{config.input_folder_name}", "hdr", "nii.gz", "nii")
 
         if len(self.brains) == 0:
             raise NameError("No files found.")
@@ -373,7 +372,7 @@ class Brain:
         self.anat_to_mni_mat = anat_to_mni_mat
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
-        self.no_ext_brain = splitext(self.brain.split('/')[-1])[0]
+        self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
         self.stat_brain = f"{participant_folder}/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.roi_results = None
         self.roi_temp_store = None
@@ -741,8 +740,10 @@ class MatchedBrain:
         matched_brain_list = set()
         for param_combination in matched_brains:
             # Initialise matched brains
-            matched_brain_list.add(MatchedBrain(matched_brains[param_combination],
-                                                param_combination))
+            matched_brain_list.add(MatchedBrain(
+                matched_brains[param_combination],
+                param_combination
+            ))
 
         cls.assign_parameters_to_brains(matched_brain_list, participant_list)
 
@@ -763,13 +764,12 @@ class MatchedBrain:
             elif tuple(row[critical_column_locs]) not in matched_brains.keys():
                 matched_brains[tuple(row[critical_column_locs])] = dict()
 
-            elif row['participant'] in matched_brains[tuple(row[critical_column_locs])].keys():
-                raise FileExistsError(f'Multiple instances of participant {row["participant"]} found for parameter '
-                                      f'combination {tuple(row[critical_column_locs])}. '
-                                      f'This is not currently supported.')
-
             participant, brain_file = cls.find_brain_object(row, participant_list)
-            matched_brains[tuple(row[critical_column_locs])][participant] = brain_file
+
+            if participant in matched_brains[tuple(row[critical_column_locs])]:
+                matched_brains[tuple(row[critical_column_locs])][participant].append(brain_file)
+            else:
+                matched_brains[tuple(row[critical_column_locs])][participant] = [brain_file]
 
         return matched_brains
 
@@ -852,7 +852,7 @@ class MatchedBrain:
         for parameter_comb in matched_brains:
             for brain in brain_list:
                 try:
-                    if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
+                    if brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
                         brain.parameters = parameter_comb.parameters
 
                 except KeyError:
@@ -1249,7 +1249,7 @@ def construct_combined_results(directory):
         for counter, parameter_name in enumerate(config.parameter_dict):
             current_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
 
-        current_dataframe['File_name'] = jsn.split('.')[0]
+        current_dataframe['File_name'] = Utils.strip_ext(jsn)
 
         if combined_dataframe.empty:
             combined_dataframe = current_dataframe

@@ -136,10 +136,13 @@ def analysis(config):
 def assign_pooled_thresholds_to_brains(brain_list, matched_brains):
     for parameter_comb in matched_brains:
         for brain in brain_list:
-            if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
-                brain.noise_threshold = parameter_comb.noise_threshold
-                brain.lower_gaussian_threshold = parameter_comb.lower_gaussian_threshold
-                brain.upper_gaussian_threshold = parameter_comb.upper_gaussian_threshold
+            try:
+                if brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
+                    brain.noise_threshold = parameter_comb.noise_threshold
+                    brain.lower_gaussian_threshold = parameter_comb.lower_gaussian_threshold
+                    brain.upper_gaussian_threshold = parameter_comb.upper_gaussian_threshold
+            except KeyError:
+                pass
 
     return brain_list
 
@@ -150,9 +153,12 @@ def run_pooled_analysis(brain_list, matched_brains, config, pool):
 
     for parameter_comb in matched_brains:
         for brain in brain_list:
-            if parameter_comb.brains[brain.participant_name] == brain.no_ext_brain:
-                parameter_comb.overall_results.append(brain.roi_results)
-                parameter_comb.raw_results.append(brain.roi_temp_store)
+            try:
+                if brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
+                    parameter_comb.overall_results.append(brain.roi_results)
+                    parameter_comb.raw_results.append(brain.roi_temp_store)
+            except KeyError:
+                pass
 
     # Save each raw and overall results for each parameter combination
     iterable = zip(matched_brains, itertools.repeat("compile_results"), itertools.repeat(config))
