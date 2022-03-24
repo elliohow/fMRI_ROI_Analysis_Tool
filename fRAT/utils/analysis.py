@@ -86,7 +86,8 @@ class Environment_Setup:
 
         if config.verbose:
             print(f'Saving output in directory: {cls.save_location}\n'
-                  f'Using the {cls.atlas_name} atlas.\n')
+                  f'Using the {cls.atlas_name} atlas.\n'
+                  f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n')
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}", delete_old=True)
@@ -110,7 +111,7 @@ class Environment_Setup:
 
             if config.verbose:
                 print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
-                      f'Looking for stat maps in directory: {config.stat_map_folder}\n')
+                      f'Looking for stat maps in directory: statmaps/{config.stat_map_folder}\n')
 
         # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
         Utils.save_config(cls.base_directory, 'fRAT_config')
@@ -119,6 +120,10 @@ class Environment_Setup:
             os.chdir(cls.base_directory)
         except FileNotFoundError:
             raise FileNotFoundError('brain_file_loc in fRAT_config.toml is not a valid directory.')
+
+        if config.stat_map_folder == '':
+            raise FileNotFoundError('Cannot run find statistical maps as the "statistical map folder" field is blank.\n'
+                                    'This field should contain a folder found in the "statmaps" directory.')
 
     @classmethod
     def roi_label_list(cls):
@@ -373,7 +378,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
-        self.stat_brain = f"{participant_folder}/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"{participant_folder}/statmaps/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.roi_results = None
         self.roi_temp_store = None
         self.roi_stat_list = ""

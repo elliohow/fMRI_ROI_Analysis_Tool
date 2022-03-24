@@ -141,10 +141,10 @@ Analysis = {
                                                  'For example: if set to below gaussian, data below the gaussian will be removed.\n'
                                                  'Recommended: below gaussian.'},
 
-    'stat_map_folder': {'type': 'Entry', 'Recommended': 'statmaps', 'save_as': 'string',
+    'stat_map_folder': {'type': 'Entry', 'Recommended': '', 'save_as': 'string',
                         'label': 'Statistical map folder',
                         'Description': 'Folder name which contains the statistical map files. '
-                                       'Example: statmaps'},
+                                       'Example: temporalSNR_report'},
 
     'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
                         'label': 'Statistical map suffix',

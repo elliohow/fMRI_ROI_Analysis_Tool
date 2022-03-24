@@ -896,7 +896,7 @@ def make_table():
             create_folder_structure(participant_dir, config)
 
     df = pd.DataFrame(columns=['Participant', 'File name',
-                               *config.parameter_dict.keys(), 'Ignore file? (y for yes, otherwise blank)'],
+                               *config.parameter_dict.keys(), 'Ignore file during analysis? (y for yes, otherwise blank)'],
                       data=data)
 
     df.to_csv('paramValues.csv', index=False)

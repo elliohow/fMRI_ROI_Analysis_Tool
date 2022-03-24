@@ -8,7 +8,13 @@ from utils import *
 
 def file_setup(func):
     file_location = config.input_folder_name
-    output_folder = config.output_folder_name
+
+    if config.output_folder_name != 'DEFAULT':
+        output_folder = config.output_folder_name
+    elif func == 'Image SNR':
+        output_folder = 'imageSNR_report'
+    elif func == 'Temporal SNR':
+        output_folder = 'temporalSNR_report'
 
     if config.base_folder in ("", " "):
         print('Select the directory which contains the subject folders.')
@@ -24,11 +30,12 @@ def file_setup(func):
     for participant in participants:
         # Find all nifti and analyze files
         participants[participant] = Utils.find_files(f"{participant}/{file_location}", "hdr", "nii.gz", "nii")
-        Utils.check_and_make_dir(f"{participant}/{output_folder}")
-        Utils.save_config(f"{participant}/{output_folder}", 'statmap_config',
+        Utils.check_and_make_dir(f"{participant}/statmaps")
+        Utils.check_and_make_dir(f"{participant}/statmaps/{output_folder}", delete_old=True)
+        Utils.save_config(f"{participant}/statmaps/{output_folder}", 'statmap_config',
                           additional_info=[f"statistical_map_created = '{func}'\n"])
 
-    return participants, file_location
+    return participants, output_folder, file_location
 
 
 def calculate_sigma_in_volumes(file_path):
@@ -97,8 +104,9 @@ def separate_noise_from_func(file, no_ext_file, output_folder, participant):
 
     noise_file = save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
 
-    Utils.check_and_make_dir(f'{participant}/func_noiseVolumeRemoved')
-    func_file = save_brain(func_data, '', no_ext_file, f'{participant}/func_noiseVolumeRemoved', header)
+    Utils.check_and_make_dir(f'{participant}/{config.input_folder_name}_noiseVolumeRemoved')
+    func_file = save_brain(func_data, '', no_ext_file,
+                           f'{participant}/{config.input_folder_name}_noiseVolumeRemoved', header)
 
     return func_file, noise_file
 
@@ -156,15 +164,14 @@ def prepare_files(file, no_ext_file, output_folder, participant):
     return file, noise_file, redundant_files
 
 
-def process_files(file, participant, file_location, func, cfg):
+def process_files(file, participant, output_folder, file_location, func, cfg):
     global config
 
     config = cfg
-    output_folder = config.output_folder_name
 
     no_ext_file = Utils.strip_ext(file)
     file = f"{participant}/{file_location}/{file}"
-    output_folder = f'{participant}/{output_folder}'
+    output_folder = f'{participant}/statmaps/{output_folder}'
 
     file, noise_file, redundant_files = prepare_files(file, no_ext_file, output_folder, participant)
     create_maps(func, file, no_ext_file, noise_file, output_folder)
@@ -172,18 +179,24 @@ def process_files(file, participant, file_location, func, cfg):
     delete_files(redundant_files)
 
 
-def calculate_statistical_maps(participants, file_location, func):
+def calculate_statistical_maps(participants, output_folder, file_location, func):
     if config.multicore_processing:
         pool = Utils.start_processing_pool()
     else:
         pool = None
 
+    if config.verbose:
+        print(f'\nSearching in folder: {config.input_folder_name}'
+              f'\nSaving output in directory: statmaps/{output_folder}')
+
     for participant_dir, files in participants.items():
         if config.verbose:
-            print(f'\nCreating statistical maps for participant: {participant_dir.split("/")[-1]}')
+            print(f'\nCreating statistical maps for participant: {participant_dir.split("/")[-1]}'
+                  f'\n      Creating statmaps for {len(files)} files')
 
         iterable = zip(files,
                        itertools.repeat(participant_dir),
+                       itertools.repeat(output_folder),
                        itertools.repeat(file_location),
                        itertools.repeat(func),
                        itertools.repeat(config))
@@ -222,8 +235,8 @@ def main(func):
         warnings.warn('"Noise volume" is true and a manual noise value has also been given. Using noise volume for '
                       'image SNR calculation. If this is not correct, set "Noise volume" to false.')
 
-    participants, file_location = file_setup(func)
-    calculate_statistical_maps(participants, file_location, func)
+    participants, output_folder, file_location = file_setup(func)
+    calculate_statistical_maps(participants, output_folder, file_location, func)
 
     if config.verbose:
         print(f"\n--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")

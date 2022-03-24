@@ -22,9 +22,10 @@ Statistical_maps = {
                           'Description': 'Folder found in each subjects directory containing the files to be analysed.'
                           },
 
-    'output_folder_name': {'type': 'Entry', 'Recommended': 'statmaps', 'save_as': 'string',
-                           'Description': 'Directory to save output. '
-                                          'Recommended: statmaps'},
+    'output_folder_name': {'type': 'Entry', 'Recommended': 'DEFAULT', 'save_as': 'string',
+                           'Description': 'Directory to save output. If set to DEFAULT, the default name for the '
+                                          'statistical map created will be used. '
+                                          'Recommended: DEFAULT'},
 
     'temporal_filter': {'type': 'CheckButton', 'Recommended': 'true',
                         'Description': 'true or false. Use a high pass filter to remove low frequency drift. '
