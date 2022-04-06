@@ -1,5 +1,5 @@
 """Configuration file"""
-pages = ['Home', 'General', 'Analysis', 'Parsing', 'Plotting', 'Violin_plot',
+pages = ['Home', 'General', 'Analysis', 'Statistics', 'Parsing', 'Plotting', 'Violin_plot',
          'Brain_table', 'Region_barchart', 'Region_histogram']
 
 '''General settings'''
@@ -8,11 +8,11 @@ General = {
                      'Description': 'true or false. Can skip this step if json files have already been created.',
                      'label': 'Run analysis'},
 
-    'run_plotting': {'type': 'CheckButton', 'Recommended': 'true',
-                     'Description': 'true or false.', 'label': 'Run plotting'},
-
     'run_statistics': {'type': 'CheckButton', 'Recommended': 'true',
                        'Description': 'true or false.', 'label': 'Run statistics'},
+
+    'run_plotting': {'type': 'CheckButton', 'Recommended': 'true',
+                     'Description': 'true or false.', 'label': 'Run plotting'},
 
     'verbose': {'type': 'CheckButton', 'Recommended': 'true',
                 'Description': 'true or false.', 'label': 'Verbose fRAT stages'},
@@ -83,7 +83,7 @@ Analysis = {
                                  'Description': 'BBR or Correlation Ratio. Recommended: BBR.\n'
                                                 'Using BBR (Boundary-Based Registration) requires an FSL FAST '
                                                 'segmentation (this will be automatically created if necessary if '
-                                                'the Run FSL FAST option is set to "Run if files not found")'
+                                                'the Run FSL FAST option is set to "Run if files not found") '
                                                 'and a wholehead non-brain extracted anatomical placed in the anat '
                                                 'folder.'},
 
@@ -164,6 +164,55 @@ Analysis = {
     'binary_params': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
                       'subtype': 'Checkbutton', 'label': 'Binary parameters',
                       'save_as': 'list', 'Description': 'Add parameters here which will either be on or off.'},
+}
+
+'''Statistics settings'''
+Statistics = {
+    'minimum_voxels': {'type': 'Entry', 'Recommended': 400,
+                       'Description': 'Minimum voxels to include ROI in GLM statistics. \nHighly recommended to set a '
+                                      'value here as ROIs with a small number of voxels suggests poor fitting.'
+                                      '\nRecommended value 400'},
+
+    'bootstrap_statistics': {'type': 'CheckButton', 'Recommended': 'true',
+                             'Description': 'true or false.'},
+
+    'bootstrap_samples': {'type': 'Entry', 'Recommended': 10000,
+                          'Description': 'Recommended value 10000'},
+
+    'bootstrap_confidence_interval': {'type': 'Entry', 'Recommended': 95,
+                                      'Description': 'Recommended value: 95'},
+
+    'glm_formula': {'type': 'OptionMenu',
+                    'label': 'GLM formula',
+                    'Recommended': 'Main + interaction effects',
+                    'Options': ['Main effects only', 'Main + interaction effects', 'Interaction effects only'],
+                    'save_as': 'string',
+                    'Description': 'Main effects only, '
+                                   'Main + interaction effects, '
+                                   'Interaction effects only'},
+
+    'categorical_variables': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
+                              'subtype': 'Checkbutton',
+                              'save_as': 'list',
+                              'Description': 'Select which variables (if any) are categorical. Used for the GLM.'},
+
+    'glm_statistic': {'type': 'OptionMenu',
+                      'label': 'GLM statistic for overall effect',
+                      'Recommended': 'Mean',
+                      'Options': ['Mean', 'Median'],
+                      'save_as': 'string',
+                      'Description': 'Mean or Median.\nNote: this setting is only used when '
+                                     'looking at the overall effect, as statistics ran on individual ROIs will use raw '
+                                     'voxel values.'},
+
+    'remove_intercept': {'type': 'CheckButton', 'Recommended': 'false',
+                         'label': 'Remove intercept from GLM',
+                         'Description': 'true or false.'},
+
+    'print_result': {'type': 'CheckButton', 'Recommended': 'false',
+                     'label': 'Print results to terminal',
+                     'Description': 'true or false. Prints results to terminal if true in addition to saving results '
+                                    'to file.'},
 }
 
 '''Parsing settings'''

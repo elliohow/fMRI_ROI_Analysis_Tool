@@ -75,9 +75,9 @@ class Config_GUI:
             _compcolor = '#d9d9d9'  # X11 color: 'gray85'
             _ana1color = '#d9d9d9'  # X11 color: 'gray85'
             _ana2color = '#ececec'  # Closest X11 color: 'gray92'
-            window.geometry("512x800+100+100")
-            window.minsize(512, 800)
-            window.maxsize(512, 800)
+            window.geometry("512x860+100+100")
+            window.minsize(512, 860)
+            window.maxsize(512, 860)
             window.resizable(1, 1)
             window.title("fRAT GUI")
             window.configure(background=self.background)
@@ -268,7 +268,7 @@ class Config_GUI:
 
     def Run_frame_draw(self, window):
         self.Run_frame = tk.LabelFrame(window)
-        self.Run_frame.place(relx=0.025, rely=0.65, height=145, relwidth=0.945)
+        self.Run_frame.place(relx=0.025, rely=0.69, height=145, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
         self.format_frame(self.Run_frame)
         self.frames.append(self.Run_frame)
@@ -309,7 +309,7 @@ class Config_GUI:
 
             self.General_settings_frame = tk.LabelFrame(self.settings_frame)
             self.frames.append(self.General_settings_frame)
-            self.General_settings_frame.place(relx=0.025, rely=0.01, height=280, relwidth=0.41)
+            self.General_settings_frame.place(relx=0.025, rely=0.01, height=330, relwidth=0.41)
             self.General_settings_frame.configure(text=f'''Settings''', font='Helvetica 18 bold')
             self.format_frame(self.General_settings_frame)
             current_frame = self.General_settings_frame
@@ -351,7 +351,7 @@ class Config_GUI:
 
                 y_loc += 60
 
-        elif self.page in ['General', 'Analysis', 'Parsing', 'Statistical_maps']:
+        elif self.page in ['General', 'Analysis', 'Statistics', 'Parsing', 'Statistical_maps']:
             self.widget_create('Home')
 
         else:
@@ -890,13 +890,15 @@ def make_table():
         for file in brain_file_list:
             # Try to find parameters to prefill table
             brain_file_params = parse_params_from_file_name(file, config)
-            data.append([participant_dir, file, *brain_file_params, np.NaN])
+            data.append([participant_dir, file, *brain_file_params, np.NaN, np.NaN])
 
         if config.make_folder_structure:
             create_folder_structure(participant_dir, config)
 
     df = pd.DataFrame(columns=['Participant', 'File name',
-                               *config.parameter_dict.keys(), 'Ignore file during analysis? (y for yes, otherwise blank)'],
+                               *config.parameter_dict.keys(),
+                               'Ignore file during analysis? (y for yes, otherwise blank)',
+                               'Baseline parameter combination for statistics (y for yes, otherwise blank)'],
                       data=data)
 
     df.to_csv('paramValues.csv', index=False)

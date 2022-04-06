@@ -4,6 +4,7 @@ import os
 import re
 import warnings
 from glob import glob
+from random import choice
 
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
@@ -308,8 +309,19 @@ class Participant:
             except IndexError:
                 if config.run_fsl_fast == 'Run if files not found':
                     if config.verbose:
+                        phrases = ['get a cup of coffee',
+                                   'maybe respond to those reviewer comments',
+                                   'have a good clear out of your inbox',
+                                   'read some XKCD comics',
+                                   'contemplate the meaning of existence',
+                                   'consider writing a short poem',
+                                   'maybe listen to Echoes by Pink Floyd',
+                                   'mark one of those essays you\'ve been putting off',
+                                   'paint the next abstract masterpiece',
+                                   'maybe listen to Michigan by Sufjan Stevens']
+
                         print(f'Participant {self.participant_name} missing FSL FAST files. '
-                              f'Running FSL FAST (get a cup of coffee this may take a while).')
+                              f'Running FSL FAST ({choice(phrases)}, this may take a while).')
 
                     # Need to change directory here to get around error caused by nipype trying to find fslfast output
                     # in current working directory
@@ -400,7 +412,7 @@ class Brain:
 
     def fmri_get_additional_info(self, brain_number_current, brain_number_total, config):
         if config.verbose:
-            print(f'Calculating cost function and mean displacement values for fMRI volume '
+            print(f'Calculating cost function and mean displacement values for volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
         fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/{self.no_ext_brain}/bet_{self.no_ext_brain}.nii.gz',
@@ -693,7 +705,8 @@ class Brain:
         self.roi_temp_store = roi_temp_store  # Retain variable for atlas_scale function
 
     def create_excluded_rois_volume(self, volumes):
-        excluded_vox_save_location = f"{self.save_location}/Excluded_voxels/"
+        excluded_vox_save_location = f"{self.save_location}/Excluded_voxels/{self.no_ext_brain}/"
+        Utils.check_and_make_dir(f"{self.save_location}/Excluded_voxels/")
         Utils.check_and_make_dir(excluded_vox_save_location)
 
         statmap, header = Utils.load_brain(self.stat_brain)
@@ -756,9 +769,8 @@ class MatchedBrain:
 
     @classmethod
     def find_shared_params(cls, participant_list):
-        table = load_paramValues_file()
-
-        ignore_column_loc, critical_column_locs = cls.find_column_locs(table)
+        table = Utils.load_paramValues_file()
+        ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
 
         matched_brains = dict()
         for index, row in table.iterrows():
@@ -777,26 +789,6 @@ class MatchedBrain:
                 matched_brains[tuple(row[critical_column_locs])][participant] = [brain_file]
 
         return matched_brains
-
-    @classmethod
-    def find_column_locs(cls, table):
-        table.columns = [x.lower() for x in table.columns]  # Convert to lower case for comparison to key later
-
-        ignore_column_loc = next((counter for counter, column in enumerate(table.columns) if "ignore file" in column),
-                                 False)
-
-        critical_column_locs = set()
-        for key in config.parameter_dict:
-            column_loc = next((counter for counter, column in enumerate(table.columns) if key.lower() == column), False)
-
-            if column_loc:
-                critical_column_locs.add(column_loc)
-            else:
-                raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
-                                f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
-                                f'paramValues.csv headers.')
-
-        return ignore_column_loc, critical_column_locs
 
     @staticmethod
     def find_brain_object(row, participant_list):
@@ -1214,27 +1206,13 @@ def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ex
 
 def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
-    table = [x.lower() for x in load_paramValues_file()][1:-1]
+    table = [x.lower() for x in Utils.load_paramValues_file()][1:-1]
 
     for key in config.parameter_dict.keys():
         if key.lower() not in table:
             raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
                             f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
                             f'paramValues.csv headers.')
-
-
-def load_paramValues_file():
-    if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
-        table = pd.read_csv("paramValues.csv")  # Load param table
-    else:
-        try:
-            table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
-        except FileNotFoundError:
-            raise Exception('Make sure a copy of paramValues.csv is in the chosen folder. \n'
-                            'Also make sure the selected folder contains all the participant directories '
-                            'in the necessary BIDS format e.g. sub-01.')
-
-    return table
 
 
 def construct_combined_results(directory):

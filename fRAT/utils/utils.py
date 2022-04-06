@@ -156,6 +156,45 @@ class Utils:
             Utils.mk_dir(path)
 
     @staticmethod
+    def find_column_locs(table):
+        table.columns = [x.lower() for x in table.columns]  # Convert to lower case for comparison to key later
+
+        ignore_column_loc = next((counter for counter, column in enumerate(table.columns) if "ignore file" in column),
+                                 False)
+
+        baseline_column_loc = next((counter for counter, column in enumerate(table.columns)
+                                    if "baseline" in column), False)
+        if not baseline_column_loc:
+            raise NameError('No baseline column found in paramValues.csv.')
+
+        critical_column_locs = set()
+        for key in config.parameter_dict:
+            column_loc = next((counter for counter, column in enumerate(table.columns) if key.lower() == column), False)
+
+            if column_loc:
+                critical_column_locs.add(column_loc)
+            else:
+                raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
+                                f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
+                                f'paramValues.csv headers.')
+
+        return ignore_column_loc, critical_column_locs, baseline_column_loc
+
+    @staticmethod
+    def load_paramValues_file():
+        if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
+            table = pd.read_csv("paramValues.csv")  # Load param table
+        else:
+            try:
+                table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
+            except FileNotFoundError:
+                raise Exception('Make sure a copy of paramValues.csv is in the chosen folder. \n'
+                                'Also make sure the selected folder contains all the participant directories '
+                                'in the necessary BIDS format e.g. sub-01.')
+
+        return table
+
+    @staticmethod
     def mk_dir(path):
         try:
             os.mkdir(path)
@@ -290,14 +329,14 @@ class Utils:
 
     @staticmethod
     def chdir_to_output_directory(current_step, config):
-        if config.run_analysis:
+        if current_step == 'Plotting' and config.run_statistics:
+            return  # Will already be in the correct directory
+
+        elif config.run_analysis:
             from utils.analysis import Environment_Setup
             json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
 
             os.chdir(json_directory)
-
-        elif current_step == 'Statistics' and config.run_plotting:
-            return  # Will already be in the correct directory
 
         elif config.report_output_folder in ("", " "):
             print('Select the directory output by the fRAT.')

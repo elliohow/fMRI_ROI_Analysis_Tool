@@ -56,7 +56,7 @@ def df_setup():
 
     r = re.compile("Conf_Int_*")
     Conf_Int = list(filter(r.match, df.columns))[0]  # Find confidence interval level
-    column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev', 'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
+    column_order = ['index', 'Mean', Conf_Int, 'Percentage change from baseline', 'Baseline', 'Median', 'Std_dev', 'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
 
     crit_params = list(set(df.columns) ^ set(column_order))  # Find elements not in both lists
 

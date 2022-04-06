@@ -18,19 +18,23 @@ def fRAT():
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
     # sys.exit()
 
-    if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics == 'all':
-        print(f"\n--- Running all steps ---")
+    if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics:
+        print(f"\n--- Running analysis, plotting and statistics steps ---")
 
     # Run the analysis
     if config.run_analysis:
         analysis(config)
 
+    if config.run_statistics:
+        if config.verbose:
+            print('\n------------------\n--- Statistics ---\n------------------')
+
+        Utils.chdir_to_output_directory('Statistics', config)
+        statistics_main(config)
+
     # Plot the results
     if config.run_plotting:
         plotting(config, orig_path)
-
-    if config.run_statistics:
-        statistics(config)
 
     os.chdir(orig_path)  # Reset path
 
@@ -67,14 +71,6 @@ def argparser(config):
     config = Utils.clean_config_options(config)
 
     return config
-
-
-def statistics(config):
-    if config.verbose:
-        print('\n------------------\n--- Statistics ---\n------------------')
-
-    Utils.chdir_to_output_directory('Statistics', config)
-    statistics_main(config)
 
 
 def plotting(config, orig_path):
