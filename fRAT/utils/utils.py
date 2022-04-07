@@ -119,16 +119,23 @@ class Utils:
         return directory
 
     @staticmethod
-    def save_config(newdir, config_file, additional_info=None):
-        with open(f'{newdir}/config_log.toml', 'w') as f, open(f'{config_file}.toml', 'r') as r:
+    def save_config(newdir, config_file, additional_info=None, relevant_section='all', config_name='config_log'):
+        with open(f'{newdir}/{config_name}.toml', 'w') as f, open(f'{config_file}.toml', 'r') as r:
             if additional_info:
                 for line in additional_info:
                     f.write(line)
 
                 f.write('\n')
 
+            current_section = None
             for line in r:
-                f.write(line)
+                if line[0] == '#':
+                    current_section = line[2:-1]
+
+                if relevant_section == 'all':
+                    f.write(line)
+                elif current_section in [relevant_section, 'Version Info']:
+                    f.write(line)
 
     @staticmethod
     def move_file(name, original_dir, new_dir, copy=False, rename_copy=True):

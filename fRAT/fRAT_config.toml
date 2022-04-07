@@ -2,20 +2,20 @@
 version = '0.15.0'
 
 # General
-run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
+run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
 run_statistics = true                                                             # true or false.
-run_plotting = false                                                              # true or false.
+run_plotting = true                                                               # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-report_output_folder = ''                                                         # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+report_output_folder = '/Users/lpxeh10/Desktop/Working_directories/OPTIMISE/HarvardOxford-Cortical_ROI_report'  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
-input_folder_name = 'func'                                                        # Folder found in each subjects directory containing the files to be analysed. If the "Noise volume included in time series" option was set to true when creating the statmaps, "func_noiseVolumeRemoved" will be created automatically and contains a copy of the functional files with the noise volumes removed. This should then be set here as the input folder for the analysis.
+input_folder_name = 'func_noiseVolumeRemoved'                                     # Folder found in each subjects directory containing the files to be analysed. If the "Noise volume included in time series" option was set to true when creating the statmaps, "func_noiseVolumeRemoved" will be created automatically and contains a copy of the functional files with the noise volumes removed. This should then be set here as the input folder for the analysis.
 output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT (only used for the fMRI to anatomical alignment when using Correlation Ratio cost function). Recommended: 12
 anat_align_cost_function = 'BBR'                                                  # BBR or Correlation Ratio. Recommended: BBR. Using BBR (Boundary-Based Registration) requires an FSL FAST segmentation (this will be automatically created if necessary if the Run FSL FAST option is set to "Run if files not found") and a wholehead non-brain extracted anatomical placed in the anat folder. Options: ['BBR', 'Correlation Ratio'].
@@ -27,21 +27,21 @@ noise_cutoff = true                                                             
 gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
 gaussian_outlier_contamination = 0.1                                              # Percent of expected outliers in dataset Recommended: 0.1
 gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
-stat_map_folder = ''                                                              # Folder name which contains the statistical map files. Example: temporalSNR_report
+stat_map_folder = 'tSNR_motion_corrected'                                         # Folder name which contains the statistical map files. Example: temporalSNR_report
 stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 # Statistics
 minimum_voxels = 400                                                              # Minimum voxels to include ROI in GLM statistics.  Highly recommended to set a value here as ROIs with a small number of voxels suggests poor fitting. Recommended value 400
-bootstrap_statistics = false                                                      # true or false.
+bootstrap_statistics = true                                                       # true or false.
 bootstrap_samples = 10000                                                         # Recommended value 10000
 bootstrap_confidence_interval = 95                                                # Recommended value: 95
 glm_formula = 'Main + interaction effects'                                        # Main effects only, Main + interaction effects, Interaction effects only Options: ['Main effects only', 'Main + interaction effects', 'Interaction effects only'].
-categorical_variables = ['MB']                                                    # Select which variables (if any) are categorical. Used for the GLM.
+categorical_variables = ['']                                                      # Select which variables (if any) are categorical. Used for the GLM.
 glm_statistic = 'Mean'                                                            # Mean or Median. Note: this setting is only used when looking at the overall effect, as statistics ran on individual ROIs will use raw voxel values. Options: ['Mean', 'Median'].
 remove_intercept = false                                                          # true or false.
-print_result = true                                                               # true or false. Prints results to terminal if true in addition to saving results to file.
+print_result = false                                                              # true or false. Prints results to terminal if true in addition to saving results to file.
 
 # Parsing
 parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.

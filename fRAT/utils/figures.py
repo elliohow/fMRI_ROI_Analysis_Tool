@@ -158,15 +158,14 @@ class Figures:
                 current_json = Utils.dict_to_dataframe(json.load(f))
 
             json_file_name = json_file.rsplit("_raw.json")[0]
-
             current_json["File_name"] = json_file_name
 
             # Find parameter values for each file_name
-            combined_df_search = combined_df.loc[combined_df["File_name"] == json_file_name]
-            combined_df_search.columns = [x.lower() for x in combined_df_search.columns]
+            combined_df_search = combined_df.loc[combined_df["File_name"].str.lower() == json_file_name]
+            combined_df_search.columns = combined_df_search.columns.str.lower()
 
             try:
-                for column in signif_columns[:-1]: # TODO: check this works with file_name in signif_columns, do I need [:-1]
+                for column in signif_columns[:-1]:
                     current_json[column] = combined_df_search[column.lower()].iloc[0]
             except IndexError:
                 continue
