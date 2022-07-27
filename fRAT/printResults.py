@@ -6,11 +6,20 @@ def printResults():
     print('Select the results directory created by fRAT.')
     result_loc = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    with open(f"{result_loc}/Overall/Summarised_results/combined_results.json", "r") as results:
+    config = Utils.load_config(result_loc, 'analysis_log.toml')
+
+    if config.averaging_type == 'Session averaged':
+        subfolder = 'Session_averaged_results'
+    else:
+        subfolder = 'Pooled_voxel_results'
+
+    print(f'Showing {config.averaging_type} results.\n')
+
+    with open(f"{result_loc}/Overall/Summarised_results/{subfolder}/combined_results.json", "r") as results:
         results = json.load(results)
         rois = sorted({result['index'] for result in results})  # Using set returns only unique values
 
-    config = Utils.load_config(result_loc, 'config_log.toml')
+
     blacklist = ['index', 'File_name', *config.parameter_dict1]
 
     chosen_rois = user_input(rois)

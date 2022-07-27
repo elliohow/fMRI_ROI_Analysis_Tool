@@ -889,14 +889,14 @@ def make_table():
 
         for file in brain_file_list:
             # Try to find parameters to prefill table
-            brain_file_params = parse_params_from_file_name(file, config)
+            keys, brain_file_params = parse_params_from_file_name(file, config)
             data.append([participant_dir, file, *brain_file_params, np.NaN, np.NaN])
 
         if config.make_folder_structure:
             create_folder_structure(participant_dir, config)
 
     df = pd.DataFrame(columns=['Participant', 'File name',
-                               *config.parameter_dict.keys(),
+                               *keys,
                                'Ignore file during analysis? (y for yes, otherwise blank)',
                                'Baseline parameter combination for statistics (y for yes, otherwise blank)'],
                       data=data)
@@ -904,7 +904,7 @@ def make_table():
     df.to_csv('paramValues.csv', index=False)
 
     print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv to continue "
-          f"analysis. \nIf analysis has already been conducted, move paramValues.csv into the ROI report folder. "
+          f"analysis."
           f"\nIf the csv file contains unexpected parameters, update the parsing options in the GUI or parameter_dict2 "
           f"in fRAT_config.toml.")
 
@@ -940,11 +940,15 @@ def find_participant_dirs(config):
 def parse_params_from_file_name(json_file_name, cfg=config):
     """Search for MRI parameters in each json file name for use in table headers and created the combined json."""
     param_nums = []
+    keys = []
 
     for key in cfg.parameter_dict:
         parameter = cfg.parameter_dict[key]  # Extract search term
 
-        if parameter in cfg.binary_params:
+        if parameter == '':
+            continue
+
+        elif parameter in cfg.binary_params:
             param = re.search("{}".format(parameter), json_file_name, flags=re.IGNORECASE)
 
             if param is not None:
@@ -967,7 +971,9 @@ def parse_params_from_file_name(json_file_name, cfg=config):
             else:
                 param_nums.append(str(param))  # Save None if parameter not found in file name
 
-    return param_nums
+        keys.append(key)
+
+    return keys, param_nums
 
 
 if __name__ == '__main__':

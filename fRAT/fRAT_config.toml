@@ -2,24 +2,26 @@
 version = '0.15.0'
 
 # General
-run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_statistics = true                                                             # true or false.
+run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
+run_statistics = false                                                            # true or false.
 run_plotting = true                                                               # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
-brain_file_loc = ''                                                               # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-report_output_folder = '/Users/lpxeh10/Desktop/Working_directories/OPTIMISE/HarvardOxford-Cortical_ROI_report'  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+brain_file_loc = '/Users/lpxeh10/Desktop/Working_directories/STRKVIS/fRAT_results'  # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+report_output_folder = ''                                                         # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+averaging_type = 'Session averaged'                                               # Participant averaged or Voxel averaged. This setting is used to determine which statistics to use for plotting, statistical analysis and when accessing results (for example through the interactive report).  Note: Histograms will always use the pooled voxel data. Options: ['Session averaged', 'Pooled voxel averaged'].
+parameter_file = 'paramValues.csv'                                                # Recommended: paramValues.csv Name of the file to parse for critical params. Option added to allow quick swapping between different parameter files.
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 # Analysis
 atlas_number = 'HarvardOxford-cort'                                               #  Options: ['Cerebellum-MNIflirt', 'Cerebellum-MNIfnirt', 'HarvardOxford-cort', 'HarvardOxford-sub', 'JHU-ICBM-labels', 'JHU-ICBM-tracts', 'juelich', 'MNI', 'SMATT-labels', 'STN', 'striatum-structural', 'Talairach-labels', 'Thalamus'].
-input_folder_name = 'func_noiseVolumeRemoved'                                     # Folder found in each subjects directory containing the files to be analysed. If the "Noise volume included in time series" option was set to true when creating the statmaps, "func_noiseVolumeRemoved" will be created automatically and contains a copy of the functional files with the noise volumes removed. This should then be set here as the input folder for the analysis.
-output_folder = 'DEFAULT'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
+input_folder_name = 'func_cleaned'                                                # Folder found in each subjects directory containing the files to be analysed. func_cleaned is the default option as this folder will automatically be created when making statmaps. If the "Noise volume included in time series" option was set to true, or motion outlier removal was used when creating the statmaps, this folder will contain cleaned versions of the original func files. However if these options were not used when creating the statmaps, the folder will still be present, however the files will be identical to those in the "func" folder.
+output_folder = 'std_dev'                                                         # Directory to save output. If set to DEFAULT, output directory will be set to the cortical atlas used appended with "_ROI_report".  Example: HarvardOxford-Cortical_ROI_report/
 dof = 12                                                                          # Degrees of freedom for FLIRT (only used for the fMRI to anatomical alignment when using Correlation Ratio cost function). Recommended: 12
 anat_align_cost_function = 'BBR'                                                  # BBR or Correlation Ratio. Recommended: BBR. Using BBR (Boundary-Based Registration) requires an FSL FAST segmentation (this will be automatically created if necessary if the Run FSL FAST option is set to "Run if files not found") and a wholehead non-brain extracted anatomical placed in the anat folder. Options: ['BBR', 'Correlation Ratio'].
-grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: Requires anatomical align be true to function. FSL FAST segmentation files should be placed in the sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 needs to be in this directory, however if all files output by FAST are placed in this directory, then fRAT will find the necessary file.
+grey_matter_segment = true                                                        # true or false. Recommended: true.  Note: FSL FAST segmentation files should be placed in the sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 needs to be in this directory, however if all files output by FAST are placed in this directory, then fRAT will find the necessary file.
 run_fsl_fast = 'Run if files not found'                                           # Recommended: "Run if files not found".  These files will only be searched for (and thus created) if "Use FSL FAST segmentation" is set to true. Options: ['Run if files not found', 'Never run'].
 fslfast_min_prob = 0.1                                                            # Recommended: 0.1
 outlier_detection_method = 'individual'                                           # Method to run outlier detection. Options: 'individual' or 'pooled' If set to individual, outlier detection will take place for each subject individual. If set to pooled, data will be pooled before running outlier detection. Note: if set to individual, NIFTI files will be created for each subject, showing which files have been excluded using the outlier detection methods selected. However this is not possible for pooled outlier detection. Recommended: individual. Options: ['individual', 'pooled'].
@@ -27,35 +29,33 @@ noise_cutoff = true                                                             
 gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
 gaussian_outlier_contamination = 0.1                                              # Percent of expected outliers in dataset Recommended: 0.1
 gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
-stat_map_folder = 'tSNR_motion_corrected'                                         # Folder name which contains the statistical map files. Example: temporalSNR_report
-stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
+stat_map_folder = 'temporalSNR_report'                                            # Folder name which contains the statistical map files. Example: temporalSNR_report
+stat_map_suffix = '_tStd.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
-binary_params = ['']                                                              # Add parameters here which will either be on or off.
+binary_params = ['NORDIC', 'nordic']                                              # Add parameters here which will either be on or off.
 
 # Statistics
-minimum_voxels = 400                                                              # Minimum voxels to include ROI in GLM statistics.  Highly recommended to set a value here as ROIs with a small number of voxels suggests poor fitting. Recommended value 400
-bootstrap_statistics = true                                                       # true or false.
-bootstrap_samples = 10000                                                         # Recommended value 10000
-bootstrap_confidence_interval = 95                                                # Recommended value: 95
-glm_formula = 'Main + interaction effects'                                        # Main effects only, Main + interaction effects, Interaction effects only Options: ['Main effects only', 'Main + interaction effects', 'Interaction effects only'].
+statistics_subfolder_name = 'stats'                                               # Directory name for statistics folder.
+minimum_voxels = 400                                                              # Minimum voxels to include ROI in sample when bootstrapping parameter change. Highly recommended to set a value here, as ROIs with a small number of voxels may suggest poor fitting. Recommended value 400
+bootstrap_samples = 1000                                                          # Recommended value 1000.  Note: Bootstrapping is only used to calculate percentage change versus baseline.
+bootstrap_confidence_interval = 95                                                # Recommended value: 95  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 categorical_variables = ['']                                                      # Select which variables (if any) are categorical. Used for the GLM.
-glm_statistic = 'Mean'                                                            # Mean or Median. Note: this setting is only used when looking at the overall effect, as statistics ran on individual ROIs will use raw voxel values. Options: ['Mean', 'Median'].
-remove_intercept = false                                                          # true or false.
+remove_intercept = false                                                          # Remove intercept from model. Only to be used when using pooled voxel data in the model, as the linear mixed model assigns an intercept to each subject. true or false.
 print_result = false                                                              # true or false. Prints results to terminal if true in addition to saving results to file.
 
 # Parsing
-parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures.
-parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume.
-make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
+parameter_dict1 = ['nordic']                                                      # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: This field can be blank.
+parameter_dict2 = ['nordic']                                                      # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
+make_folder_structure = false                                                     # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
 
 # Plotting
 plot_dpi = 200                                                                    # Recommended value 600
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
-make_violin_plot = true                                                           # true or false.
-make_brain_table = true                                                           # true or false.
-make_one_region_fig = true                                                        # true or false.
+make_violin_plot = false                                                          # true or false.
+make_brain_table = false                                                          # true or false.
+make_one_region_fig = false                                                       # true or false.
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. [3, 5], the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
@@ -67,8 +67,8 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'MB'                                                                 # 
-table_rows = 'SENSE'                                                              # 
+table_cols = 'nordic'                                                             # 
+table_rows = ''                                                                   # 
 
 # Brain_table
 brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
@@ -76,17 +76,17 @@ brain_fig_value_min = 0                                                         
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'MB'                                                     # Label for columns.
-brain_table_row_labels = 'SENSE'                                                  # Label for rows.
-brain_table_cols = 'MB'                                                           # 
-brain_table_rows = 'SENSE'                                                        # 
+brain_table_col_labels = 'NORDIC'                                                 # Label for columns.
+brain_table_row_labels = ''                                                       # Label for rows.
+brain_table_cols = 'nordic'                                                       # 
+brain_table_rows = ''                                                             # 
 
 # Region_barchart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'MB'                                                      # 
-single_roi_fig_colour = 'SENSE'                                                   # 
+single_roi_fig_x_axis = 'nordic'                                                  # 
+single_roi_fig_colour = ''                                                        # 
 
 # Region_histogram
 histogram_binwidth = 5                                                            # 
@@ -96,7 +96,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # true or false.
 histogram_show_median = true                                                      # true or false.
 histogram_show_legend = true                                                      # true or false.
-histogram_fig_x_facet = 'MB'                                                      # 
-histogram_fig_y_facet = 'SENSE'                                                   # 
+histogram_fig_x_facet = 'nordic'                                                  # 
+histogram_fig_y_facet = ''                                                        # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

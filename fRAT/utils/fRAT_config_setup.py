@@ -35,6 +35,20 @@ General = {
                              'label': 'fRAT output directory location',
                              'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
+    'averaging_type': {'type': 'OptionMenu',
+                       'Recommended': 'Session averaged',
+                       'Options': ['Session averaged', 'Pooled voxel averaged'],
+                       'save_as': 'string',
+                       'Description': 'Participant averaged or Voxel averaged.\n'
+                                      'This setting is used to determine which statistics to use for plotting, '
+                                      'statistical analysis and when accessing results (for example through the '
+                                      'interactive report). \nNote: Histograms will always use the pooled voxel data.'},
+
+    'parameter_file': {'type': 'Entry', 'Recommended': "paramValues.csv", 'save_as': 'string',
+                       'Description': 'Recommended: paramValues.csv\n'
+                                      'Name of the file to parse for critical params. Option added to allow quick '
+                                      'swapping between different parameter files.'},
+
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',
                      'Description': 'Move or delete intermediate files.', 'label': 'File cleanup method'},
 }
@@ -59,12 +73,15 @@ Analysis = {
                      ],
                      'Description': ''},
 
-    'input_folder_name': {'type': 'Entry', 'Recommended': "func", 'save_as': 'string',
+    'input_folder_name': {'type': 'Entry', 'Recommended': "func_cleaned", 'save_as': 'string',
                           'Description': 'Folder found in each subjects directory containing the files to be analysed. '
-                          'If the "Noise volume included in time series" option was set to true when creating '
-                          'the statmaps, "func_noiseVolumeRemoved" will be created automatically and contains a copy '
-                          'of the functional files with the noise volumes removed. This should then be set here as the '
-                          'input folder for the analysis.'},
+                                         'func_cleaned is the default option as this folder will automatically be '
+                                         'created when making statmaps. If the "Noise volume included in time series" '
+                                         'option was set to true, or motion outlier removal was used when creating '
+                                         'the statmaps, this folder will contain cleaned versions of the original func '
+                                         'files. However if these options were not used when creating the statmaps, '
+                                         'the folder will still be present, however the files will be identical to '
+                                         'those in the "func" folder.'},
 
     'output_folder': {'type': 'Entry', 'Recommended': 'DEFAULT', 'save_as': 'string', 'label': 'Output directory',
                       'Description': 'Directory to save output. If set to DEFAULT, output directory will be set to '
@@ -89,22 +106,21 @@ Analysis = {
 
     'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
                             'Description': 'true or false. Recommended: true. '
-                                           '\nNote: Requires anatomical align be true to function. FSL FAST '
-                                           'segmentation files should be placed in the sub-{id}/fslfast/ '
-                                           'directory. Only the FSL FAST file appended with pve_1 needs to be in this '
-                                           'directory, however if all files output by FAST are placed in this '
-                                           'directory, then fRAT will find the necessary file.'},
+                                           '\nNote: FSL FAST segmentation files should be placed in the '
+                                           'sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 '
+                                           'needs to be in this directory, however if all files output by FAST are '
+                                           'placed in this directory, then fRAT will find the necessary file.'},
 
     'run_fsl_fast': {'type': 'OptionMenu',
                      'Options': ['Run if files not found', 'Never run'],
                      'Recommended': 'Run if files not found',
                      'Description': 'Recommended: "Run if files not found".\n These files will only be searched for '
                                     '(and thus created) if "Use FSL FAST segmentation" is set to true.',
-                     'Label': 'Run FSL FAST',
+                     'label': 'Run FSL FAST',
                      'save_as': 'string'},
 
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
-                         'label': 'fslFAST minimum probability', 'Description': 'Recommended: 0.1'},
+                         'label': 'FSL FAST minimum probability', 'Description': 'Recommended: 0.1'},
 
     'outlier_detection_method': {'type': 'OptionMenu', 'Recommended': 'individual',
                                  'Options': ['individual', 'pooled'],
@@ -168,46 +184,45 @@ Analysis = {
 
 '''Statistics settings'''
 Statistics = {
-    'minimum_voxels': {'type': 'Entry', 'Recommended': 400,
-                       'Description': 'Minimum voxels to include ROI in GLM statistics. \nHighly recommended to set a '
-                                      'value here as ROIs with a small number of voxels suggests poor fitting.'
+    'statistics_subfolder_name': {'type': 'Entry',
+                                  'Recommended': 'stats',
+                                  'save_as': 'string',
+                                  'Description': 'Directory name for statistics folder.'},
+
+    'minimum_voxels': {'type': 'Entry',
+                       'Recommended': 400,
+                       'Description': 'Minimum voxels to include ROI in sample when bootstrapping parameter change.'
+                                      '\nHighly recommended to set a value here, as ROIs with a small number of voxels '
+                                      'may suggest poor fitting.'
                                       '\nRecommended value 400'},
 
-    'bootstrap_statistics': {'type': 'CheckButton', 'Recommended': 'true',
-                             'Description': 'true or false.'},
-
-    'bootstrap_samples': {'type': 'Entry', 'Recommended': 10000,
-                          'Description': 'Recommended value 10000'},
+    'bootstrap_samples': {'type': 'Entry', 'Recommended': 1000,
+                          'Description': 'Recommended value 1000. \n'
+                                         'Note: Bootstrapping is only used to calculate percentage change versus '
+                                         'baseline.'},
 
     'bootstrap_confidence_interval': {'type': 'Entry', 'Recommended': 95,
-                                      'Description': 'Recommended value: 95'},
-
-    'glm_formula': {'type': 'OptionMenu',
-                    'label': 'GLM formula',
-                    'Recommended': 'Main + interaction effects',
-                    'Options': ['Main effects only', 'Main + interaction effects', 'Interaction effects only'],
-                    'save_as': 'string',
-                    'Description': 'Main effects only, '
-                                   'Main + interaction effects, '
-                                   'Interaction effects only'},
+                                      'Description': 'Recommended value: 95 \n'
+                                                     'Note: Bootstrapping is only used to calculate percentage change '
+                                                     'versus baseline.'},
 
     'categorical_variables': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'Checkbutton',
                               'save_as': 'list',
                               'Description': 'Select which variables (if any) are categorical. Used for the GLM.'},
 
-    'glm_statistic': {'type': 'OptionMenu',
-                      'label': 'GLM statistic for overall effect',
-                      'Recommended': 'Mean',
-                      'Options': ['Mean', 'Median'],
-                      'save_as': 'string',
-                      'Description': 'Mean or Median.\nNote: this setting is only used when '
-                                     'looking at the overall effect, as statistics ran on individual ROIs will use raw '
-                                     'voxel values.'},
+    # 'glm_statistic': {'type': 'OptionMenu',
+    #                   'label': 'GLM statistic for overall effect',
+    #                   'Recommended': 'Mean',
+    #                   'Options': ['Mean', 'Median'],
+    #                   'save_as': 'string',
+    #                   'Description': 'Mean or Median.\nNote: this setting is only used when '
+    #                                  'looking at the overall effect, as statistics ran on individual ROIs will use raw '
+    #                                  'voxel values.'},
 
     'remove_intercept': {'type': 'CheckButton', 'Recommended': 'false',
-                         'label': 'Remove intercept from GLM',
-                         'Description': 'true or false.'},
+                         'Description': 'Remove intercept from model. Only to be used when using pooled voxel data in the '
+                                  'model, as the linear mixed model assigns an intercept to each subject. true or false.'},
 
     'print_result': {'type': 'CheckButton', 'Recommended': 'false',
                      'label': 'Print results to terminal',
@@ -221,7 +236,8 @@ Parsing = {
                         'Description': 'Comma-separated list of parameter names to be parsed for and plotted. '
                                        '\n As these critical parameters will also be used when labelling the rows and '
                                        'columns of both the violin plots and histograms, they should be written as '
-                                       'you want them to appear in these figures.'},
+                                       'you want them to appear in these figures.'
+                                       '\nNote: This field can be blank.'},
 
     'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list',
                         'label': 'Critical parameter abbreviation',
@@ -229,7 +245,8 @@ Parsing = {
                                        'corresponds to a critical parameter above. \nOptional if using table parameter '
                                        'verification, however if the file name contains this information it can use '
                                        'this information to auto-detect the critical parameters used for each fMRI '
-                                       'volume.'},
+                                       'volume.'
+                                       '\nNote: This field can be blank.'},
 
     'make_folder_structure': {'type': 'CheckButton', 'Recommended': 'true',
                               'Description': 'true or false. Make folder structure when creating paramValues.csv'},
@@ -297,10 +314,12 @@ Brain_table = {
                       'Description': 'Voxel location to slice the images at in the z axis. '
                                      'Recommended settings for both variables: 91 or 58'},
 
-    'brain_table_col_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string', 'label': 'Column labels',
+    'brain_table_col_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string',
+                               'label': 'Column labels',
                                'DefaultNumber': 0, 'Description': 'Label for columns.'},
 
-    'brain_table_row_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string', 'label': 'Row labels',
+    'brain_table_row_labels': {'type': 'Entry', 'Recommended': 'CHANGE TO DESIRED LABEL', 'save_as': 'string',
+                               'label': 'Row labels',
                                'DefaultNumber': 1, 'Description': 'Label for rows.'},
 
     'brain_table_cols': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',

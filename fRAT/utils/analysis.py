@@ -1,7 +1,10 @@
+import copy
 import itertools
 import logging
 import os
+import pathlib
 import re
+import shutil
 import warnings
 from glob import glob
 from random import choice
@@ -88,13 +91,14 @@ class Environment_Setup:
         if config.verbose:
             print(f'Saving output in directory: {cls.save_location}\n'
                   f'Using the {cls.atlas_name} atlas.\n'
-                  f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n')
+                  f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n'
+                  f'Using parameter file: {config.parameter_file}.\n')
 
         # Make folder to save ROI_report if not already created
         Utils.check_and_make_dir(f"{cls.base_directory}/{cls.save_location}", delete_old=True)
 
         # Move config file to analysis folder
-        Utils.move_file('config_log.toml', cls.base_directory, cls.save_location)
+        Utils.move_file('analysis_log.toml', cls.base_directory, cls.save_location)
 
     @classmethod
     def setup_environment(cls, config):
@@ -114,8 +118,10 @@ class Environment_Setup:
                 print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
                       f'Looking for stat maps in directory: statmaps/{config.stat_map_folder}\n')
 
-        # Save copy of config_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
-        Utils.save_config(cls.base_directory, 'fRAT_config')
+        # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
+        Utils.save_config(cls.base_directory, 'fRAT_config',
+                          config_name='analysis_log',
+                          relevant_sections=['General', 'Analysis', 'Parsing'])
 
         try:
             os.chdir(cls.base_directory)
@@ -123,8 +129,9 @@ class Environment_Setup:
             raise FileNotFoundError('brain_file_loc in fRAT_config.toml is not a valid directory.')
 
         if config.stat_map_folder == '':
-            raise FileNotFoundError('Cannot run find statistical maps as the "statistical map folder" field is blank.\n'
-                                    'This field should contain a folder found in the "statmaps" directory.')
+            raise FileNotFoundError('Cannot find statistical maps as the "statistical map folder" field in the '
+                                    '"Analysis" tab is blank.'
+                                    '\nThis field should contain a folder found in the "statmaps" directories.')
 
     @classmethod
     def roi_label_list(cls):
@@ -158,6 +165,7 @@ class Participant:
         self.anat_brain_no_ext = None
         self.grey_matter_segmentation = None
         self.white_matter_segmentation = None
+        self.all_files_ignored = False
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -247,7 +255,11 @@ class Participant:
 
             construct_combined_results(f'{self.save_location}')
 
-        self.anat_file_cleanup()
+            self.anat_file_cleanup()
+
+        else:
+            self.all_files_ignored = True
+            shutil.rmtree(self.save_location)
 
         return brain_list
 
@@ -281,7 +293,8 @@ class Participant:
             raise FileExistsError(
                 'The maximum number of files NIFTI in the anat folder should be two: a whole head and a brain '
                 'extracted image, where the brain extracted image has "brain" in the filename e.g. '
-                '"MPRAGE_brain". \n NOTE: Wholehead image is only required when '
+                '"MPRAGE_brain". Remove any json or mask files from this folder.'
+                '\nNOTE: Wholehead image is only required when '
                 'aligning fMRI volume to anatomical volume with the BBR cost function.')
 
         if len(anat) == 1:
@@ -310,22 +323,23 @@ class Participant:
                 if config.run_fsl_fast == 'Run if files not found':
                     if config.verbose:
                         phrases = ['get a cup of coffee',
-                                   'maybe respond to those reviewer comments',
+                                   'respond to those reviewer comments',
                                    'have a good clear out of your inbox',
                                    'read some XKCD comics',
                                    'contemplate the meaning of existence',
                                    'consider writing a short poem',
-                                   'maybe listen to Echoes by Pink Floyd',
+                                   'listen to Echoes by Pink Floyd',
                                    'mark one of those essays you\'ve been putting off',
                                    'paint the next abstract masterpiece',
-                                   'maybe listen to Michigan by Sufjan Stevens']
+                                   'listen to Michigan by Sufjan Stevens']
 
                         print(f'Participant {self.participant_name} missing FSL FAST files. '
-                              f'Running FSL FAST ({choice(phrases)}, this may take a while).')
+                              f'Running FSL FAST (maybe {choice(phrases)}, this may take a while).')
 
                     # Need to change directory here to get around error caused by nipype trying to find fslfast output
                     # in current working directory
                     orig_direc = os.getcwd()
+                    Utils.check_and_make_dir(f'{self.participant_path}/fslfast/')
                     os.chdir(f'{self.participant_path}/fslfast/')
 
                     fsl_functions(self, f'{self.participant_path}/fslfast/{self.anat_brain_no_ext}',
@@ -391,6 +405,7 @@ class Brain:
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
         self.stat_brain = f"{participant_folder}/statmaps/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
         self.roi_temp_store = None
         self.roi_stat_list = ""
@@ -400,6 +415,7 @@ class Brain:
         self.noise_threshold = None
         self.lower_gaussian_threshold = None
         self.upper_gaussian_threshold = None
+        self.session_number = 0
 
         # Copying class attributes here is a workaround for dill,
         # which can't access modified class attributes for imported modules.
@@ -415,9 +431,10 @@ class Brain:
             print(f'Calculating cost function and mean displacement values for volume '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.no_ext_brain}')
 
-        fslfunc = fsl.FLIRT(in_file=f'{self.save_location}Intermediate_files/{self.no_ext_brain}/bet_{self.no_ext_brain}.nii.gz',
-                            schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
-                            terminal_output='allatonce', dof=config.dof)
+        fslfunc = fsl.FLIRT(
+            in_file=f'{self.save_location}Intermediate_files/{self.no_ext_brain}/bet_{self.no_ext_brain}.nii.gz',
+            schedule=f'{self._fsl_path}/etc/flirtsch/measurecost1.sch',
+            terminal_output='allatonce', dof=config.dof)
 
         anat_cost, mni_cost = None, None
 
@@ -505,7 +522,7 @@ class Brain:
         # Load original brain (with statistical map)
         stat_brain = nib.load(self.stat_brain)
         # Load atlas brain (which has been converted into native space)
-        mni_brain = nib.load(f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz")
+        mni_brain = nib.load(self.mni_brain)
 
         stat_brain = stat_brain.get_fdata()
         mni_brain = mni_brain.get_fdata()
@@ -526,7 +543,7 @@ class Brain:
         roi_results = np.full([8, roiNum + 1], np.nan)
         roi_results[7, 0:-1] = 0  # Change excluded voxels measure from NaN to 0
 
-        return roi_temp_store, roi_results, idxMNI, idxBrain, roiList, roiNum
+        return roi_temp_store, roi_results, idxMNI, idxBrain
 
     @staticmethod
     def compile_voxel_values(roi_temp_store, roi_results, idxMNI, idxBrain, GM_bool):
@@ -604,7 +621,7 @@ class Brain:
             white_matter_binarised = fsl_functions(*pack_vars,
                                                    'maths.UnaryMaths',
                                                    white_matter_thresholded,
-                                                   "")
+                                                   "", 'binarise_wmseg')
 
             fmri_to_anat_mat = fsl_functions(*pack_vars, 'EpiReg',
                                              fMRI_volume, "to_anat_from_",
@@ -642,7 +659,7 @@ class Brain:
         per ROI."""
 
         # Load brains and pre-initialise arrays
-        roi_temp_store, roi_results, idxMNI, idxBrain, roiList, roiNum = self.roi_stats_setup()
+        roi_temp_store, roi_results, idxMNI, idxBrain = self.roi_stats_setup()
 
         # Combine information from fMRI and MNI brains (both in native space) to assign an ROI to each voxel
         roi_temp_store, roi_results, non_segmented_volume = self.compile_voxel_values(roi_temp_store,
@@ -659,7 +676,29 @@ class Brain:
         else:
             volumes = {'noROI': roi_temp_store}
 
-        header, statmap_shape, save_location, stage = self.create_excluded_rois_volume(volumes)
+        roi_results, roi_temp_store = self.noise_correct_data_and_create_excluded_voxel_maps(roi_results,
+                                                                                             roi_temp_store, volumes)
+
+        # Compile ROI statistics
+        roi_results = compile_roi_stats(roi_temp_store, roi_results, config)
+
+        warnings.filterwarnings('default')  # Reactivate warnings
+
+        # if config.bootstrap: # TODO: uncomment this when bootstrapping reimplemented
+        #     roi_results = roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_current,
+        #                                           brain_number_total)  # Bootstrapping
+
+        roi_stats_save(roi_temp_store, roi_results, self._labelArray,
+                       self.save_location, self.parameters, config,
+                       session_number=self.session_number)  # Save results
+
+        # Retain variables for atlas_scale function
+        self.roi_results = roi_results
+        self.roi_temp_store = roi_temp_store
+
+    def noise_correct_data_and_create_excluded_voxel_maps(self, roi_results, roi_temp_store, volumes):
+        header, statmap_shape, save_location, stage, excluded_voxels_file_location = self.create_excluded_rois_volume(
+            volumes)
 
         if config.outlier_detection_method == 'individual':
             if config.verbose:
@@ -670,8 +709,10 @@ class Brain:
                 roi_results, roi_temp_store, self.noise_threshold = noise_threshold_outlier_detection(roi_results,
                                                                                                       roi_temp_store)
 
+                excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz"
+
                 create_no_roi_volume(roi_temp_store,
-                                     f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz",
+                                     excluded_voxels_file_location,
                                      statmap_shape,
                                      header)
 
@@ -684,25 +725,87 @@ class Brain:
                     config
                 )
 
+                excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_gaussianThreshOutliers.nii.gz"
+
                 create_no_roi_volume(roi_temp_store,
-                                     f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_gaussianThreshOutliers.nii.gz",
+                                     excluded_voxels_file_location,
                                      statmap_shape,
                                      header)
 
-        # Compile ROI statistics
-        roi_results = compile_roi_stats(roi_temp_store, roi_results, config)
+                stage += 1
 
-        warnings.filterwarnings('default')  # Reactivate warnings
+        roi_temp_store, roi_results = self.create_final_atlas_mapping(excluded_voxels_file_location,
+                                                                      roi_results,
+                                                                      save_location)
 
-        # if config.bootstrap: # TODO: uncomment this when bootstrapping reimplemented
-        #     roi_results = roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_current,
-        #                                           brain_number_total)  # Bootstrapping
+        return roi_results, roi_temp_store
 
-        roi_stats_save(roi_temp_store, roi_results, self._labelArray,
-                       self.save_location, self.parameters, config)  # Save results
+    def create_final_atlas_mapping(self, final_excluded_voxels_volume, roi_results, output_folder):
+        # Make copy of fMRI volume
+        shutil.copy(self.brain, f"{output_folder}/fMRI_volume.nii.gz")
 
-        self.roi_results = roi_results  # Retain variable for atlas_scale function
-        self.roi_temp_store = roi_temp_store  # Retain variable for atlas_scale function
+        # Make copy of mni_to_fmri brain
+        orig_mni_loc = f"{output_folder}/orig_mni_to_{self.no_ext_brain}.nii.gz"
+        shutil.copy(self.mni_brain, orig_mni_loc)
+
+        # Create binary mask using -binv
+        binary_mask = fsl_functions(self, output_folder, self.no_ext_brain, 'maths.UnaryMaths',
+                                    final_excluded_voxels_volume, 'binary_mask_', 'binarise_excluded_voxel_map')
+
+        # Fill holes in binary mask using -fillh
+        binary_mask_filled = fsl_functions(self, output_folder, self.no_ext_brain, 'maths.UnaryMaths',
+                                           binary_mask, 'binary_mask_filled_', 'fill_holes')
+
+        # Multiply mni_to_fMRI with binary_mask_filled
+        fsl_functions(self, output_folder, self.no_ext_brain, 'maths.BinaryMaths',
+                      self.mni_brain, 'final_mni_to_', binary_mask, 'mul', 'Save output to self')
+
+        # Calculate how many voxels have been filled in for each ROI. This will be subtracted from the excluded voxels
+        # row of roi_results to create an accurate count after rerunning the analysis
+        roi_results = self.correct_excluded_voxel_amount_by_number_of_filled_voxels(binary_mask,
+                                                                                    binary_mask_filled,
+                                                                                    orig_mni_loc,
+                                                                                    roi_results,
+                                                                                    output_folder)
+
+        # Load brains and pre-initialise arrays
+        roi_temp_store, _, idxMNI, idxBrain = self.roi_stats_setup()
+
+        # The magic loop
+        for counter, roi in enumerate(idxMNI):
+            roi_temp_store[int(roi), counter] = idxBrain[counter]
+
+        return roi_temp_store, roi_results
+
+    def correct_excluded_voxel_amount_by_number_of_filled_voxels(self, binary_mask, binary_mask_filled, mni_brain,
+                                                                 roi_results, output_folder):
+        # binary_mask_filled - binary_mask
+        filled_voxel_volume = fsl_functions(self, output_folder, self.no_ext_brain, 'maths.BinaryMaths',
+                                            binary_mask_filled, 'filled_voxels_', binary_mask, 'sub')
+
+        filled_voxel_volume = nib.load(filled_voxel_volume)
+        filled_voxel_volume = filled_voxel_volume.get_fdata()
+        idxBrain = filled_voxel_volume.flatten()
+
+        # Load atlas brain (which has been converted into native space)
+        mni_brain = nib.load(mni_brain)
+        mni_brain = mni_brain.get_fdata()
+        idxMNI = mni_brain.flatten()
+
+        # Find the number of unique ROIs in the atlas
+        roiList = list(range(0, len(self._labelArray) - 1))
+        roiNum = np.size(roiList)
+
+        # Create arrays to store the values before and after statistics
+        filled_voxels_per_roi = np.full([1, roiNum], 0)
+
+        for counter, roi in enumerate(idxMNI):
+            if idxBrain[counter] == 1.0:  # Equal to 1.0 if the voxel has been filled with -fillh
+                filled_voxels_per_roi[0, int(roi)] += 1
+
+        roi_results[-1, 1:-1] = roi_results[-1, 1:-1] - filled_voxels_per_roi[:, 1:]
+
+        return roi_results
 
     def create_excluded_rois_volume(self, volumes):
         excluded_vox_save_location = f"{self.save_location}/Excluded_voxels/{self.no_ext_brain}/"
@@ -716,7 +819,6 @@ class Brain:
 
         for file_name, volume in volumes.items():
             file_location = f"{excluded_vox_save_location}/ExcludedVoxStage{stage}_{self.no_ext_brain}_{file_name}.nii.gz"
-            stage += 1
 
             create_no_roi_volume(
                 volume,
@@ -725,7 +827,9 @@ class Brain:
                 header
             )
 
-        return header, statmap_shape, excluded_vox_save_location, stage
+            stage += 1
+
+        return header, statmap_shape, excluded_vox_save_location, stage, file_location
 
 
 class MatchedBrain:
@@ -738,14 +842,17 @@ class MatchedBrain:
                                     in zip(config.parameter_dict2, parameters)])
         self.overall_results = []
         self.raw_results = []
+        self.session_averaged_results = []
 
         self.noise_threshold = None
         self.lower_gaussian_threshold = None
         self.upper_gaussian_threshold = None
+        self.conf_int = Environment_Setup.conf_level_list[int(config.conf_level_number)]
 
         # Copying class attributes here is a workaround for dill, which can't access class attributes.
         self.label_array = self.label_array
         self.save_location = self.save_location
+        self.results_path = ''
 
     @classmethod
     def setup_class(cls, participant_list):
@@ -800,9 +907,23 @@ class MatchedBrain:
 
         return participant.participant_name, brain.no_ext_brain
 
+    def create_folders(self):
+        summary_results_path = f"{self.save_location}Summarised_results/"
+        Utils.check_and_make_dir(summary_results_path)
+
+        pooled_path = f"{self.save_location}Summarised_results/Pooled_voxel_results/"
+        Utils.check_and_make_dir(pooled_path)
+
+        self.results_path = f"{self.save_location}Summarised_results/Session_averaged_results/"
+        Utils.check_and_make_dir(self.results_path)
+
     def compile_results(self, config):
         if config.verbose:
             print(f'Combining results for parameter combination: {self.parameters}')
+
+        self.create_folders()
+
+        self.calculate_and_save_pooled_session_stats()
 
         for result in self.overall_results:
             result[0:-1, :] = 0  # Reset roi_results and only retain excluded voxels
@@ -835,9 +956,51 @@ class MatchedBrain:
 
         # Save results
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
-                       self.save_location, self.parameters, config)
+                       self.save_location, self.parameters, config,
+                       pooled_data=True)
 
         return self
+
+    def calculate_and_save_pooled_session_stats(self):
+        nan_data = copy.deepcopy(self.overall_results)
+
+        for session in nan_data:
+            for row in session:
+                row[row == 0] = np.nan
+
+        row_labels = ['Total voxels',
+                      'Excluded voxels',
+                      'Average voxels per session',
+                      'Mean',
+                      'Std_dev',
+                      f'Conf_Int_{self.conf_int[0]}',
+                      'Median',
+                      'Minimum',
+                      'Maximum',
+                      'Sessions']
+
+        results = np.full((len(row_labels), len(self.label_array)), np.inf)
+
+        results[0, :] = np.nansum(self.overall_results, axis=0)[0]  # Total voxels
+        results[1, :] = np.nansum(self.overall_results, axis=0)[7]  # Excluded voxels
+        results[2, :] = np.nanmean(nan_data, axis=0)[0]  # Average voxels
+        results[3, :] = np.nanmean(nan_data, axis=0)[1]  # Mean
+        results[4, :] = np.nanstd(nan_data, axis=0)[1]  # Standard deviation
+        results[6, :] = np.nanmedian(nan_data, axis=0)[4]  # Median
+        results[7, :] = np.nanmin(self.overall_results, axis=0)[5]  # Minimum
+        results[8, :] = np.nanmax(self.overall_results, axis=0)[6]  # Maximum
+        results[9, :] = np.count_nonzero(self.overall_results, axis=0)[0]  # Sessions
+        results[5, :] = self.conf_int[1] * results[4, :] \
+                        / np.sqrt(results[9, :])  # Confidence interval
+
+        results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
+
+        with open(f"{self.results_path}{self.parameters}.json", 'w') as file:
+            json.dump(results_df.to_dict(), file, indent=2)
+
+        self.session_averaged_results = results_df.to_numpy()
+
+        return results_df
 
     @classmethod
     def assign_parameters_to_brains(cls, matched_brains, participant_list):
@@ -855,50 +1018,81 @@ class MatchedBrain:
                 except KeyError:
                     pass
 
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, config):
+        # Assign session number to brains if participants have more than one scan with the same parameter combination
+        for parameter_comb in matched_brains:
+            for subj in parameter_comb.brains:
+                if len(parameter_comb.brains[subj]) > 1:
+                    session_count = 0
+
+                    for brain in brain_list:
+                        try:
+                            if brain.participant_name == subj and \
+                                    brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
+                                brain.session_number = session_count
+                                session_count += 1
+
+                        except KeyError:
+                            pass
+
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, data,
+                    config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
+
+        if data == 'Session averaged':
+            results = self.session_averaged_results
+            subfolder = 'Session_averaged_results/'
+            statistic_labels = config.statistic_options['Session averaged']
+
+        else:
+            results = self.overall_results
+            subfolder = 'Pooled_voxel_results/'
+            statistic_labels = config.statistic_options['Pooled voxel']
+
         if config.verbose and max(max_roi_stat) != 0.0:
-            print(f'Creating {config.statistic_options[statistic_num]} NIFTI_ROI file for parameter combination '
+            print(f'Creating {statistic_labels[statistic_num]} NIFTI_ROI file for parameter combination '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.parameters}.')
 
-        elif config.verbose and \
-                config.statistic_options[statistic_num] == 'Excluded_voxels_amount' and max(max_roi_stat) == 0.0:
-            print(f'Not creating {config.statistic_options[statistic_num]} NIFTI_ROI file for parameter combination '
+        elif config.verbose \
+                and statistic_labels[statistic_num] == 'Excluded_voxels_amount' \
+                and max(max_roi_stat) == 0.0:
+            print(f'Not creating {statistic_labels[statistic_num]} NIFTI_ROI file for parameter combination '
                   f'{brain_number_current + 1}/{brain_number_total}: {self.parameters} as no voxels have been excluded.')
 
             return
 
-        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, self.overall_results[statistic_num, :])]
+        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, results[statistic_num, :])]
+
         # Find maximum statistic value (excluding No ROI and overall category)
-        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in self.overall_results[statistic_num, :]]
+        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in results[statistic_num, :]]
 
         atlas = nib.load(atlas_path)
         atlas = atlas.get_fdata()
 
         unscaled_stat, within_roi_stat, mixed_roi_stat = self.group_roi_stats(atlas, global_scaled_stat,
-                                                                              roi_scaled_stat, statistic_num)
+                                                                              roi_scaled_stat, statistic_num,
+                                                                              results)
 
         # Convert atlas to NIFTI and save it
         scale_stats = [
             (unscaled_stat,
-             f"{self.parameters}_{config.statistic_options[statistic_num]}.nii.gz"),
+             f"{self.parameters}_{statistic_labels[statistic_num]}.nii.gz"),
             (within_roi_stat,
-             f"{self.parameters}_{config.statistic_options[statistic_num]}_within_roi_scaled.nii.gz"),
+             f"{self.parameters}_{statistic_labels[statistic_num]}_within_roi_scaled.nii.gz"),
             (mixed_roi_stat,
-             f"{self.parameters}_{config.statistic_options[statistic_num]}_mixed_roi_scaled.nii.gz")
+             f"{self.parameters}_{statistic_labels[statistic_num]}_mixed_roi_scaled.nii.gz")
         ]
 
         for scale_stat in scale_stats:
             scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))
-            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{scale_stat[1]}")
+            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{subfolder}{scale_stat[1]}")
 
-    def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num):
+    def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num, results):
         # Iterate through each voxel in the atlas
         atlas = atlas.astype(int)
 
         # Assign stat values for each ROI all at once
-        unscaled_stat = self.overall_results[statistic_num, atlas]
+        unscaled_stat = results[statistic_num, atlas]
         within_roi_stat = np.array(roi_scaled_stat)[atlas]
         mixed_roi_stat = np.array(global_scaled_stat)[atlas]
 
@@ -947,7 +1141,7 @@ def compile_roi_stats(roi_temp_store, roi_results, config):
         roi_results[0, write_start:write_end] = np.count_nonzero(~np.isnan(roi_temp_store[read_start:, :]),
                                                                  axis=axis)  # Count number of non-nan voxels
         roi_results[1, write_start:write_end] = np.nanmean(roi_temp_store[read_start:, :], axis=axis)
-        roi_results[2, write_start:write_end] = np.nanstd(roi_temp_store[read_start:, :], axis=axis)
+        roi_results[2, write_start:write_end] = np.nanstd(roi_temp_store[read_start:, :], axis=axis, ddof=1)
         # Confidence interval calculation
         roi_results[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
                                                 * roi_results[2, write_start:write_end] \
@@ -997,10 +1191,10 @@ def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, w
     return cost_func
 
 
-def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
+def fsl_functions(obj, save_location, no_ext_brain, func, input_volume, prefix, *argv):
     """Run an FSL function using NiPype."""
     current_mat = None
-    current_brain, fslfunc, suffix = fsl_functions_setup(func, input, no_ext_brain, prefix, save_location)
+    current_brain, fslfunc, suffix = fsl_functions_setup(func, input_volume, no_ext_brain, prefix, save_location)
 
     # Arguments dependent on FSL function used
     if func == 'MCFLIRT':
@@ -1018,11 +1212,28 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         fslfunc.inputs.thresh = 0.5
 
     elif func == 'maths.UnaryMaths':
-        fslfunc.inputs.operation = 'bin'
-        current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}_fast_wmseg.nii.gz"
+        if argv[0] == 'binarise_wmseg':
+            fslfunc.inputs.operation = 'bin'
+            current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}_fast_wmseg.nii.gz"
+
+        elif argv[0] == 'binarise_excluded_voxel_map':
+            fslfunc.inputs.operation = 'binv'
+
+        elif argv[0] == 'fill_holes':
+            fslfunc.inputs.operation = 'fillh'
+
+    elif func == 'maths.BinaryMaths':
+        fslfunc.inputs.operand_file = argv[0]
+        fslfunc.inputs.operation = argv[1]
+
+        try:
+            if argv[2] == 'Save output to self':
+                obj.mni_brain = current_brain
+        except IndexError:
+            pass
 
     elif func == 'EpiReg':
-        fslfunc.inputs.epi = input
+        fslfunc.inputs.epi = input_volume
         fslfunc.inputs.t1_brain = argv[0]
         fslfunc.inputs.t1_head = argv[1]
         fslfunc.inputs.wmseg = argv[2]
@@ -1033,7 +1244,7 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         current_brain = f'{fslfunc.inputs.out_base}.nii.gz'
 
     elif func == 'FAST':
-        fslfunc.inputs.in_files = input
+        fslfunc.inputs.in_files = input_volume
         fslfunc.inputs.out_basename = save_location
 
     elif func == 'ConvertXFM':
@@ -1054,7 +1265,9 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
         print(f"{fslfunc.cmdline}\n")
 
     fslfunc.run()
-    fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix)
+
+    if func not in ('maths.Threshold', 'maths.UnaryMaths', 'maths.BinaryMaths', 'FAST'):
+        fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix)
 
     if func == 'FLIRT':
         return current_mat
@@ -1069,6 +1282,7 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input, prefix, *argv):
 def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix):
     if func in ('FLIRT', 'ApplyXFM'):
         obj.file_list.extend([current_brain, current_mat])
+
     elif func == 'EpiReg':
         new_base = f'{save_location}{prefix}{no_ext_brain}'
         renamed_brain = f'{new_base}.nii.gz'
@@ -1082,19 +1296,19 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
         os.rename(f'{save_location}{no_ext_brain}_fast_wmseg.nii.gz', renamed_wmseg)
 
         obj.file_list.extend([renamed_brain, renamed_mat, renamed_wmedge, renamed_wmseg])
+
     elif func == 'BET':
         obj.file_list.extend([current_brain, f"{save_location}{prefix}{no_ext_brain}_mask{suffix}"])
+
     elif func == 'MCFLIRT':
         # Find all the motion correction files that are not the actual brain volume
         mc_files = [direc for direc in os.listdir(f"{save_location}motion_correction_files/")
-                    if re.search(no_ext_brain, direc) and not re.search(f"^{prefix}{no_ext_brain}{suffix}$", direc)]
+                    if re.search(f'^{prefix}{no_ext_brain}{suffix}(?!$)', direc)]
 
         # Remove .nii.gz from middle of string
         for file in mc_files:
             os.rename(f"{save_location}motion_correction_files/{file}",
                       f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
-    elif func in ('maths.Threshold', 'maths.UnaryMaths', 'FAST'):
-        return
     else:
         obj.file_list.append(current_brain)
 
@@ -1117,6 +1331,7 @@ def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):
 
     if func == 'ConvertXFM':
         suffix = '.mat'
+
     elif func == 'MCFLIRT':
         Utils.check_and_make_dir(f"{save_location}motion_correction_files/")
         current_brain = fslfunc.inputs.out_file = f"{save_location}motion_correction_files/{prefix}{no_ext_brain}{suffix}"
@@ -1160,7 +1375,13 @@ def roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_curren
     return roi_results
 
 
-def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ext_brain, config):
+def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ext_brain, config,
+                   pooled_data=False, session_number=0):
+    if session_number == 0:
+        session_suffix = ''
+    else:
+        session_suffix = f'_ps{session_number}'
+
     headers = ['Voxels', 'Mean', 'Std_dev',
                f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
                'Median', 'Min', 'Max', 'Excluded_Voxels']
@@ -1191,16 +1412,19 @@ def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ex
     # Convert to dict and get rid of row numbers to significantly decrease file size
     roidict = Utils.dataframe_to_dict(raw_results)
 
-    summary_results_path = f"{save_location}Summarised_results/"
+    if pooled_data:
+        summary_results_path = f"{save_location}Summarised_results/Pooled_voxel_results/"
+    else:
+        summary_results_path = f"{save_location}Summarised_results/"
     Utils.check_and_make_dir(summary_results_path)
-
-    with open(f"{summary_results_path}{no_ext_brain}.json", 'w') as file:
-        json.dump(results.to_dict(), file, indent=2)
 
     raw_results_path = f"{save_location}Raw_results/"
     Utils.check_and_make_dir(raw_results_path)
 
-    with open(f"{raw_results_path}{no_ext_brain}_raw.json", 'w') as file:
+    with open(f"{summary_results_path}{no_ext_brain}{session_suffix}.json", 'w') as file:
+        json.dump(results.to_dict(), file, indent=2)
+
+    with open(f"{raw_results_path}{no_ext_brain}{session_suffix}_raw.json", 'w') as file:
         json.dump(roidict, file, indent=2)
 
 
@@ -1210,39 +1434,71 @@ def verify_param_values():
 
     for key in config.parameter_dict.keys():
         if key.lower() not in table:
-            raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
+            raise Exception(f'Key "{key}" not found in {config.parameter_file}. Check the Critical Parameters option '
                             f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
-                            f'paramValues.csv headers.')
+                            f'{config.parameter_file} headers.')
 
 
-def construct_combined_results(directory):
-    combined_dataframe = pd.DataFrame()
-    json_file_list = [os.path.basename(f) for f in glob(f"{directory}/Summarised_results/*.json")]
+def construct_combined_results(directory, subfolder=''):
+    if subfolder == 'session averaged':
+        directory = f"{directory}/Summarised_results/Session_averaged_results"
+    elif subfolder == 'pooled voxel':
+        directory = f"{directory}/Summarised_results/Pooled_voxel_results"
+    else:
+        directory = f"{directory}/Summarised_results/"
 
+    json_file_list = [os.path.basename(f) for f in glob(f"{directory}/*.json")]
+
+    # Find session numbers
+    session_dict = {0: []}
     for jsn in json_file_list:
-        if jsn == 'combined_results.json':
-            continue
+        if '_ps' in jsn:
+            session_number = re.findall('_ps[0-9]*', jsn)[0].split('_ps')[-1]
 
-        # Splits a file name. For example from hb1_ip2.json into [1, 2]
-        parameters = list(filter(None, re.split(f'_|.json|{config.parameter_dict2}', jsn)))
+            if session_number not in session_dict:
+                session_dict[session_number] = []
 
-        current_dataframe = pd.read_json(f"{directory}/Summarised_results/{jsn}")
-        current_dataframe = current_dataframe.transpose()
-
-        for counter, parameter_name in enumerate(config.parameter_dict):
-            current_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
-
-        current_dataframe['File_name'] = Utils.strip_ext(jsn)
-
-        if combined_dataframe.empty:
-            combined_dataframe = current_dataframe
+            session_dict[session_number].append(jsn)
 
         else:
-            combined_dataframe = combined_dataframe.append(current_dataframe, sort=True)
+            session_dict[0].append(jsn)
 
-    # Save combined results
-    combined_dataframe = combined_dataframe.reset_index()
-    combined_dataframe.to_json(f"{directory}/Summarised_results/combined_results.json", orient='records', indent=2)
+    for session, jsns in session_dict.items():
+        combined_dataframe = pd.DataFrame()
+
+        for jsn in jsns:
+            if 'combined_results' in jsn:
+                continue
+
+            # Splits a file name. For example from hb1_ip2.json into ['hb1', 'ip2']
+            parameters = list(filter(None, re.split(f'_|ps[0-9]*|.json', jsn)))
+
+            # Remove critical parameter name from file name. For example from ['hb1', 'ip2'] into [1, 2]
+            for counter, critical_parameter in enumerate(config.parameter_dict2):
+                parameters[counter] = parameters[counter].replace(critical_parameter, '')
+
+            current_dataframe = pd.read_json(f"{directory}/{jsn}")
+            current_dataframe = current_dataframe.transpose()
+
+            for counter, parameter_name in enumerate(config.parameter_dict):
+                current_dataframe[parameter_name] = parameters[counter]  # Add parameter columns
+
+            current_dataframe['File_name'] = Utils.strip_ext(jsn)
+
+            if combined_dataframe.empty:
+                combined_dataframe = current_dataframe
+
+            else:
+                combined_dataframe = combined_dataframe.append(current_dataframe, sort=True)
+
+        if session == 0:
+            session_suffix = ''
+        else:
+            session_suffix = f'_ps{session}'
+
+        # Save combined results
+        combined_dataframe = combined_dataframe.reset_index()
+        combined_dataframe.to_json(f"{directory}/combined_results{session_suffix}.json", orient='records', indent=2)
 
 
 def gaussian_outlier_detection(roi_results, roi_temp_store, config):

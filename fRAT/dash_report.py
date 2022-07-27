@@ -52,11 +52,30 @@ def df_setup():
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    df = pd.read_json(f"{folder}/Overall/Summarised_results/combined_results.json")
+    config = Utils.load_config(folder, 'analysis_log.toml')
+
+    if config.averaging_type == 'Session averaged':
+        subfolder = 'Session_averaged_results'
+
+    else:
+        subfolder = 'Pooled_voxel_results'
+
+    df = pd.read_json(f"{folder}/Overall/Summarised_results/{subfolder}/combined_results.json")
 
     r = re.compile("Conf_Int_*")
     Conf_Int = list(filter(r.match, df.columns))[0]  # Find confidence interval level
-    column_order = ['index', 'Mean', Conf_Int, 'Percentage change from baseline', 'Baseline', 'Median', 'Std_dev', 'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
+
+    if config.averaging_type == 'Session averaged':
+        column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev',
+                        'Minimum', 'Maximum', 'Total voxels', 'Excluded voxels', 'Average voxels per session',
+                        'Sessions', 'File_name']
+    else:
+        column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev',
+                        'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
+
+    if 'Percentage change from baseline' in df.columns:
+        column_order.insert(3, 'Percentage change from baseline')
+        column_order.insert(4, 'Baseline')
 
     crit_params = list(set(df.columns) ^ set(column_order))  # Find elements not in both lists
 

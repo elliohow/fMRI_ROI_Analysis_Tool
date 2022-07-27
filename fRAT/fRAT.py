@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import shutil
 import sys
 import time
@@ -21,10 +22,11 @@ def fRAT():
     if config.verbose and config.run_analysis and config.run_plotting and config.run_statistics:
         print(f"\n--- Running analysis, plotting and statistics steps ---")
 
-    # Run the analysis
+    # Run the ROI analysis
     if config.run_analysis:
         analysis(config)
 
+    # Run the statistical analysis
     if config.run_statistics:
         if config.verbose:
             print('\n------------------\n--- Statistics ---\n------------------')
@@ -99,7 +101,8 @@ def analysis(config):
     # Run class setup
     participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool)
 
-    Utils.move_file("paramValues.csv", os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}", copy=True)
+    Utils.move_file(config.parameter_file, os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}",
+                    copy=True, parameter_file=True)
 
     if config.verbose:
         print('\n--- Running individual analysis ---')
@@ -108,10 +111,11 @@ def analysis(config):
     for participant in participant_list:
         brain_list.extend(participant.run_analysis(pool))
 
-        if config.file_cleanup == 'move':
+        if config.file_cleanup == 'move' and not participant.all_files_ignored:
             shutil.move(f"{participant.save_location}/motion_correction_files",
                         f"{participant.save_location}Intermediate_files/motion_correction_files")
-        elif config.file_cleanup == 'delete':
+
+        elif config.file_cleanup == 'delete' and not participant.all_files_ignored:
             shutil.rmtree(f"{participant.save_location}/motion_correction_files")
 
     if config.multicore_processing:
@@ -165,7 +169,8 @@ def run_pooled_analysis(brain_list, matched_brains, config, pool):
         matched_brains = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
     # Compile the overall results for every parameter combination
-    construct_combined_results(MatchedBrain.save_location)
+    construct_combined_results(MatchedBrain.save_location, subfolder='session averaged')
+    construct_combined_results(MatchedBrain.save_location, subfolder='pooled voxel')
 
     return matched_brains
 
@@ -179,6 +184,9 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
     for counter, participant in enumerate(participant_list):
         if config.verbose:
             print(f'Calculating cost function value for anatomical file: {participant.anat_brain_no_ext}')
+
+        if participant.all_files_ignored:
+            continue
 
         df = participant.calculate_anat_flirt_cost_function()
         vals.append(df)
@@ -205,6 +213,45 @@ def calculate_cost_function_and_displacement_values(participant_list, brain_list
         df.to_csv(path_or_buf=file)
 
 
+def run_atlas_scale_function_for_each_statistic(first_combination, matched_brains, statistic_number,
+                                                pool, config, data):
+    if data == 'Session averaged':
+        roi_stats = deepcopy(first_combination.session_averaged_results[statistic_number, :])
+
+    else:
+        roi_stats = deepcopy(first_combination.overall_results[statistic_number, :])
+
+    for parameter_combination in matched_brains:
+        roi_stats = find_highest_value_from_overall_results(parameter_combination, roi_stats, statistic_number,
+                                                            data=data)
+
+    # Set arguments to pass to atlas_scale function
+    iterable = zip(matched_brains, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
+                   range(len(matched_brains)), itertools.repeat(len(matched_brains)),
+                   itertools.repeat(statistic_number), itertools.repeat(Environment_Setup.atlas_path),
+                   itertools.repeat(data), itertools.repeat(config))
+
+    # Run atlas_scale function and pass in max roi stats for between brain scaling
+    if config.multicore_processing:
+        pool.starmap(Utils.instance_method_handler, iterable)
+
+    else:
+        list(itertools.starmap(Utils.instance_method_handler, iterable))
+
+
+def find_highest_value_from_overall_results(parameter_combination, roi_stats, statistic_number, data):
+    if data == 'Session averaged':
+        results = parameter_combination.session_averaged_results[statistic_number, :]
+    else:
+        results = parameter_combination.overall_results[statistic_number, :]
+
+    for counter, roi_stat in enumerate(results):
+        if roi_stat > roi_stats[counter]:
+            roi_stats[counter] = roi_stat
+
+    return roi_stats
+
+
 def atlas_scale(matched_brains, config, pool):
     """Save a copy of each statistic for each ROI from the first brain. Then using sequential comparison
        find the largest statistic values for each ROI out of all the brains analyzed."""
@@ -212,29 +259,24 @@ def atlas_scale(matched_brains, config, pool):
         print('\n--- Atlas scaling ---')
 
     # Make directory to store scaled brains
-    Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI/")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI/Session_averaged_results/")
+    Utils.check_and_make_dir(f"{os.getcwd()}/{MatchedBrain.save_location}NIFTI_ROI/Pooled_voxel_results/")
 
     first_combination = next(iter(matched_brains))
+
+    if config.verbose:
+        print('Creating NIFTI ROI images using session averaged data.\n')
+
+    for statistic_number in range(len(first_combination.session_averaged_results)):
+        run_atlas_scale_function_for_each_statistic(first_combination, matched_brains, statistic_number,
+                                                    pool, config, data='Session averaged')
+    if config.verbose:
+        print('Creating NIFTI ROI images using pooled voxel data.\n')
+
     for statistic_number in range(len(first_combination.overall_results)):
-        roi_stats = deepcopy(first_combination.overall_results[statistic_number, :])
-
-        for parameter_combination in matched_brains:
-            for counter, roi_stat in enumerate(parameter_combination.overall_results[statistic_number, :]):
-                if roi_stat > roi_stats[counter]:
-                    roi_stats[counter] = roi_stat
-
-        # Set arguments to pass to atlas_scale function
-        iterable = zip(matched_brains, itertools.repeat("atlas_scale"), itertools.repeat(roi_stats),
-                       range(len(matched_brains)), itertools.repeat(len(matched_brains)),
-                       itertools.repeat(statistic_number), itertools.repeat(Environment_Setup.atlas_path),
-                       itertools.repeat(config))
-
-        # Run atlas_scale function and pass in max roi stats for between brain scaling
-        if config.multicore_processing:
-            pool.starmap(Utils.instance_method_handler, iterable)
-
-        else:
-            list(itertools.starmap(Utils.instance_method_handler, iterable))
+        run_atlas_scale_function_for_each_statistic(first_combination, matched_brains, statistic_number,
+                                                    pool, config, data='Pooled Voxel')
 
 
 def config_check(config):

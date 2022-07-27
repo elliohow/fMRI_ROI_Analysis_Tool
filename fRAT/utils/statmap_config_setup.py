@@ -36,7 +36,11 @@ Statistical_maps = {
                                'Description': 'Highpass filter cutoff frequency converted into sigma in seconds using '
                                               'the formula 1/(2*f*TR). Recommended: 0.01'},
 
-    'motion_correction': {'type': 'CheckButton', 'Recommended': 'false',
+    'remove_motion_outliers': {'type': 'CheckButton', 'Recommended': 'true',
+                               'Description': 'true or false. Use fsl_motion_outliers to remove motion outliers'
+                                              '(uses default fsl_motion_outliers settings). Recommended: true'},
+
+    'motion_correction': {'type': 'CheckButton', 'Recommended': 'true',
                           'Description': 'true or false. Use MCFLIRT to motion correct volumes '
                                          '(uses default MCFLIRT settings). Recommended: true'},
 
@@ -64,8 +68,8 @@ Statistical_maps = {
                                     'time series.\n'
                                     'NOTE: If true, the noise volume in the time series will be separated from the '
                                     'functional volumes and will be placed into the folder "func_noiseVolumeRemoved".\n'
-                                    'If "noise volume" is true and "noise value" is not none, the noise volume'
-                                    'will be used in image SNR calculation rather than the user defined noise value'},
+                                    'If "noise volume" is true and "noise value" is not none, the noise volume '
+                                    'will be used in image SNR calculation rather than the user defined noise value.'},
 
     'noise_volume_location': {'type': 'OptionMenu', 'Recommended': 'End', 'Options': ['Beginning', 'End'],
                               'save_as': 'string',

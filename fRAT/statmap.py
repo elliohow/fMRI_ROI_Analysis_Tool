@@ -80,7 +80,8 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
         noise_value = int(noise_file)
 
     # tMean / Std
-    maths.BinaryMaths(operation='div', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
+    maths.BinaryMaths(operation='div',
+                      in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
                       operand_value=noise_value,
                       out_file=f'{output_folder}/{no_ext_file}_iSNR.nii.gz').run()
 
@@ -104,11 +105,20 @@ def separate_noise_from_func(file, no_ext_file, output_folder, participant):
 
     noise_file = save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
 
-    Utils.check_and_make_dir(f'{participant}/{config.input_folder_name}_noiseVolumeRemoved')
-    func_file = save_brain(func_data, '', no_ext_file,
-                           f'{participant}/{config.input_folder_name}_noiseVolumeRemoved', header)
+    func_file = save_to_cleaned_folder(func_data, header, no_ext_file, participant,
+                                       f'Removed noise volume from {config.noise_volume_location.lower()} of timeseries')
 
     return func_file, noise_file
+
+
+def save_to_cleaned_folder(data, header, no_ext_file, participant, method):
+    with open(f'{participant}/{config.input_folder_name}_cleaned/changes_made_to_files.txt', 'a+') as f:
+        f.seek(0)  # Go to start of file
+        f.write(f'{no_ext_file}: {method}\n')
+
+    data = save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+
+    return data
 
 
 def highpass_filtering(file_path, output_folder, no_ext_file):
@@ -144,9 +154,22 @@ def prepare_files(file, no_ext_file, output_folder, participant):
     noise_file = config.manual_noise_value
 
     redundant_files = []
+    outliers = []
+
+    Utils.check_and_make_dir(f'{participant}/{config.input_folder_name}_cleaned')
+
+    # Save original copy of file which may be overwritten later, however allows this folder to always be used
+    data, header = Utils.load_brain(file)
+    save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+
     if config.noise_volume:
         file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder, participant)
-        redundant_files.extend([noise_file])
+        redundant_files.append(noise_file)
+
+    if config.remove_motion_outliers:
+        file, outlier_timepoints, outlier_files = remove_motion_outliers(file, no_ext_file, output_folder, participant)
+        redundant_files.extend(outlier_files)
+        outliers.extend(outlier_timepoints)
 
     if config.motion_correction:
         fsl.MCFLIRT(in_file=file, out_file=f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz').run()
@@ -161,7 +184,34 @@ def prepare_files(file, no_ext_file, output_folder, participant):
         file, redundant_file = highpass_filtering(file, output_folder, no_ext_file)
         redundant_files.extend([file, redundant_file])
 
-    return file, noise_file, redundant_files
+    return file, noise_file, redundant_files, outliers
+
+
+def remove_motion_outliers(file, no_ext_file, output_folder, participant):
+    outlier_file = f'{output_folder}/{no_ext_file}_outliers.txt'
+    outlier_plot = f'{output_folder}/{no_ext_file}_metrics.png'
+    outlier_values = f'{output_folder}/{no_ext_file}_metrics.txt'
+
+    fsl.MotionOutliers(in_file=file, out_file=outlier_file,
+                       out_metric_plot=outlier_plot,
+                       out_metric_values=outlier_values).run()
+
+    with open(f'{output_folder}/{no_ext_file}_outliers.txt') as f:
+        lines = f.readlines()
+
+    outlier_timepoints = []
+    for time_point, line in enumerate(lines):
+        outlier_check = line.replace(" ", "").find('1')
+        if outlier_check != -1:
+            outlier_timepoints.append(time_point)
+
+    data, header = Utils.load_brain(file)
+    data = np.delete(data, outlier_timepoints, axis=3)
+
+    # Save copy of motion outlier removed files as it may make registration better during main analysis
+    file = save_to_cleaned_folder(data, header, no_ext_file, participant, 'Removed motion outlier timepoints')
+
+    return file, [no_ext_file, len(outlier_timepoints)], [outlier_file, outlier_plot, outlier_values]
 
 
 def process_files(file, participant, output_folder, file_location, func, cfg):
@@ -173,10 +223,15 @@ def process_files(file, participant, output_folder, file_location, func, cfg):
     file = f"{participant}/{file_location}/{file}"
     output_folder = f'{participant}/statmaps/{output_folder}'
 
-    file, noise_file, redundant_files = prepare_files(file, no_ext_file, output_folder, participant)
+    if config.verbose:
+        print(f'        Analysing file: {no_ext_file}')
+
+    file, noise_file, redundant_files, outliers = prepare_files(file, no_ext_file, output_folder, participant)
     create_maps(func, file, no_ext_file, noise_file, output_folder)
 
     delete_files(redundant_files)
+
+    return outliers
 
 
 def calculate_statistical_maps(participants, output_folder, file_location, func):
@@ -202,9 +257,15 @@ def calculate_statistical_maps(participants, output_folder, file_location, func)
                        itertools.repeat(config))
 
         if config.multicore_processing:
-            pool.starmap(process_files, iterable)
+            outliers = list(pool.starmap(process_files, iterable))
         else:
-            list(itertools.starmap(process_files, iterable))
+            outliers = list(itertools.starmap(process_files, iterable))
+
+        if config.remove_motion_outliers:
+            outliers = pd.DataFrame(columns=['File', 'Outliers removed'], data=outliers).sort_values('Outliers removed')
+
+            with open(f"{participant_dir}/statmaps/{output_folder}/number_of_outliers_removed.csv", "w") as f:
+                f.write(outliers.to_csv(index=False))
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)

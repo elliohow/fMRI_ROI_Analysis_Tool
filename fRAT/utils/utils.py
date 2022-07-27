@@ -119,39 +119,51 @@ class Utils:
         return directory
 
     @staticmethod
-    def save_config(newdir, config_file, additional_info=None, relevant_section='all', config_name='config_log'):
+    def print_and_save(file_object, print_to_terminal, *args):
+        for line in args:
+            if print_to_terminal:
+                print(line)
+            file_object.write(str(line) + "\n")
+
+    @staticmethod
+    def save_config(newdir, config_file, additional_info=None, relevant_sections='all', config_name='config_log'):
         with open(f'{newdir}/{config_name}.toml', 'w') as f, open(f'{config_file}.toml', 'r') as r:
             if additional_info:
                 for line in additional_info:
                     f.write(line)
 
-                f.write('\n')
+                f.write('\n\n')
 
             current_section = None
             for line in r:
                 if line[0] == '#':
                     current_section = line[2:-1]
 
-                if relevant_section == 'all':
+                if relevant_sections == 'all':
                     f.write(line)
-                elif current_section in [relevant_section, 'Version Info']:
+                elif current_section == 'Version Info' or current_section in relevant_sections:
                     f.write(line)
 
     @staticmethod
-    def move_file(name, original_dir, new_dir, copy=False, rename_copy=True):
+    def move_file(old_name, original_dir, new_dir, copy=False, rename_copy=True, parameter_file=False):
         if not original_dir.endswith('/'):
             original_dir += '/'
 
         if not new_dir.endswith('/'):
             new_dir += '/'
 
+        if parameter_file:
+            new_name = "paramValues.csv"
+        else:
+            new_name = old_name
+
         if copy:
             if rename_copy:
-                shutil.copy(f"{original_dir}{name}", f"{new_dir}copy_{name}")
+                shutil.copy(f"{original_dir}{old_name}", f"{new_dir}copy_{new_name}")
             else:
-                shutil.copy(f"{original_dir}{name}", f"{new_dir}{name}")
+                shutil.copy(f"{original_dir}{old_name}", f"{new_dir}{new_name}")
         else:
-            os.rename(f"{original_dir}{name}", f"{new_dir}{name}")
+            os.rename(f"{original_dir}{old_name}", f"{new_dir}{new_name}")
 
     @staticmethod
     def check_and_make_dir(path, delete_old=False):
@@ -163,6 +175,25 @@ class Utils:
             Utils.mk_dir(path)
 
     @staticmethod
+    def read_combined_results(folder, averaging_type):
+        df = pd.DataFrame()
+        path = ''
+
+        try:
+            if averaging_type == 'Session averaged':
+                path = f"{folder}/Overall/Summarised_results/Session_averaged_results/combined_results.json"
+                df = pd.read_json(path)
+
+            elif averaging_type == 'Pooled voxel averaged':
+                path = f"{folder}/Overall/Summarised_results/Pooled_voxel_results/combined_results.json"
+                df = pd.read_json(path)
+
+        except ValueError:
+            raise Exception(f"combined_results.json not found in {config.averaging_type} folder.")
+
+        return df, path
+
+    @staticmethod
     def find_column_locs(table):
         table.columns = [x.lower() for x in table.columns]  # Convert to lower case for comparison to key later
 
@@ -172,7 +203,7 @@ class Utils:
         baseline_column_loc = next((counter for counter, column in enumerate(table.columns)
                                     if "baseline" in column), False)
         if not baseline_column_loc:
-            raise NameError('No baseline column found in paramValues.csv.')
+            raise NameError(f'No baseline column found in {config.parameter_file}.')
 
         critical_column_locs = set()
         for key in config.parameter_dict:
@@ -181,16 +212,16 @@ class Utils:
             if column_loc:
                 critical_column_locs.add(column_loc)
             else:
-                raise Exception(f'Key "{key}" not found in paramValues.csv. Check the Critical Parameters option '
-                                f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
-                                f'paramValues.csv headers.')
+                raise Exception(f'Key "{key}" not found in {config.parameter_file}. Check the Critical Parameters '
+                                f'option in the Parsing menu (parameter_dict1 if not using the GUI) correctly match '
+                                f'the {config.parameter_file} headers.')
 
         return ignore_column_loc, critical_column_locs, baseline_column_loc
 
     @staticmethod
     def load_paramValues_file():
-        if os.path.isfile(f"{os.getcwd()}/paramValues.csv"):
-            table = pd.read_csv("paramValues.csv")  # Load param table
+        if os.path.isfile(f"{os.getcwd()}/{config.parameter_file}"):
+            table = pd.read_csv(config.parameter_file)  # Load param table
         else:
             try:
                 table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
@@ -257,8 +288,27 @@ class Utils:
                 config = SimpleNamespace(**parse)
 
                 if filename == 'fRAT_config.toml':
-                    config.statistic_options = ['Voxel_amount', 'Mean', 'Standard_deviation', 'Confidence_interval',
-                                                'Median', 'Minimum', 'Maximum', 'Excluded_voxels_amount']
+                    config.statistic_options = {
+                        'Pooled voxel': ['Voxel_amount',
+                                         'Mean',
+                                         'Standard_deviation',
+                                         'Confidence_interval',
+                                         'Median',
+                                         'Minimum',
+                                         'Maximum',
+                                         'Excluded_voxels_amount'
+                                         ],
+                        'Session averaged': ['Voxel_amount',
+                                             'Excluded_voxels_amount',
+                                             'Average_voxels',
+                                             'Mean',
+                                             'Standard_deviation',
+                                             'Confidence_interval',
+                                             'Median',
+                                             'Minimum',
+                                             'Maximum',
+                                             'Sessions']
+                    }
 
                     config.parameter_dict = {config.parameter_dict1[i]:
                                                  config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
@@ -359,6 +409,6 @@ class Utils:
                     'Output folder location (fRAT output folder location) in fRAT_config.toml is not a valid directory.')
 
             if config.verbose:
-                print(f'Output folder selection: {json_directory}.')
+                print(f'Output folder selection: {json_directory}')
 
         return json_directory
