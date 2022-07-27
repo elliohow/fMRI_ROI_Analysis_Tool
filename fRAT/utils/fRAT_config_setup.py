@@ -5,13 +5,16 @@ pages = ['Home', 'General', 'Analysis', 'Statistics', 'Parsing', 'Plotting', 'Vi
 '''General settings'''
 General = {
     'run_analysis': {'type': 'CheckButton', 'Recommended': 'true',
+                     'status': 'important',
                      'Description': 'true or false. Can skip this step if json files have already been created.',
                      'label': 'Run analysis'},
 
     'run_statistics': {'type': 'CheckButton', 'Recommended': 'true',
+                       'status': 'important',
                        'Description': 'true or false.', 'label': 'Run statistics'},
 
     'run_plotting': {'type': 'CheckButton', 'Recommended': 'true',
+                     'status': 'important',
                      'Description': 'true or false.', 'label': 'Run plotting'},
 
     'verbose': {'type': 'CheckButton', 'Recommended': 'true',
@@ -104,8 +107,9 @@ Analysis = {
                                                 'and a wholehead non-brain extracted anatomical placed in the anat '
                                                 'folder.'},
 
-    'grey_matter_segment': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
-                            'Description': 'true or false. Recommended: true. '
+    'grey_matter_segment': {'type': 'CheckButton',
+                            'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
+                            'Description': 'true or false. Recommended: true.'
                                            '\nNote: FSL FAST segmentation files should be placed in the '
                                            'sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 '
                                            'needs to be in this directory, however if all files output by FAST are '
@@ -158,11 +162,13 @@ Analysis = {
                                                  'Recommended: below gaussian.'},
 
     'stat_map_folder': {'type': 'Entry', 'Recommended': '', 'save_as': 'string',
+                        'status': 'important',
                         'label': 'Statistical map folder',
                         'Description': 'Folder name which contains the statistical map files. '
                                        'Example: temporalSNR_report'},
 
     'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
+                        'status': 'important',
                         'label': 'Statistical map suffix',
                         'Description': 'File name suffix of the statistical map files. Include the file extension. '
                                        'Example: _tSNR.img'},
@@ -232,14 +238,18 @@ Statistics = {
 
 '''Parsing settings'''
 Parsing = {
-    'parameter_dict1': {'type': 'Entry', 'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
+    'parameter_dict1': {'type': 'Entry',
+                        'status': 'important',
+                        'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
                         'Description': 'Comma-separated list of parameter names to be parsed for and plotted. '
                                        '\n As these critical parameters will also be used when labelling the rows and '
                                        'columns of both the violin plots and histograms, they should be written as '
                                        'you want them to appear in these figures.'
                                        '\nNote: This field can be blank.'},
 
-    'parameter_dict2': {'type': 'Entry', 'Recommended': 'mb, s', 'save_as': 'list',
+    'parameter_dict2': {'type': 'Entry',
+                        'status': 'important',
+                        'Recommended': 'mb, s', 'save_as': 'list',
                         'label': 'Critical parameter abbreviation',
                         'Description': 'Comma-separated list of terms to parse the file name for. Each entry '
                                        'corresponds to a critical parameter above. \nOptional if using table parameter '

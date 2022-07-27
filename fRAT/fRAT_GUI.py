@@ -469,6 +469,12 @@ class Config_GUI:
         label_name.configure(foreground="#000000")
         label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
 
+        try:
+            if info['status'] == 'important':
+                label_name.configure(font=('Helvetica', 14, 'bold'))
+        except KeyError:
+            pass
+
         if info is not None:
             Tooltip.CreateToolTip(label_name, info['Description'])
 
