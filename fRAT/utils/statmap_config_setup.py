@@ -80,5 +80,9 @@ Statistical_maps = {
                            'Description': 'Noise value can be calculated as the standard deviation of voxel values '
                                           'outside of the brain. If noise volume is set to true, standard deviation of '
                                           'noise will be calculated using the noise volume, even if a noise value has '
-                                          'been provided.'}
+                                          'been provided.'},
+
+    'iSNR_std_use_only_nonzero_voxels': {'type': 'CheckButton', 'Recommended': 'true',
+                                         'label': 'Use only nonzero voxels for iSNR calc',
+                                         'Description': 'true or false.'}
 }

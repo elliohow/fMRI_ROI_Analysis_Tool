@@ -71,9 +71,14 @@ def temporalSNR_calc(file, no_ext_file, output_folder):
 def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
     maths.MeanImage(in_file=func_file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
+    if config.iSNR_std_use_only_nonzero_voxels:
+        std_string = '-S'
+    else:
+        std_string = '-s'
+
     if config.noise_volume:
-        std = ImageStats(in_file=noise_file, op_string='-S',
-                         terminal_output='allatonce').run()  # Std dev of entire volume  # TODO: Use -S or -s
+        std = ImageStats(in_file=noise_file, op_string=std_string,
+                         terminal_output='allatonce').run()  # Std dev of entire volume
         noise_value = std.outputs.get()['out_stat']
 
     else:
