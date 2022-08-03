@@ -1,4 +1,6 @@
 Statistical_maps = {
+    'General settings': {'type': 'subheading'},
+
     'verbose': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Verbose statistical map stages',
                 'Description': 'true or false. Print progress to terminal.'},
 
@@ -27,6 +29,8 @@ Statistical_maps = {
                                           'statistical map created will be used. '
                                           'Recommended: DEFAULT'},
 
+    'High pass filtering': {'type': 'subheading'},
+
     'temporal_filter': {'type': 'CheckButton', 'Recommended': 'true',
                         'Description': 'true or false. Use a high pass filter to remove low frequency drift. '
                                        'Recommended: true'},
@@ -36,6 +40,8 @@ Statistical_maps = {
                                'Description': 'Highpass filter cutoff frequency converted into sigma in seconds using '
                                               'the formula 1/(2*f*TR). Recommended: 0.01'},
 
+    'Motion correction': {'type': 'subheading'},
+
     'remove_motion_outliers': {'type': 'CheckButton', 'Recommended': 'true',
                                'Description': 'true or false. Use fsl_motion_outliers to remove motion outliers'
                                               '(uses default fsl_motion_outliers settings). Recommended: true'},
@@ -43,6 +49,8 @@ Statistical_maps = {
     'motion_correction': {'type': 'CheckButton', 'Recommended': 'true',
                           'Description': 'true or false. Use MCFLIRT to motion correct volumes '
                                          '(uses default MCFLIRT settings). Recommended: true'},
+
+    'Spatial smoothing': {'type': 'subheading'},
 
     'spatial_smoothing': {'type': 'CheckButton', 'Recommended': 'false',
                           'Description': 'true or false. Uses SUSAN to spatial smooth. Recommended: true'},
@@ -55,6 +63,8 @@ Statistical_maps = {
                                        'label': 'Spatial smoothing brightness threshold',
                                        'Description': 'Should be greater than noise level and less than contrast of '
                                                       'edges to be preserved. Recommended: 2000.0'},
+
+    'Image SNR calculation': {'type': 'subheading'},
 
     'magnitude_correction': {'type': 'CheckButton', 'Recommended': 'true',
                              'Description': 'true or false. Correction factor of 0.7 applied when running iSNR '

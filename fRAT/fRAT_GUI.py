@@ -34,25 +34,14 @@ VERSION = "0.15.0"
 WIDGET_Y_PADDING = 9
 WIDGET_X_PADDING = 10
 
+
 def start_gui():
     '''Starting point when module is the main routine.'''
-    global val, w, root
+    global val, w, root, top
     root = tk.Tk()
-    Config_GUI(root)
+    top = Config_GUI(root)
 
     root.mainloop()
-
-
-def create_Config_GUI(rt):
-    '''Starting point when module is imported by another module.
-       Correct form of call: 'create_Config_GUI(root, *args, **kwargs)' .'''
-    global w, root
-    root = rt
-
-    w = tk.Toplevel(root)
-    top = Config_GUI(w)
-
-    return w, top
 
 
 class Config_GUI:
@@ -72,23 +61,17 @@ class Config_GUI:
             self.style = ttk.Style()
             self.style.theme_use('clam')
 
-            _bgcolor = '#d9d9d9'  # X11 color: 'gray85'
-            _fgcolor = '#000000'  # X11 color: 'black'
-            _compcolor = '#d9d9d9'  # X11 color: 'gray85'
-            _ana1color = '#d9d9d9'  # X11 color: 'gray85'
-            _ana2color = '#ececec'  # Closest X11 color: 'gray92'
-            window.geometry("512x860+100+100")
-            window.minsize(512, 860)
-            window.maxsize(512, 860)
-            window.resizable(1, 1)
+            window.geometry("+100+100")
+            window.resizable(0, 0)
             window.title("fRAT GUI")
             window.configure(background=self.background)
             window.configure(highlightbackground=self.background)
             window.configure(highlightcolor="black")
 
+        self.change_page_specific_settings(window)
+
         if page == 'Statistical_maps':
             self.current_info = Statistical_maps
-
         else:
             try:
                 self.current_info = eval(self.page)
@@ -104,13 +87,29 @@ class Config_GUI:
             self.create_homestar_runner_frame(self.settings_frame)
             self.create_statmap_frame(window)
 
+    def change_page_specific_settings(self, window):
+        if self.page == 'Home':
+            window.geometry("512x860")
+        elif self.page == 'General':
+            window.geometry("450x620")
+        elif self.page == 'Analysis':
+            window.geometry("480x860")
+        elif self.page == 'Parsing':
+            window.geometry("450x280")
+        elif self.page == 'Plotting':
+            window.geometry("512x860")
+        elif self.page == 'Statistics':
+            window.geometry("460x450")
+        elif self.page == 'Statistical_maps':
+            window.geometry("500x860")
+
     def create_statmap_frame(self, window):
         self.statmap_frame = tk.LabelFrame(window)
         self.frames.append(self.statmap_frame)
 
         self.statmap_frame.place(relx=0.02, rely=0.77, relheight=0.22, relwidth=0.973)
         self.statmap_frame.configure(text='Statistical maps', font='Helvetica 18 bold')
-        self.format_frame(self.statmap_frame)
+        self.format_frame(self.statmap_frame, borderwidth=1)
 
         self.statmap_run_frame_create(self.statmap_frame)
         self.statmap_settings_frame_create(self.statmap_frame)
@@ -120,7 +119,7 @@ class Config_GUI:
         self.frames.append(self.statmap_settings_frame)
         self.statmap_settings_frame.place(relx=0.02, rely=0, height=140, relwidth=0.467)
         self.statmap_settings_frame.configure(text='Settings', font='Helvetica 18 bold')
-        self.format_frame(self.statmap_settings_frame)
+        self.format_frame(self.statmap_settings_frame, borderwidth=1)
 
         self.statmap_save_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_save_button.place(relx=0.02, rely=0.08, height=42, width=105)
@@ -144,7 +143,7 @@ class Config_GUI:
         self.frames.append(self.statmap_run_frame)
         self.statmap_run_frame.place(relx=0.5, rely=0, height=140, relwidth=0.467)
         self.statmap_run_frame.configure(text='Run', font='Helvetica 18 bold')
-        self.format_frame(self.statmap_run_frame)
+        self.format_frame(self.statmap_run_frame, borderwidth=1)
 
         statmap_options = ('Image SNR', 'Temporal SNR')
         state = tk.StringVar()
@@ -156,7 +155,7 @@ class Config_GUI:
 
         self.statmap_run_button = ttk.Button(self.statmap_run_frame)
         self.statmap_run_button.place(relx=0.17, rely=0.55, height=42, width=150)
-        self.statmap_run_button.configure(command=lambda: Button_handler('Make maps', self.statmap_option.val.get()))
+        self.statmap_run_button.configure(command=lambda: button_handler('Make maps', self.statmap_option.val.get()))
         self.statmap_run_button.configure(text='''Make maps''')
         Tooltip.CreateToolTip(self.statmap_run_button, 'Make statistical maps using method chosen in the drop down '
                                                        'menu.')
@@ -165,7 +164,10 @@ class Config_GUI:
     def load_initial_values(toml_file):
         with open(toml_file, 'r') as f:
             for line in f.readlines():
-                if line[0] == '#':
+                if line[:2] == '##':  # Subheadings
+                    continue
+
+                elif line[0] == '#':  # Headings
                     curr_page = re.split('# |\n', line)[1]
 
                 elif curr_page == 'Version Info':
@@ -177,20 +179,6 @@ class Config_GUI:
                     current_setting = Utils.convert_toml_input_to_python_object(setting[1])
 
                     eval(curr_page)[setting[0]]['Current'] = current_setting
-
-    def refresh_frame(self):
-        """ refresh the content of the label every second """
-        for widget in self.widgets:
-            try:
-                eval(self.page)[widget]['Current'] = self.widgets[widget].get()
-            except AttributeError:
-                eval(self.page)[widget]['Current'] = self.widgets[widget].val.get()
-
-        self.settings_frame.destroy()
-        self.create_settings_frame(root)
-
-        # request tkinter to call self.refresh after 1s (the delay is given in ms)
-        self.settings_frame.after(10000, self.refresh_frame)
 
     def banner_draw(self, window):
         img = Image.open(f'{os.getcwd()}/fRAT.gif')
@@ -216,7 +204,7 @@ class Config_GUI:
         self.Options_frame = tk.LabelFrame(window)
         self.Options_frame.place(relx=0.5, rely=0.01, height=150, relwidth=0.345)
         self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
-        self.format_frame(self.Options_frame)
+        self.format_frame(self.Options_frame, borderwidth=1)
         self.frames.append(self.Options_frame)
 
         self.Save_button = ttk.Button(self.Options_frame)
@@ -235,7 +223,7 @@ class Config_GUI:
         self.Atlas_frame = tk.LabelFrame(window)
         self.Atlas_frame.place(relx=0.5, rely=0.348, height=128, relwidth=0.467)
         self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
-        self.format_frame(self.Atlas_frame)
+        self.format_frame(self.Atlas_frame, borderwidth=1)
         self.frames.append(self.Atlas_frame)
 
         atlas_options = ('Cerebellum_MNIflirt',
@@ -271,31 +259,31 @@ class Config_GUI:
         self.Run_frame = tk.LabelFrame(window)
         self.Run_frame.place(relx=0.025, rely=0.69, height=145, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
-        self.format_frame(self.Run_frame)
+        self.format_frame(self.Run_frame, borderwidth=1)
         self.frames.append(self.Run_frame)
 
         self.paramValues_button = ttk.Button(self.Run_frame)
         self.paramValues_button.place(x=2, y=12, height=42, width=150)
-        self.paramValues_button.configure(command=lambda: Button_handler('Make paramValues.csv'))
+        self.paramValues_button.configure(command=lambda: button_handler('Make paramValues.csv'))
         self.paramValues_button.configure(text='''Setup parameters''')
         Tooltip.CreateToolTip(self.paramValues_button,
                               'Creates a csv table with prefilled parameter info for each file. Can be set using a command line flag instead')
 
         self.Print_button = ttk.Button(self.Run_frame)
         self.Print_button.place(x=156, y=12, height=42, width=150)
-        self.Print_button.configure(command=lambda: Button_handler('Print_results'))
+        self.Print_button.configure(command=lambda: button_handler('Print_results'))
         self.Print_button.configure(text='''Print results''')
         Tooltip.CreateToolTip(self.Print_button, 'Print results of fRAT to the terminal')
 
         self.Dash_button = ttk.Button(self.Run_frame)
         self.Dash_button.place(x=309, y=12, height=42, width=150)
-        self.Dash_button.configure(command=lambda: Button_handler('Run_dash'))
+        self.Dash_button.configure(command=lambda: button_handler('Run_dash'))
         self.Dash_button.configure(text='''Interactive table''')
         Tooltip.CreateToolTip(self.Dash_button, 'Create an interactive table to display fRAT results')
 
         self.Run_button = ttk.Button(self.Run_frame)
         self.Run_button.place(x=137, y=66, height=42, width=181)
-        self.Run_button.configure(command=lambda: Button_handler('Run_fRAT'))
+        self.Run_button.configure(command=lambda: button_handler('Run_fRAT'))
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings')
 
@@ -306,13 +294,13 @@ class Config_GUI:
 
             self.settings_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
             self.settings_frame.configure(text='fRAT', font='Helvetica 18 bold')
-            self.format_frame(self.settings_frame)
+            self.format_frame(self.settings_frame, borderwidth=1)
 
             self.General_settings_frame = tk.LabelFrame(self.settings_frame)
             self.frames.append(self.General_settings_frame)
             self.General_settings_frame.place(relx=0.025, rely=0.01, height=330, relwidth=0.41)
             self.General_settings_frame.configure(text=f'''Settings''', font='Helvetica 18 bold')
-            self.format_frame(self.General_settings_frame)
+            self.format_frame(self.General_settings_frame, borderwidth=1)
             current_frame = self.General_settings_frame
 
             y_loc = 10
@@ -324,55 +312,31 @@ class Config_GUI:
                 if page == 'Violin_plot':
                     break
 
-                self.index_setup(page, current_frame, y_loc, relx)
+                self.page_switch_button_setup(page, current_frame, y_loc, relx)
 
                 y_loc += 60
-
-        elif self.page == 'Plotting':
-            self.create_scrollable_frame(window)
-            self.create_widgets(previous_frame='Home')
-
-            self.Plot_settings_frame = tk.LabelFrame(window)
-            self.frames.append(self.Plot_settings_frame)
-            self.Plot_settings_frame.place(relx=0.31, y=y_loc + 58, height=270, relwidth=0.394)
-            self.Plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
-            self.format_frame(self.Plot_settings_frame)
-
-            continue_loop = True
-
-            for page in pages:
-                if page == 'Violin_plot':
-                    continue_loop = False
-                    y_loc = 10
-                    relx = 0.03
-                    current_frame = self.Plot_settings_frame
-                elif continue_loop:
-                    continue
-
-                self.index_setup(page, current_frame, y_loc, relx)
-
-                y_loc += 60
-
-        elif self.page in ['General', 'Analysis', 'Statistics', 'Parsing', 'Statistical_maps']:
-            self.create_scrollable_frame(window)
-            self.create_widgets(previous_frame='Home')
 
         else:
             self.create_scrollable_frame(window)
-            self.create_widgets(previous_frame='Plotting')
+            self.create_widgets(previous_frame='Home')
+
+    def create_plot_settings_frame(self, row):
+        self.plot_settings_frame = tk.LabelFrame(self.settings_frame)
+        self.frames.append(self.plot_settings_frame)
+        self.plot_settings_frame.grid(row=row, column=0, columnspan=1)
+        self.plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
+        self.format_frame(self.plot_settings_frame, borderwidth=1)
+
+        return row + 1
 
     def create_scrollable_frame(self, window):
-        self.scrollable_frame = ScrolledFrame(window, scrollbars='vertical', use_ttk=True)
-        self.scrollable_frame.pack(side="top", expand=True, fill="both")
+        self.sbf = ScrollbarFrame(window)
+        self.sbf.pack(side="top", fill="both", expand=True)
+        self.settings_frame = self.sbf.scrolled_frame
 
-        self.scrollable_frame.bind_arrow_keys(window)
-        self.scrollable_frame.bind_scroll_wheel(window)
+        self.frames.extend([self.sbf, self.settings_frame])
 
-        self.inner_frame = self.scrollable_frame.display_widget(tk.LabelFrame)
-
-        self.frames.extend([self.scrollable_frame, self.inner_frame])
-
-    def create_widgets(self, previous_frame):
+    def create_widgets(self, previous_frame, create_return_button=True):
         row = 0
 
         for setting in self.current_info:
@@ -395,36 +359,35 @@ class Config_GUI:
                 self.widgets = {**self.widgets, **widget}
 
             elif self.current_info[setting]['type'] == 'Dynamic':
-                widget = self.dynamic_widget(setting, self.current_info[setting], row)
+                widget, row = self.dynamic_widget(setting, self.current_info[setting], row)
                 self.dynamic_widgets = {**self.dynamic_widgets, **widget}
 
             row += 1
 
-        self.inner_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
-        self.format_frame(self.inner_frame)
+        self.settings_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
+        self.format_frame(self.settings_frame)
 
-        self.Index_button = tk.Button(self.inner_frame, command=lambda: self.change_frame(previous_frame))
-        self.Index_button.grid(column=1, row=row)
-        self.Index_button.configure(activebackground="#ececec")
-        self.Index_button.configure(activeforeground="#000000")
-        self.Index_button.configure(background=self.background)
-        self.Index_button.configure(foreground="#000000")
-        self.Index_button.configure(highlightbackground=self.background)
-        self.Index_button.configure(highlightcolor="black")
-        self.Index_button.configure(text=f'''Back to {previous_frame}''')
+        if create_return_button == True:
+            self.return_button_create_and_format(previous_frame, row)
 
-    def format_frame(self, frame):
-        frame.configure(borderwidth="2")
-        frame.configure(relief='groove')
+
+    def return_button_create_and_format(self, previous_frame, row):
+        self.return_button = ttk.Button(self.settings_frame, command=lambda: self.change_frame(previous_frame))
+        self.return_button.grid(column=0, row=row, columnspan=2, pady=15)
+        self.return_button.configure(text=f'''Back to {previous_frame}''')
+
+    def format_frame(self, frame, borderwidth=0):
+        frame.configure(borderwidth=borderwidth)
+        frame.configure(relief='raised')
         frame.configure(background=self.background)
         frame.configure(highlightbackground=self.background)
         frame.configure(highlightcolor="black")
 
-    def index_setup(self, page, frame, y_loc, relx):
+    def page_switch_button_setup(self, page, frame, y_loc, relx):
         self.__setattr__(page, ttk.Button(frame, command=lambda: self.change_frame(page)))
-        index_button = getattr(self, page)
-        index_button.place(relx=relx, y=y_loc, width=185, height=42)
-        index_button.configure(text=f'''{page.replace('_', ' ')}''')
+        page_switch_button = getattr(self, page)
+        page_switch_button.place(relx=relx, y=y_loc, width=185, height=42)
+        page_switch_button.configure(text=f'''{page.replace('_', ' ')}''')
 
     def dynamic_widget(self, name, info, row):
         try:
@@ -461,21 +424,30 @@ class Config_GUI:
 
                 dynamic_widgets = {**dynamic_widgets, **widget}
 
-        return dynamic_widgets
+                row += 1
+
+        return dynamic_widgets, row
 
     def label_create(self, name, row, info=None, font=None):
-        self.__setattr__(name, tk.Label(self.inner_frame))
+        self.__setattr__(name, tk.Label(self.settings_frame))
         label_name = getattr(self, name)
 
         try:
             name = info['label']
         except KeyError:
-            name = name.capitalize()
+            if info['type'] != 'subheading':
+                name = name.capitalize()
 
-        label_name.grid(row=row, column=0, pady=WIDGET_Y_PADDING, ipadx=WIDGET_X_PADDING, sticky='W')
         label_name.configure(background=self.background)
         label_name.configure(foreground="#000000")
-        label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
+
+        if info['type'] != 'subheading':
+            Tooltip.CreateToolTip(label_name, info['Description'])
+            label_name.grid(row=row, column=0, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
+            label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
+        else:
+            label_name.grid(row=row, column=0, pady=(30, 5), ipadx=WIDGET_X_PADDING, sticky='SW')
+            label_name.configure(text=name, font=('Helvetica', 17, 'bold'))
 
         try:
             if info['status'] == 'important':
@@ -483,11 +455,8 @@ class Config_GUI:
         except KeyError:
             pass
 
-        if info is not None:
-            Tooltip.CreateToolTip(label_name, info['Description'])
-
     def scale_create(self, name, info, row):
-        self.__setattr__(name, tk.Scale(self.inner_frame, from_=info['From'], to=info['To']))
+        self.__setattr__(name, tk.Scale(self.settings_frame, from_=info['From'], to=info['To']))
         widget = getattr(self, name)
 
         widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
@@ -512,7 +481,7 @@ class Config_GUI:
     def checkbutton_create(self, name, info, row):
         state = tk.BooleanVar()
 
-        self.__setattr__(name, tk.Checkbutton(self.inner_frame, variable=state))
+        self.__setattr__(name, tk.Checkbutton(self.settings_frame, variable=state))
         widget = getattr(self, name)
 
         widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
@@ -557,7 +526,7 @@ class Config_GUI:
         except KeyError:
             options = info['Options']
 
-        self.__setattr__(name, tk.OptionMenu(self.inner_frame, state, *options))
+        self.__setattr__(name, tk.OptionMenu(self.settings_frame, state, *options))
         widget = getattr(self, name)
 
         widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
@@ -567,7 +536,7 @@ class Config_GUI:
         return {name: widget}
 
     def entry_create(self, name, info, row):
-        self.__setattr__(name, tk.Entry(self.inner_frame))
+        self.__setattr__(name, tk.Entry(self.settings_frame))
         widget = getattr(self, name)
         widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
 
@@ -694,7 +663,59 @@ class Tooltip:
         widget.bind('<Leave>', leave)
 
 
-def Button_handler(command, *args):
+class AutoHidingScrollbar(tk.Scrollbar):
+
+    # Defining set method with all
+    # its parameter
+    def set(self, lo, hi):
+        if float(lo) <= 0.0 and float(hi) >= 1.0:
+            # grid_remove is currently missing from Tkinter!
+            self.pack_forget()
+        else:
+            if self.cget("orient") == 'horizontal':
+                self.pack(fill='x')
+            else:
+                self.pack(fill='y')
+        tk.Scrollbar.set(self, lo, hi)
+
+
+class ScrollbarFrame(tk.LabelFrame):
+    """
+    Extends class tk.Frame to support a scrollable Frame
+    This class is independent from the widgets to be scrolled and
+    can be used to replace a standard tk.Frame
+    """
+    def __init__(self, parent, **kwargs):
+        tk.LabelFrame.__init__(self, parent, **kwargs)
+
+        # The Scrollbar, layout to the right
+        vsb = AutoHidingScrollbar()
+        vsb.pack(side="right", fill="y")
+
+        # The Canvas which supports the Scrollbar Interface, layout to the left
+        self.canvas = tk.Canvas(self, borderwidth=0, background='#d9d9d9', highlightbackground='#d9d9d9')
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Bind the Scrollbar to the self.canvas Scrollbar Interface
+        self.canvas.configure(yscrollcommand=vsb.set)
+        vsb.configure(command=self.canvas.yview)
+
+        # The Frame to be scrolled, layout into the canvas
+        # All widgets to be scrolled have to use this Frame as parent
+        self.scrolled_frame = tk.LabelFrame(self.canvas, background=self.canvas.cget('bg'))
+        self.canvas.create_window((0, 0), window=self.scrolled_frame, anchor='center')
+
+        # Configures the scroll region of the Canvas dynamically
+        self.scrolled_frame.bind("<Configure>", self.on_configure)
+
+        top.frames.append(vsb)
+
+    def on_configure(self, event):
+        """Set the scroll region to encompass the scrolled frame"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+
+def button_handler(command, *args):
     try:
         if command == 'Run_fRAT':
             check_stale_state()
@@ -800,6 +821,10 @@ def Save_settings(page_list, file):
             f.write(f"# {page}\n")
 
             for key in eval(page).keys():
+                if eval(page)[key]['type'] == 'subheading':
+                    f.write(f"\n## {key}\n")
+                    continue
+
                 description = eval(page)[key]['Description'].replace('\n', ' ')
 
                 if eval(page)[key]['type'] == 'OptionMenu':
@@ -868,6 +893,9 @@ def Reset_settings(pages):
             continue
 
         for key in eval(page).keys():
+            if eval(page)[key]['type'] == 'subheading':
+                continue
+
             eval(page)[key]['Current'] = eval(page)[key]['Recommended']
 
     print('----- Reset fRAT settings to recommended values, save them to retain these settings -----')

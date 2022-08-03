@@ -1,6 +1,5 @@
 """Configuration file"""
-pages = ['Home', 'General', 'Analysis', 'Statistics', 'Parsing', 'Plotting', 'Violin_plot',
-         'Brain_table', 'Region_barchart', 'Region_histogram']
+pages = ['Home', 'General', 'Analysis', 'Statistics', 'Parsing', 'Plotting']
 
 '''General settings'''
 General = {
@@ -269,6 +268,8 @@ Parsing = {
 
 '''General plot settings'''
 Plotting = {
+    'General plot settings': {'type': 'subheading'},
+
     'plot_dpi': {'type': 'Entry', 'Recommended': 200, 'label': 'Figure DPI',
                  'Description': 'Recommended value 600'},
 
@@ -297,10 +298,9 @@ Plotting = {
     'regional_fig_rois': {'type': 'Entry', 'Recommended': 'all', 'save_as': 'list', 'label': 'ROIs to plot',
                           'Description': "Provide a comma-separated list of regions to plot e.g. '3, 5', the string "
                                          "'all' for all rois or the string 'Runtime' to provide regions at runtime."},
-}
 
-'''Brain table settings'''
-Brain_table = {
+    'Brain table': {'type': 'subheading'},
+
     'brain_tight_layout': {'type': 'CheckButton', 'Recommended': 'false',
                            'Description': 'true or false. Use a tight layout when laying out the figure. Recommended: false'},
 
@@ -338,11 +338,10 @@ Brain_table = {
 
     'brain_table_rows': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                          'subtype': 'OptionMenu', 'save_as': 'string',
-                         'DefaultNumber': 1, 'Description': ''}
-}
+                         'DefaultNumber': 1, 'Description': ''},
 
-'''Violin plot settings'''
-Violin_plot = {
+    'Violin plot': {'type': 'subheading'},
+
     'table_x_label': {'type': 'Entry', 'Recommended': 'tSNR mean', 'save_as': 'string',
                       'Description': ''},
 
@@ -371,11 +370,9 @@ Violin_plot = {
 
     'table_rows': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
                    'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
-                   'Description': ''}
-}
+                   'Description': ''},
 
-'''One region bar chart'''
-Region_barchart = {
+    'Regional bar chart': {'type': 'subheading'},
 
     'single_roi_fig_label_x': {'type': 'Entry', 'Recommended': 'Multiband factor', 'save_as': 'string',
                                'Description': ""},
@@ -394,40 +391,41 @@ Region_barchart = {
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 1,
                               'Description': ''},
 
-}
+    'Regional histogram': {'type': 'subheading'},
 
-'''Region histogram'''
-Region_histogram = {
-    'histogram_binwidth': {'type': 'Entry', 'Recommended': 5, 'Description': ""},
+    'histogram_binwidth': {'type': 'Entry', 'Recommended': 5, 'label': 'Bin width', 'Description': ""},
 
-    'histogram_fig_label_x': {'type': 'Entry', 'Recommended': 'temporal Signal to Noise Ratio', 'save_as': 'string',
+    'histogram_fig_label_x': {'type': 'Entry', 'Recommended': 'temporal Signal to Noise Ratio',
+                              'save_as': 'string', 'label': 'x-axis label',
                               'Description': ''},
 
-    'histogram_fig_label_y': {'type': 'Entry', 'Recommended': 'Frequency', 'save_as': 'string',
+    'histogram_fig_label_y': {'type': 'Entry', 'Recommended': 'Frequency',
+                              'save_as': 'string', 'label': 'y-axis label',
                               'Description': ''},
 
-    'histogram_stat_line_size': {'type': 'Entry', 'Recommended': 1.5,
+    'histogram_stat_line_size': {'type': 'Entry', 'Recommended': 1.5, 'label': 'Statistic line size',
                                  'Description': ''},
 
-    'histogram_show_mean': {'type': 'CheckButton', 'Recommended': 'true',
+    'histogram_show_mean': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show mean',
                             'Description': 'true or false.'},
 
-    'histogram_show_median': {'type': 'CheckButton', 'Recommended': 'true',
+    'histogram_show_median': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show median',
                               'Description': 'true or false.'},
 
-    'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true',
+    'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show legend',
                               'Description': 'true or false.'},
 
-    'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'Options': 'Parsing["parameter_dict1"]',
+    'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'label': 'x-axis facet',
+                              'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string', 'DefaultNumber': 0,
                               'Description': ''},
 
-    'histogram_fig_y_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT',
+    'histogram_fig_y_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'label': 'y-axis facet',
                               'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'OptionMenu', 'save_as': 'string',
                               'DefaultNumber': 1, 'Description': ''},
 
-    'histogram_fig_colour': {'type': 'Dynamic', 'Recommended': '#fc4e2a',
+    'histogram_fig_colour': {'type': 'Dynamic', 'Recommended': '#fc4e2a', 'label': 'Bin colour',
                              'Options': 'Plotting["colorblind_friendly_plot_colours"]',
                              'subtype': 'OptionMenu', 'save_as': 'string',
                              'Description': 'Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.'}
