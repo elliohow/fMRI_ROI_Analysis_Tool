@@ -19,6 +19,7 @@ import textwrap
 from pathlib import Path
 
 from PIL import ImageTk
+from tkscrolledframe import ScrolledFrame
 
 import dash_report
 from fRAT import fRAT
@@ -30,7 +31,8 @@ from utils.statmap_config_setup import *
 
 w = None
 VERSION = "0.15.0"
-
+WIDGET_Y_PADDING = 9
+WIDGET_X_PADDING = 10
 
 def start_gui():
     '''Starting point when module is the main routine.'''
@@ -93,17 +95,16 @@ class Config_GUI:
             except NameError:
                 self.current_info = pages
 
-        self.settings_frame_create(window)
+        self.create_settings_frame(window)
 
         if self.page == 'Home':
             self.banner_draw(window)
-            self.Options_frame_draw(self.settings_frame)
-            self.Atlas_frame_draw(self.settings_frame)
-            self.Run_frame_draw(self.settings_frame)
+            self.create_home_options_frame(self.settings_frame)
+            self.create_home_atlas_frame(self.settings_frame)
+            self.create_homestar_runner_frame(self.settings_frame)
+            self.create_statmap_frame(window)
 
-            self.statmap_frame_create(window)
-
-    def statmap_frame_create(self, window):
+    def create_statmap_frame(self, window):
         self.statmap_frame = tk.LabelFrame(window)
         self.frames.append(self.statmap_frame)
 
@@ -186,7 +187,7 @@ class Config_GUI:
                 eval(self.page)[widget]['Current'] = self.widgets[widget].val.get()
 
         self.settings_frame.destroy()
-        self.settings_frame_create(root)
+        self.create_settings_frame(root)
 
         # request tkinter to call self.refresh after 1s (the delay is given in ms)
         self.settings_frame.after(10000, self.refresh_frame)
@@ -211,7 +212,7 @@ class Config_GUI:
 
         self.frames.append(panel)
 
-    def Options_frame_draw(self, window):
+    def create_home_options_frame(self, window):
         self.Options_frame = tk.LabelFrame(window)
         self.Options_frame.place(relx=0.5, rely=0.01, height=150, relwidth=0.345)
         self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
@@ -230,7 +231,7 @@ class Config_GUI:
         self.Reset_button.configure(text='''Reset settings''')
         Tooltip.CreateToolTip(self.Reset_button, 'Reset fRAT settings to recommended values')
 
-    def Atlas_frame_draw(self, window):
+    def create_home_atlas_frame(self, window):
         self.Atlas_frame = tk.LabelFrame(window)
         self.Atlas_frame.place(relx=0.5, rely=0.348, height=128, relwidth=0.467)
         self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
@@ -266,7 +267,7 @@ class Config_GUI:
                                                  'numbers to input in the "Plotting" menu to plot specific regions.'
                                                  '\nNOTE: This does not change the atlas to be used for analysis.')
 
-    def Run_frame_draw(self, window):
+    def create_homestar_runner_frame(self, window):
         self.Run_frame = tk.LabelFrame(window)
         self.Run_frame.place(relx=0.025, rely=0.69, height=145, relwidth=0.945)
         self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
@@ -298,11 +299,11 @@ class Config_GUI:
         self.Run_button.configure(text='''Run fRAT''')
         Tooltip.CreateToolTip(self.Run_button, 'Run fRAT with current settings')
 
-    def settings_frame_create(self, window):
-        self.settings_frame = tk.LabelFrame(window)
-        self.frames.append(self.settings_frame)
-
+    def create_settings_frame(self, window):
         if self.page == 'Home':
+            self.settings_frame = tk.LabelFrame(window)
+            self.frames.append(self.settings_frame)
+
             self.settings_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
             self.settings_frame.configure(text='fRAT', font='Helvetica 18 bold')
             self.format_frame(self.settings_frame)
@@ -328,7 +329,8 @@ class Config_GUI:
                 y_loc += 60
 
         elif self.page == 'Plotting':
-            y_loc = self.widget_create('Home')
+            self.create_scrollable_frame(window)
+            self.create_widgets(previous_frame='Home')
 
             self.Plot_settings_frame = tk.LabelFrame(window)
             self.frames.append(self.Plot_settings_frame)
@@ -352,45 +354,57 @@ class Config_GUI:
                 y_loc += 60
 
         elif self.page in ['General', 'Analysis', 'Statistics', 'Parsing', 'Statistical_maps']:
-            self.widget_create('Home')
+            self.create_scrollable_frame(window)
+            self.create_widgets(previous_frame='Home')
 
         else:
-            self.widget_create('Plotting')
+            self.create_scrollable_frame(window)
+            self.create_widgets(previous_frame='Plotting')
 
-    def widget_create(self, previous_frame):
-        y_loc = 40
+    def create_scrollable_frame(self, window):
+        self.scrollable_frame = ScrolledFrame(window, scrollbars='vertical', use_ttk=True)
+        self.scrollable_frame.pack(side="top", expand=True, fill="both")
+
+        self.scrollable_frame.bind_arrow_keys(window)
+        self.scrollable_frame.bind_scroll_wheel(window)
+
+        self.inner_frame = self.scrollable_frame.display_widget(tk.LabelFrame)
+
+        self.frames.extend([self.scrollable_frame, self.inner_frame])
+
+    def create_widgets(self, previous_frame):
+        row = 0
+
         for setting in self.current_info:
-            self.label_create(setting, y_loc, self.current_info[setting])
+            self.label_create(setting, row, self.current_info[setting])
 
             if self.current_info[setting]['type'] == 'Scale':
-                widget = self.scale_create(setting, self.current_info[setting], y_loc)
+                widget = self.scale_create(setting, self.current_info[setting], row)
                 self.widgets = {**self.widgets, **widget}
 
             elif self.current_info[setting]['type'] == 'CheckButton':
-                widget = self.checkbutton_create(setting, self.current_info[setting], y_loc)
+                widget = self.checkbutton_create(setting, self.current_info[setting], row)
                 self.widgets = {**self.widgets, **widget}
 
             elif self.current_info[setting]['type'] == 'OptionMenu':
-                widget = self.optionmenu_create(setting, self.current_info[setting], y_loc)
+                widget = self.optionmenu_create(setting, self.current_info[setting], row)
                 self.widgets = {**self.widgets, **widget}
 
             elif self.current_info[setting]['type'] == 'Entry':
-                widget = self.entry_create(setting, self.current_info[setting], y_loc)
+                widget = self.entry_create(setting, self.current_info[setting], row)
                 self.widgets = {**self.widgets, **widget}
 
             elif self.current_info[setting]['type'] == 'Dynamic':
-                y_loc, widget = self.dynamic_widget(setting, self.current_info[setting], y_loc)
+                widget = self.dynamic_widget(setting, self.current_info[setting], row)
                 self.dynamic_widgets = {**self.dynamic_widgets, **widget}
-                y_loc -= 40
 
-            y_loc += 40
+            row += 1
 
-        self.settings_frame.place(relx=0.02, rely=0.014, height=y_loc + 40, relwidth=0.973)
-        self.settings_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
-        self.format_frame(self.settings_frame)
+        self.inner_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
+        self.format_frame(self.inner_frame)
 
-        self.Index_button = tk.Button(self.settings_frame, command=lambda: self.change_frame(previous_frame))
-        self.Index_button.place(relx=0.35, y=y_loc - 30, height=42, width=150)
+        self.Index_button = tk.Button(self.inner_frame, command=lambda: self.change_frame(previous_frame))
+        self.Index_button.grid(column=1, row=row)
         self.Index_button.configure(activebackground="#ececec")
         self.Index_button.configure(activeforeground="#000000")
         self.Index_button.configure(background=self.background)
@@ -399,12 +413,9 @@ class Config_GUI:
         self.Index_button.configure(highlightcolor="black")
         self.Index_button.configure(text=f'''Back to {previous_frame}''')
 
-        return y_loc
-
     def format_frame(self, frame):
         frame.configure(borderwidth="2")
         frame.configure(relief='groove')
-        frame.configure(foreground="black")
         frame.configure(background=self.background)
         frame.configure(highlightbackground=self.background)
         frame.configure(highlightcolor="black")
@@ -415,7 +426,7 @@ class Config_GUI:
         index_button.place(relx=relx, y=y_loc, width=185, height=42)
         index_button.configure(text=f'''{page.replace('_', ' ')}''')
 
-    def dynamic_widget(self, name, info, y_loc):
+    def dynamic_widget(self, name, info, row):
         try:
             text = eval(info['Options'])['Current']
             text = [value.strip() for value in text.split(',')]
@@ -439,24 +450,21 @@ class Config_GUI:
             if len(info['DynamOptions']) == 1:
                 info['DynamOptions'].append('')
 
-            widget = self.optionmenu_create(name, info, y_loc)
+            widget = self.optionmenu_create(name, info, row)
 
             dynamic_widgets = {**dynamic_widgets, **widget}
 
-            y_loc += 40
-
         elif info['subtype'] == 'Checkbutton':
             for value in text:
-                widget = self.checkbutton_create(f"{name}_{value}", info, y_loc)
+                widget = self.checkbutton_create(f"{name}_{value}", info, row)
                 [widget.configure(text=value) for widget in widget.values()]
 
                 dynamic_widgets = {**dynamic_widgets, **widget}
-                y_loc += 30
 
-        return y_loc, dynamic_widgets
+        return dynamic_widgets
 
-    def label_create(self, name, y_loc, info=None, relx=0.08, font=None):
-        self.__setattr__(name, tk.Label(self.settings_frame))
+    def label_create(self, name, row, info=None, font=None):
+        self.__setattr__(name, tk.Label(self.inner_frame))
         label_name = getattr(self, name)
 
         try:
@@ -464,7 +472,7 @@ class Config_GUI:
         except KeyError:
             name = name.capitalize()
 
-        label_name.place(relx=relx, y=y_loc, height=22, bordermode='ignore')
+        label_name.grid(row=row, column=0, pady=WIDGET_Y_PADDING, ipadx=WIDGET_X_PADDING, sticky='W')
         label_name.configure(background=self.background)
         label_name.configure(foreground="#000000")
         label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
@@ -478,11 +486,11 @@ class Config_GUI:
         if info is not None:
             Tooltip.CreateToolTip(label_name, info['Description'])
 
-    def scale_create(self, name, info, y_loc):
-        self.__setattr__(name, tk.Scale(self.settings_frame, from_=info['From'], to=info['To']))
+    def scale_create(self, name, info, row):
+        self.__setattr__(name, tk.Scale(self.inner_frame, from_=info['From'], to=info['To']))
         widget = getattr(self, name)
 
-        widget.place(x=300, y=y_loc - 15, relwidth=0.205, relheight=0.0, height=39, bordermode='ignore')
+        widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
         widget.configure(resolution=info['Resolution'])
 
         self.scale_default_settings(widget)
@@ -501,13 +509,13 @@ class Config_GUI:
         widget.configure(orient="horizontal")
         widget.configure(troughcolor=self.background)
 
-    def checkbutton_create(self, name, info, y_loc):
+    def checkbutton_create(self, name, info, row):
         state = tk.BooleanVar()
 
-        self.__setattr__(name, tk.Checkbutton(self.settings_frame, variable=state))
+        self.__setattr__(name, tk.Checkbutton(self.inner_frame, variable=state))
         widget = getattr(self, name)
 
-        widget.place(x=295, y=y_loc, bordermode='ignore')
+        widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
         widget.val = state
 
         self.checkbutton_default_settings(widget)
@@ -539,7 +547,7 @@ class Config_GUI:
         widget.configure(highlightcolor="black")
         widget.configure(justify='left')
 
-    def optionmenu_create(self, name, info, y_loc):
+    def optionmenu_create(self, name, info, row):
         state = tk.StringVar()
 
         state.set(info['Current'])
@@ -549,20 +557,19 @@ class Config_GUI:
         except KeyError:
             options = info['Options']
 
-        self.__setattr__(name, tk.OptionMenu(self.settings_frame, state, *options))
+        self.__setattr__(name, tk.OptionMenu(self.inner_frame, state, *options))
         widget = getattr(self, name)
 
-        widget.place(x=295, y=y_loc, width=183, bordermode='ignore')
+        widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
         widget.configure(bg=self.background)
         widget.val = state
 
         return {name: widget}
 
-    def entry_create(self, name, info, y_loc):
-        self.__setattr__(name, tk.Entry(self.settings_frame))
+    def entry_create(self, name, info, row):
+        self.__setattr__(name, tk.Entry(self.inner_frame))
         widget = getattr(self, name)
-
-        widget.place(x=300, y=y_loc, height=25, bordermode='ignore')
+        widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
 
         self.entry_default_settings(widget)
 
@@ -626,7 +633,7 @@ class Config_GUI:
         self.__init__(root, page, load_initial_values=False)
 
 
-class Tooltip():
+class Tooltip:
     def __init__(self, widget):
         self.widget = widget
         self.widget_type = widget.winfo_class()

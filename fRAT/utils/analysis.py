@@ -331,7 +331,9 @@ class Participant:
                                    'listen to Echoes by Pink Floyd',
                                    'mark one of those essays you\'ve been putting off',
                                    'paint the next abstract masterpiece',
-                                   'listen to Michigan by Sufjan Stevens']
+                                   'listen to Michigan by Sufjan Stevens',
+                                   'get up and have a stretch',
+                                   'follow @elliohow on twitter']
 
                         print(f'Participant {self.participant_name} missing FSL FAST files. '
                               f'Running FSL FAST (maybe {choice(phrases)}, this may take a while).')
