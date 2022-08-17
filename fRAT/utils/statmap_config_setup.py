@@ -83,7 +83,8 @@ Statistical_maps = {
 
     'noise_volume_location': {'type': 'OptionMenu', 'Recommended': 'End', 'Options': ['Beginning', 'End'],
                               'save_as': 'string',
-                              'Description': "'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max'"},
+                              'Description': "'max' to select number of cores available on the system, alternatively "
+                                             "an int to manually select number of cores to use. Recommended: 'max'"},
 
     'manual_noise_value': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
                            'label': 'Noise value (if not using noise volume)',
@@ -94,5 +95,26 @@ Statistical_maps = {
 
     'iSNR_std_use_only_nonzero_voxels': {'type': 'CheckButton', 'Recommended': 'true',
                                          'label': 'Use only nonzero voxels for iSNR calc',
-                                         'Description': 'true or false.'}
+                                         'Description': 'true or false.'},
+
+    'Add Gaussian noise': {'type': 'subheading'},
+
+    'create_noise_level_file': {'type': 'Button', 'Command': 'create_noise_file', 'Text': 'Create noiseValues.csv',
+                                'Description': 'Create a noiseValues.csv file to determine what the standard deviation'
+                                               'of the Gaussian should be when adding noise to each participant'
+                                               '(the distribution will have a mean of 0).'
+                                               'This will not overwrite the original files.'
+                                               'Recommended: The standard deviation over time found in '
+                                               'the dataset.'
+                                               '\nNOTE: Can be used to see how additional noise affects '
+                                               'analysis. To calculate the noise level for each participant, '
+                                               'create tSNR maps with the fRAT and run the '
+                                               'full analysis using the tStd files. The mean values of '
+                                               'this analysis in each participants subfolder, will then show you the '
+                                               'average noise for each region for each participant.'},
+
+    'noise_multipliers': {'type': 'Entry', 'Recommended': 1, 'save_as': 'list', 'label': 'Noise multiplier(s)',
+                          'Description': "Provide a comma-separated list of multipliers for the standard deviation of "
+                                         "the gaussian noise to plot e.g. '1, 5'."
+                                         "\nNOTE: a separate file will be produced for each multiplier"}
 }

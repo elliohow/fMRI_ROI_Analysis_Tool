@@ -253,7 +253,7 @@ class Participant:
             else:
                 brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-            construct_combined_results(f'{self.save_location}')
+            construct_combined_results(self.save_location, type='participant')
 
             self.anat_file_cleanup()
 
@@ -909,21 +909,12 @@ class MatchedBrain:
 
         return participant.participant_name, brain.no_ext_brain
 
-    def create_folders(self):
-        summary_results_path = f"{self.save_location}Summarised_results/"
-        Utils.check_and_make_dir(summary_results_path)
-
-        pooled_path = f"{self.save_location}Summarised_results/Pooled_voxel_results/"
-        Utils.check_and_make_dir(pooled_path)
-
-        self.results_path = f"{self.save_location}Summarised_results/Session_averaged_results/"
-        Utils.check_and_make_dir(self.results_path)
-
     def compile_results(self, config):
         if config.verbose:
             print(f'Combining results for parameter combination: {self.parameters}')
 
-        self.create_folders()
+        self.results_path = f"{self.save_location}Summarised_results/"
+        Utils.check_and_make_dir(self.results_path)
 
         self.calculate_and_save_pooled_session_stats()
 
@@ -958,8 +949,7 @@ class MatchedBrain:
 
         # Save results
         roi_stats_save(self.raw_results, self.overall_results, self.label_array,
-                       self.save_location, self.parameters, config,
-                       pooled_data=True)
+                       self.save_location, self.parameters, config)
 
         return self
 
@@ -992,13 +982,16 @@ class MatchedBrain:
         results[7, :] = np.nanmin(self.overall_results, axis=0)[5]  # Minimum
         results[8, :] = np.nanmax(self.overall_results, axis=0)[6]  # Maximum
         results[9, :] = np.count_nonzero(self.overall_results, axis=0)[0]  # Sessions
-        results[5, :] = self.conf_int[1] * results[4, :] \
-                        / np.sqrt(results[9, :])  # Confidence interval
+
+        results[5, :] = self.conf_int[1] * results[4, :] / np.sqrt(results[9, :])  # Confidence interval
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
         with open(f"{self.results_path}{self.parameters}.json", 'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
+
+        print(self.overall_results)
+        print(results_df)
 
         self.session_averaged_results = results_df.to_numpy()
 
@@ -1024,7 +1017,7 @@ class MatchedBrain:
         for parameter_comb in matched_brains:
             for subj in parameter_comb.brains:
                 if len(parameter_comb.brains[subj]) > 1:
-                    session_count = 0
+                    session_count = 1
 
                     for brain in brain_list:
                         try:
@@ -1036,20 +1029,12 @@ class MatchedBrain:
                         except KeyError:
                             pass
 
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, data,
-                    config):
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
 
-        if data == 'Session averaged':
-            results = self.session_averaged_results
-            subfolder = 'Session_averaged_results/'
-            statistic_labels = config.statistic_options['Session averaged']
-
-        else:
-            results = self.overall_results
-            subfolder = 'Pooled_voxel_results/'
-            statistic_labels = config.statistic_options['Pooled voxel']
+        results = self.session_averaged_results
+        statistic_labels = config.statistic_options
 
         if config.verbose and max(max_roi_stat) != 0.0:
             print(f'Creating {statistic_labels[statistic_num]} NIFTI_ROI file for parameter combination '
@@ -1087,7 +1072,7 @@ class MatchedBrain:
 
         for scale_stat in scale_stats:
             scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))
-            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{subfolder}{scale_stat[1]}")
+            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{scale_stat[1]}")
 
     def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num, results):
         # Iterate through each voxel in the atlas
@@ -1377,9 +1362,8 @@ def roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_curren
     return roi_results
 
 
-def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ext_brain, config,
-                   pooled_data=False, session_number=0):
-    if session_number == 0:
+def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ext_brain, config, session_number=None):
+    if session_number is None:
         session_suffix = ''
     else:
         session_suffix = f'_ps{session_number}'
@@ -1414,10 +1398,7 @@ def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ex
     # Convert to dict and get rid of row numbers to significantly decrease file size
     roidict = Utils.dataframe_to_dict(raw_results)
 
-    if pooled_data:
-        summary_results_path = f"{save_location}Summarised_results/Pooled_voxel_results/"
-    else:
-        summary_results_path = f"{save_location}Summarised_results/"
+    summary_results_path = f"{save_location}Summarised_results/"
     Utils.check_and_make_dir(summary_results_path)
 
     raw_results_path = f"{save_location}Raw_results/"
@@ -1441,31 +1422,54 @@ def verify_param_values():
                             f'{config.parameter_file} headers.')
 
 
-def construct_combined_results(directory, subfolder=''):
-    if subfolder == 'session averaged':
-        directory = f"{directory}/Summarised_results/Session_averaged_results"
-    elif subfolder == 'pooled voxel':
-        directory = f"{directory}/Summarised_results/Pooled_voxel_results"
-    else:
-        directory = f"{directory}/Summarised_results/"
-
+def construct_combined_results(directory, type):
+    directory = f"{directory}/Summarised_results/"
     json_file_list = [os.path.basename(f) for f in glob(f"{directory}/*.json")]
 
-    # Find session numbers
-    session_dict = {0: []}
+    save_combined_results_file(directory, json_file_list)
+
+    if type == 'participant':
+        save_averaged_results_file(directory, json_file_list)
+
+
+def save_averaged_results_file(directory, json_file_list):
+    Utils.check_and_make_dir(f"{directory}/Averaged_results/")
+
+    parameter_dict = {}
     for jsn in json_file_list:
-        if '_ps' in jsn:
-            session_number = re.findall('_ps[0-9]*', jsn)[0].split('_ps')[-1]
+        if 'combined_results' in jsn:
+            continue
 
-            if session_number not in session_dict:
-                session_dict[session_number] = []
+        param, _, _ = jsn.partition('_ps')
 
-            session_dict[session_number].append(jsn)
-
+        if param not in parameter_dict:
+            parameter_dict[param] = [jsn]
         else:
-            session_dict[0].append(jsn)
+            parameter_dict[param].append(jsn)
+
+    for parameter, jsns in parameter_dict.items():
+        combined_dataframe = pd.DataFrame()
+
+        for jsn in jsns:
+            with open(f'{directory}/{jsn}', "r") as results:
+                results = pd.DataFrame(json.load(results))
+                row_order = results.index
+
+            combined_dataframe = pd.concat((combined_dataframe, results))
+
+        grouped_by_stat = combined_dataframe.groupby(combined_dataframe.index)
+        averaged_dataframe = grouped_by_stat.mean().reindex(row_order).transpose().reset_index()
+
+        averaged_dataframe.to_json(f"{directory}/Averaged_results/averaged_{parameter}.json", orient='records', indent=2)
+
+
+def save_combined_results_file(directory, json_file_list):
+    session_dict = split_jsons_by_session(json_file_list)
 
     for session, jsns in session_dict.items():
+        if not jsns:
+            continue
+
         combined_dataframe = pd.DataFrame()
 
         for jsn in jsns:
@@ -1475,7 +1479,7 @@ def construct_combined_results(directory, subfolder=''):
             # Splits a file name. For example from hb1_ip2.json into ['hb1', 'ip2']
             parameters = list(filter(None, re.split(f'_|ps[0-9]*|.json', jsn)))
 
-            # Remove critical parameter name from file name. For example from ['hb1', 'ip2'] into [1, 2]
+            # Remove critical parameter name from file name. For example turn ['hb1', 'ip2'] into [1, 2]
             for counter, critical_parameter in enumerate(config.parameter_dict2):
                 parameters[counter] = parameters[counter].replace(critical_parameter, '')
 
@@ -1501,6 +1505,24 @@ def construct_combined_results(directory, subfolder=''):
         # Save combined results
         combined_dataframe = combined_dataframe.reset_index()
         combined_dataframe.to_json(f"{directory}/combined_results{session_suffix}.json", orient='records', indent=2)
+
+
+def split_jsons_by_session(json_file_list):
+    session_dict = {0: []}
+
+    for jsn in json_file_list:
+        if '_ps' in jsn:
+            session_number = re.findall('_ps[0-9]*', jsn)[0].split('_ps')[-1]
+
+            if session_number not in session_dict:
+                session_dict[session_number] = []
+
+            session_dict[session_number].append(jsn)
+
+        else:
+            session_dict[0].append(jsn)
+
+    return session_dict
 
 
 def gaussian_outlier_detection(roi_results, roi_temp_store, config):

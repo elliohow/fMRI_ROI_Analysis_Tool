@@ -8,17 +8,9 @@ def printResults():
 
     config = Utils.load_config(result_loc, 'analysis_log.toml')
 
-    if config.averaging_type == 'Session averaged':
-        subfolder = 'Session_averaged_results'
-    else:
-        subfolder = 'Pooled_voxel_results'
-
-    print(f'Showing {config.averaging_type} results.\n')
-
-    with open(f"{result_loc}/Overall/Summarised_results/{subfolder}/combined_results.json", "r") as results:
+    with open(f"{result_loc}/Overall/Summarised_results/combined_results.json", "r") as results:
         results = json.load(results)
         rois = sorted({result['index'] for result in results})  # Using set returns only unique values
-
 
     blacklist = ['index', 'File_name', *config.parameter_dict1]
 

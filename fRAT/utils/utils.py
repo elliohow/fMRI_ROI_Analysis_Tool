@@ -60,13 +60,17 @@ class Utils:
 
         for category in arg_categories:
             for arg in eval(category):
-                help_text = eval(category)[arg]["Description"].replace("%", "%%")
+                print(arg)
+                try:
+                    help_text = eval(category)[arg]["Description"].replace("%", "%%")
+                except KeyError:
+                    continue
 
                 if help_text == "":
                     help_text = f"Recommended value: {eval(category)[arg]['Recommended']}"
 
                 parser.add_argument(f'--{arg}', dest=arg, help=help_text)
-        
+
         # Execute the parse_args() method
         args = parser.parse_args()
 
@@ -175,21 +179,13 @@ class Utils:
             Utils.mk_dir(path)
 
     @staticmethod
-    def read_combined_results(folder, averaging_type):
-        df = pd.DataFrame()
-        path = ''
-
+    def read_combined_results(folder):
         try:
-            if averaging_type == 'Session averaged':
-                path = f"{folder}/Overall/Summarised_results/Session_averaged_results/combined_results.json"
-                df = pd.read_json(path)
-
-            elif averaging_type == 'Pooled voxel averaged':
-                path = f"{folder}/Overall/Summarised_results/Pooled_voxel_results/combined_results.json"
-                df = pd.read_json(path)
+            path = f"{folder}/Overall/Summarised_results/combined_results.json"
+            df = pd.read_json(path)
 
         except ValueError:
-            raise Exception(f"combined_results.json not found in {config.averaging_type} folder.")
+            raise Exception(f"combined_results.json not found in folder.")
 
         return df, path
 
@@ -288,27 +284,16 @@ class Utils:
                 config = SimpleNamespace(**parse)
 
                 if filename == 'fRAT_config.toml':
-                    config.statistic_options = {
-                        'Pooled voxel': ['Voxel_amount',
-                                         'Mean',
-                                         'Standard_deviation',
-                                         'Confidence_interval',
-                                         'Median',
-                                         'Minimum',
-                                         'Maximum',
-                                         'Excluded_voxels_amount'
-                                         ],
-                        'Session averaged': ['Voxel_amount',
-                                             'Excluded_voxels_amount',
-                                             'Average_voxels',
-                                             'Mean',
-                                             'Standard_deviation',
-                                             'Confidence_interval',
-                                             'Median',
-                                             'Minimum',
-                                             'Maximum',
-                                             'Sessions']
-                    }
+                    config.statistic_options = ['Voxel_amount',
+                                                'Excluded_voxels_amount',
+                                                'Average_voxels',
+                                                'Mean',
+                                                'Standard_deviation',
+                                                'Confidence_interval',
+                                                'Median',
+                                                'Minimum',
+                                                'Maximum',
+                                                'Sessions']
 
                     config.parameter_dict = {config.parameter_dict1[i]:
                                                  config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}

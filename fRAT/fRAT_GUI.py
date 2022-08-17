@@ -19,7 +19,7 @@ import textwrap
 from pathlib import Path
 
 from PIL import ImageTk
-from tkscrolledframe import ScrolledFrame
+from operator import itemgetter
 
 import dash_report
 from fRAT import fRAT
@@ -145,7 +145,7 @@ class Config_GUI:
         self.statmap_run_frame.configure(text='Run', font='Helvetica 18 bold')
         self.format_frame(self.statmap_run_frame, borderwidth=1)
 
-        statmap_options = ('Image SNR', 'Temporal SNR')
+        statmap_options = ('Image SNR', 'Temporal SNR', 'Add Gaussian noise')
         state = tk.StringVar()
         state.set(statmap_options[1])
         self.statmap_option = tk.OptionMenu(self.statmap_run_frame, state, *statmap_options)
@@ -358,6 +358,10 @@ class Config_GUI:
                 widget = self.entry_create(setting, self.current_info[setting], row)
                 self.widgets = {**self.widgets, **widget}
 
+            elif self.current_info[setting]['type'] == 'Button':
+                widget = self.button_create(setting, self.current_info[setting], row)
+                self.widgets = {**self.widgets, **widget}
+
             elif self.current_info[setting]['type'] == 'Dynamic':
                 widget, row = self.dynamic_widget(setting, self.current_info[setting], row)
                 self.dynamic_widgets = {**self.dynamic_widgets, **widget}
@@ -370,6 +374,15 @@ class Config_GUI:
         if create_return_button == True:
             self.return_button_create_and_format(previous_frame, row)
 
+    def button_create(self, name, info, row):
+        func = eval(info['Command'])
+        self.__setattr__(name, ttk.Button(self.settings_frame, command=lambda: func()))
+        widget = getattr(self, name)
+        widget.configure(text=info['Text'])
+
+        widget.grid(row=row, column=1, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
+
+        return {name: widget}
 
     def return_button_create_and_format(self, previous_frame, row):
         self.return_button = ttk.Button(self.settings_frame, command=lambda: self.change_frame(previous_frame))
@@ -563,10 +576,11 @@ class Config_GUI:
 
     def change_frame(self, page):
         for widget in self.widgets:
-            try:
-                eval(self.page)[widget]['Current'] = self.widgets[widget].get()
-            except AttributeError:
-                eval(self.page)[widget]['Current'] = self.widgets[widget].val.get()
+            if eval(self.page)[widget]['type'] != 'Button':
+                try:
+                    eval(self.page)[widget]['Current'] = self.widgets[widget].get()
+                except AttributeError:
+                    eval(self.page)[widget]['Current'] = self.widgets[widget].val.get()
 
         for widget in self.dynamic_widgets:
             if self.dynamic_widgets[widget].winfo_class() == 'Checkbutton':
@@ -755,11 +769,11 @@ def check_stale_state():
     if current_critical_params == ['']:
         raise Exception('No critical parameters set in Parsing options.')
 
-    dynamic_widgets = (Violin_plot['table_cols'], Violin_plot['table_rows'],
-                       Brain_table['brain_table_cols'], Brain_table['brain_table_rows'],
-                       Region_barchart['single_roi_fig_colour'], Region_barchart['single_roi_fig_x_axis'],
-                       Region_histogram['histogram_fig_x_facet'], Region_histogram['histogram_fig_y_facet'],
-                       Brain_table['brain_table_col_labels'], Brain_table['brain_table_row_labels'])
+    dynamic_widgets = itemgetter('table_cols', 'table_rows',
+                                 'brain_table_cols', 'brain_table_rows',
+                                 'single_roi_fig_colour', 'single_roi_fig_x_axis',
+                                 'histogram_fig_x_facet', 'histogram_fig_y_facet',
+                                 'brain_table_col_labels', 'brain_table_row_labels')(Plotting)
 
     for counter, widget in enumerate(dynamic_widgets):
         if widget['Current'] == '' and len(current_critical_params) > 1:
@@ -823,6 +837,8 @@ def Save_settings(page_list, file):
             for key in eval(page).keys():
                 if eval(page)[key]['type'] == 'subheading':
                     f.write(f"\n## {key}\n")
+                    continue
+                elif eval(page)[key]['type'] == 'Button':
                     continue
 
                 description = eval(page)[key]['Description'].replace('\n', ' ')
@@ -893,7 +909,7 @@ def Reset_settings(pages):
             continue
 
         for key in eval(page).keys():
-            if eval(page)[key]['type'] == 'subheading':
+            if eval(page)[key]['type'] in ['subheading', 'Button']:
                 continue
 
             eval(page)[key]['Current'] = eval(page)[key]['Recommended']
@@ -925,7 +941,7 @@ def make_table():
                                     f'files to be scanned should be placed into this root directory and not a '
                                     f'subdirectory.')
 
-        brain_file_list = [os.path.splitext(brain)[0] for brain in brain_file_list]
+        brain_file_list = [Utils.strip_ext(brain) for brain in brain_file_list]
         brain_file_list.sort()
 
         for file in brain_file_list:
@@ -953,6 +969,25 @@ def make_table():
         print(f"\nSet up folder structure and moved fMRI volumes into {config.parsing_folder} directory.")
 
 
+def create_noise_file():
+    # Load config file to check if verbose is true
+    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'fRAT_config.toml')
+
+    print('--- Creating noiseValues.csv ---')
+    directory = Utils.file_browser('Select base directory')
+    _, participant_names = Utils.find_participant_dirs(directory=directory)
+
+    data = []
+    for participant in participant_names:
+        data.append([participant, np.NaN])
+
+    df = pd.DataFrame(columns=['Participant', 'Noise_value'],
+                      data=data)
+
+    df.to_csv(f'{directory}/noiseValues.csv', index=False)
+    print('--- Created noiseValues.csv ---')
+
+
 def create_folder_structure(participant, config):
     direcs = ['func', 'anat', 'fslfast', 'statmaps']
 
@@ -971,7 +1006,9 @@ def find_participant_dirs(config):
     participant_dirs = [direc for direc in glob("*") if re.search("sub-[0-9]+", direc)]
 
     if len(participant_dirs) == 0:
-        raise FileNotFoundError('Participant directories not found.')
+        raise FileNotFoundError('Participant directories not found.\n'
+                                'Make sure participant directories are labelled e.g. sub-01 and the selected '
+                                'directory contains all participant directories.')
     elif config.verbose:
         print(f'Found {len(participant_dirs)} participant folders.')
 

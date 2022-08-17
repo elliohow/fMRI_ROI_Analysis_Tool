@@ -12,9 +12,11 @@ def file_setup(func):
     if config.output_folder_name != 'DEFAULT':
         output_folder = config.output_folder_name
     elif func == 'Image SNR':
-        output_folder = 'imageSNR_report'
+        output_folder = 'statmaps/imageSNR_report'
     elif func == 'Temporal SNR':
-        output_folder = 'temporalSNR_report'
+        output_folder = 'statmaps/temporalSNR_report'
+    elif func == 'Add Gaussian noise':
+        output_folder = 'added_noise'
 
     if config.base_folder in ("", " "):
         print('Select the directory which contains the subject folders.')
@@ -30,10 +32,14 @@ def file_setup(func):
     for participant in participants:
         # Find all nifti and analyze files
         participants[participant] = Utils.find_files(f"{participant}/{file_location}", "hdr", "nii.gz", "nii")
-        Utils.check_and_make_dir(f"{participant}/statmaps")
-        Utils.check_and_make_dir(f"{participant}/statmaps/{output_folder}", delete_old=True)
-        Utils.save_config(f"{participant}/statmaps/{output_folder}", 'statmap_config',
-                          additional_info=[f"statistical_map_created = '{func}'\n"])
+
+        if 'statmaps' in output_folder:
+            Utils.check_and_make_dir(f"{participant}/statmaps")
+            Utils.check_and_make_dir(f"{participant}/{output_folder}", delete_old=True)
+            Utils.save_config(f"{participant}/{output_folder}", 'statmap_config',
+                              additional_info=[f"statistical_map_created = '{func}'\n"])
+        else:
+            Utils.check_and_make_dir(f"{participant}/{file_location}/{output_folder}", delete_old=True)
 
     return participants, output_folder, file_location
 
@@ -148,20 +154,18 @@ def delete_files(redundant_files):
         os.remove(file)
 
 
-def create_maps(func, file, no_ext_file, noise_file, output_folder):
+def create_statmaps(func, file, no_ext_file, noise_file, output_folder):
     if func == 'Image SNR':
         imageSNR_calc(file, noise_file, no_ext_file, output_folder)
     elif func == 'Temporal SNR':
         temporalSNR_calc(file, no_ext_file, output_folder)
 
 
-def prepare_files(file, no_ext_file, output_folder, participant):
+def prepare_statmap_files(file, no_ext_file, output_folder, participant):
     noise_file = config.manual_noise_value
 
     redundant_files = []
     outliers = []
-
-    Utils.check_and_make_dir(f'{participant}/{config.input_folder_name}_cleaned')
 
     # Save original copy of file which may be overwritten later, however allows this folder to always be used
     data, header = Utils.load_brain(file)
@@ -219,20 +223,19 @@ def remove_motion_outliers(file, no_ext_file, output_folder, participant):
     return file, [no_ext_file, len(outlier_timepoints)], [outlier_file, outlier_plot, outlier_values]
 
 
-def process_files(file, participant, output_folder, file_location, func, cfg):
+def process_files_for_statmaps(file, participant, output_folder, file_location, func, cfg):
     global config
-
     config = cfg
 
     no_ext_file = Utils.strip_ext(file)
     file = f"{participant}/{file_location}/{file}"
-    output_folder = f'{participant}/statmaps/{output_folder}'
+    output_folder = f'{participant}/{output_folder}'
 
     if config.verbose:
         print(f'        Analysing file: {no_ext_file}')
 
-    file, noise_file, redundant_files, outliers = prepare_files(file, no_ext_file, output_folder, participant)
-    create_maps(func, file, no_ext_file, noise_file, output_folder)
+    file, noise_file, redundant_files, outliers = prepare_statmap_files(file, no_ext_file, output_folder, participant)
+    create_statmaps(func, file, no_ext_file, noise_file, output_folder)
 
     delete_files(redundant_files)
 
@@ -247,12 +250,14 @@ def calculate_statistical_maps(participants, output_folder, file_location, func)
 
     if config.verbose:
         print(f'\nSearching in folder: {config.input_folder_name}'
-              f'\nSaving output in directory: statmaps/{output_folder}')
+              f'\nSaving output in directory: {output_folder}')
 
     for participant_dir, files in participants.items():
         if config.verbose:
             print(f'\nCreating statistical maps for participant: {participant_dir.split("/")[-1]}'
                   f'\n      Creating statmaps for {len(files)} files')
+
+        Utils.check_and_make_dir(f'{participant_dir}/{config.input_folder_name}_cleaned', delete_old=True)
 
         iterable = zip(files,
                        itertools.repeat(participant_dir),
@@ -262,18 +267,87 @@ def calculate_statistical_maps(participants, output_folder, file_location, func)
                        itertools.repeat(config))
 
         if config.multicore_processing:
-            outliers = list(pool.starmap(process_files, iterable))
+            outliers = list(pool.starmap(process_files_for_statmaps, iterable))
         else:
-            outliers = list(itertools.starmap(process_files, iterable))
+            outliers = list(itertools.starmap(process_files_for_statmaps, iterable))
 
         if config.remove_motion_outliers:
             outliers = pd.DataFrame(columns=['File', 'Outliers removed'], data=outliers).sort_values('Outliers removed')
 
-            with open(f"{participant_dir}/statmaps/{output_folder}/number_of_outliers_removed.csv", "w") as f:
+            with open(f"{participant_dir}/{output_folder}/number_of_outliers_removed.csv", "w") as f:
                 f.write(outliers.to_csv(index=False))
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)
+
+
+def prepare_to_run_utility(participants, output_folder, file_location, func):
+    if config.multicore_processing:
+        pool = Utils.start_processing_pool()
+    else:
+        pool = None
+
+    if config.verbose:
+        print(f'\nSaving output in directory: {config.input_folder_name}/{output_folder}')
+
+    for participant, files in participants.items():
+        participant_dir = f"{participant}/{file_location}"
+
+        if config.verbose:
+            print(f"\nRunning '{func}' utility on participant: {participant_dir.split('/')[-2]}"
+                  f"\n      Running utility on {len(files)} files")
+
+        iterable = zip(files,
+                       itertools.repeat(participant_dir),
+                       itertools.repeat(output_folder),
+                       itertools.repeat(func),
+                       itertools.repeat(config))
+
+        if config.multicore_processing:
+            list(pool.starmap(run_utility, iterable))
+
+        else:
+            list(itertools.starmap(run_utility, iterable))
+
+    if config.multicore_processing:
+        Utils.join_processing_pool(pool, restart=False)
+
+
+def run_utility(file, participant_dir, output_folder, func, cfg):
+    global config
+    config = cfg
+
+    no_ext_file = Utils.strip_ext(file)
+    file = f"{participant_dir}/{file}"
+    base_sub_location = Path(participant_dir).parents[1]
+    participant_name = os.path.split(Path(participant_dir).parents[0])[1]
+
+    if config.verbose:
+        print(f'        Running utility on file: {no_ext_file}')
+
+    if func == 'Add Gaussian noise':
+        noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
+        participant_noise_level = noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise_value']
+        add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level)
+
+
+def add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level):
+    data, header = Utils.load_brain(file)
+
+    # Save initial data with no added noise
+    save_brain(data, ext=f'_noiselevel0', no_ext_file=no_ext_file,
+               output_folder=f"{participant_dir}/{output_folder}", header=header)
+
+    for multiplier in config.noise_multipliers:  # TODO add noise to each participant separately
+        gaussian_noise = np.random.default_rng().normal(loc=0.0,
+                                                        scale=participant_noise_level * multiplier,
+                                                        size=data.shape)
+
+        noisy_data = data + gaussian_noise
+        noisy_data[noisy_data < 0] = 0  # Set values below 0 to 0
+
+        save_brain(noisy_data, ext=f'_noiselevel{multiplier}', no_ext_file=no_ext_file,
+                   output_folder=f"{participant_dir}/{output_folder}", header=header)
 
 
 def main(func):
@@ -302,7 +376,12 @@ def main(func):
                       'image SNR calculation. If this is not correct, set "Noise volume" to false.')
 
     participants, output_folder, file_location = file_setup(func)
-    calculate_statistical_maps(participants, output_folder, file_location, func)
+
+    if func in ['Add Gaussian noise']:
+        prepare_to_run_utility(participants, output_folder, file_location, func)
+
+    else:
+        calculate_statistical_maps(participants, output_folder, file_location, func)
 
     if config.verbose:
         print(f"\n--- Completed in {round((time.time() - start_time), 2)} seconds ---\n\n")

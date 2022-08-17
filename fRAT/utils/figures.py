@@ -25,7 +25,7 @@ class Figures:
     def make_figures(cls, cfg):
         cls.config = cfg
 
-        combined_results_df, _ = Utils.read_combined_results(os.getcwd(), cls.config.averaging_type)
+        combined_results_df, _ = Utils.read_combined_results(os.getcwd())
 
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
@@ -35,9 +35,7 @@ class Figures:
                           relevant_sections=['Parsing',
                                              'Plotting', 'Violin_plot',
                                              'Brain_table', 'Region_barchart',
-                                             'Region_histogram'],
-                          additional_info=[f'data_used_for_figures = '
-                                           f'"{cfg.averaging_type.replace(" ", "_").lower()}"'])
+                                             'Region_histogram'])
 
         if cls.config.multicore_processing & (cls.config.make_one_region_fig or cls.config.make_histogram):
             pool = Utils.start_processing_pool()
@@ -54,12 +52,9 @@ class Figures:
             if cls.config.verbose:
                 print(f'\n--- Violin plot creation ---')
 
-            data_types = ['Session averaged', 'Pooled voxel averaged']
-
-            for data_type in data_types:
-                df, _ = Utils.read_combined_results(os.getcwd(), data_type)
-                Utils.check_and_make_dir("Figures/Violin_plots")
-                ViolinPlot.make(df, data_type)
+            df, _ = Utils.read_combined_results(os.getcwd())
+            Utils.check_and_make_dir("Figures/Violin_plots")
+            ViolinPlot.make(df)
 
         if cls.config.make_one_region_fig:
             Barchart.setup(combined_results_df, pool)
@@ -157,16 +152,17 @@ class Figures:
             print(f"Saved {thisroi}_{chart_type}.png")
 
     @staticmethod
-    def load_and_restructure_jsons(config, jsons, combined_df, data_type):
+    def load_and_restructure_jsons(config, jsons, combined_df, type):
         combined_raw_df = pd.DataFrame()
 
         # Make a list of significant columns and remove any blank values
         # TODO: remove references to histogram to make it more generalisable
-        if data_type == 'Session averaged':
-            signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
-                                                "File_name", "subject"]))
-        elif data_type == 'Pooled voxel averaged':
-            signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet]))
+
+        signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
+                                            "File_name"]))
+
+        if type == 'statistics':
+            signif_columns.append('subject')
 
         for json_file in jsons:
             with open(json_file, 'r') as f:
@@ -195,7 +191,7 @@ class Figures:
             except IndexError:
                 continue
 
-            if data_type == 'Session averaged':
+            if type == 'statistics':
                 current_json['subject'] = re.findall('sub-[0-9]*', json_file)
 
             combined_raw_df = combined_raw_df.append(current_json)
@@ -214,16 +210,11 @@ class BrainGrid(Figures):
         Utils.check_and_make_dir(indiv_brains_dir)
         Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids")
 
-        if cls.config.averaging_type == 'Session averaged':
-            statistic_labels = cls.config.statistic_options['Session averaged']
-            subfolder = 'Session_averaged_results'
-        else:
-            statistic_labels = cls.config.statistic_options['Pooled voxel']
-            subfolder = 'Pooled_voxel_results'
+        statistic_labels = cls.config.statistic_options
 
         for statistic in statistic_labels:
             # If NIFTI files have not been created for statistic, skip creating the figure
-            if not glob(f"Overall/NIFTI_ROI/{subfolder}/*{statistic}*"):
+            if not glob(f"Overall/NIFTI_ROI/*{statistic}*"):
                 continue
 
             Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
@@ -233,7 +224,7 @@ class BrainGrid(Figures):
                                f"_{statistic}_mixed_roi_scaled.nii.gz"]
 
             for base_extension in brain_plot_exts:
-                indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic, subfolder)
+                indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic)
 
                 for img in indiv_brain_imgs:
                     Utils.move_file(img, os.getcwd(), indiv_brains_dir)
@@ -242,14 +233,14 @@ class BrainGrid(Figures):
                 print("\n")
 
     @classmethod
-    def setup(cls, df, base_extension, statistic, subfolder):
+    def setup(cls, df, base_extension, statistic):
         base_ext_clean = os.path.splitext(os.path.splitext(base_extension)[0])[0][1:]
         indiv_brain_imgs = []
 
         json_array = df['File_name'].unique()
 
         # Create new list of files which exist in NIFTI_ROI folder
-        json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{subfolder}/{jsn}{base_extension}")]
+        json_array = [jsn for jsn in json_array if glob(f"Overall/NIFTI_ROI/{jsn}{base_extension}")]
 
         critical_params, cell_nums, y_axis_size, x_axis_size = cls.table_setup(df)
 
@@ -287,7 +278,7 @@ class BrainGrid(Figures):
 
             indiv_brain_imgs = cls.make_table(base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array,
                                               critical_params, statistic, vmax, vmax_storage, vmin, x_axis_size,
-                                              y_axis_size, subfolder)
+                                              y_axis_size)
 
             if vmax is not None:
                 break
@@ -305,11 +296,11 @@ class BrainGrid(Figures):
 
     @classmethod
     def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params, statistic,
-                   vmax, vmax_storage, vmin, x_axis_size, y_axis_size, subfolder):
+                   vmax, vmax_storage, vmin, x_axis_size, y_axis_size):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
                                                                     vmax, vmax_storage, vmin, indiv_brain_imgs,
-                                                                    statistic, subfolder)
+                                                                    statistic)
 
             # Import saved image into subplot
             img = mpimg.imread(brain_img)
@@ -345,14 +336,14 @@ class BrainGrid(Figures):
         return indiv_brain_imgs
 
     @classmethod
-    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs, statistic, subfolder):
+    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs, statistic):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
 
         if base_extension == f"_{statistic}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
             # Calculate colour bar limit if not manually set
-            brain = nib.load(f"Overall/NIFTI_ROI/{subfolder}/{json}{base_extension}")
+            brain = nib.load(f"Overall/NIFTI_ROI/{json}{base_extension}")
             brain = brain.get_fdata()
 
             vmax = np.nanmax(brain)
@@ -361,7 +352,7 @@ class BrainGrid(Figures):
             # If this isn't changed later it is definitely due to efficiency not laziness.
             vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
 
-        plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{subfolder}/{json}{base_extension}",
+        plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{json}{base_extension}",
                                   draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                   vmin=vmin, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
@@ -461,7 +452,7 @@ class BrainGrid(Figures):
 
 class ViolinPlot(Figures):
     @classmethod
-    def make(cls, df, data_type):
+    def make(cls, df):
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
 
         if not cls.config.table_cols == '' and not cls.config.table_rows == '':
@@ -505,22 +496,16 @@ class ViolinPlot(Figures):
             else:
                 figure += pltn.geom_point()
 
-        if data_type == 'Session averaged':
-            file_name_prefix = 'session_averaged_'
-
-        else:
-            file_name_prefix = 'pooled_voxel_'
-
-        figure.save(f"Figures/Violin_plots/{file_name_prefix}violinplot.png", height=cls.config.plot_scale,
+        figure.save("Figures/Violin_plots/violinplot.png", height=cls.config.plot_scale,
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
-        figure.save(f"Figures/Violin_plots/{file_name_prefix}violinplot.svg", height=cls.config.plot_scale,
+        figure.save("Figures/Violin_plots/violinplot.svg", height=cls.config.plot_scale,
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
         if cls.config.verbose:
-            print(f"Saved {data_type} violin plot!")
+            print(f"Saved violin plot!")
 
 
 class Barchart(Figures):
@@ -645,7 +630,7 @@ class Histogram(Figures):
                 print(f'\n--- Histogram creation ---')
 
             jsons = [f"{os.getcwd()}/Overall/Raw_results/{jsn}" for jsn in Utils.find_files("Overall/Raw_results", "json")]
-            combined_raw_df = cls.load_and_restructure_jsons(cls.config, jsons, combined_df, 'Pooled voxel averaged')
+            combined_raw_df = cls.load_and_restructure_jsons(cls.config, jsons, combined_df, type='plotting')
 
             combined_raw_dfs = []
             for roi in chosen_rois:

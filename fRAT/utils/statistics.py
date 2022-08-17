@@ -46,12 +46,10 @@ def stats_setup():
     # Save log of only the statistics info from the config file
     Utils.save_config(STATISTICS_PATH,
                       f"{Path(os.path.abspath(__file__)).parents[1]}/fRAT_config",
-                      relevant_sections=['Statistics'], config_name='statistics_log',
-                      additional_info=[
-                          f'data_used_for_statistics = "{config.averaging_type.replace(" ", "_").lower()}"'])
+                      relevant_sections=['Statistics'], config_name='statistics_log')
 
     Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
-                         f'\nCalculating statistics using {config.averaging_type} data.')
+                         f'\nCalculating statistics using session averaged data.')
 
 
 def clean_data(combined_results, voxel_cutoff):
@@ -98,15 +96,14 @@ def find_baseline_parameters():
         return [baseline_param_query, non_baseline_params_query], table.columns[list(critical_column_locs)]
 
 
-def structure_data(config, paths):
-    combined_results = Utils.read_combined_results(os.getcwd(), config.averaging_type)
+def structure_data(config, participant_paths):
+    combined_results = Utils.read_combined_results(os.getcwd())
 
     jsons = []
-    for path in paths:
+    for path in participant_paths:
         jsons.extend([f"{path}/{jsn}" for jsn in Utils.find_files(path, "json") if 'combined_results' not in jsn])
 
-    individual_roi_results = Histogram.load_and_restructure_jsons(config, jsons, combined_results[0],
-                                                                  config.averaging_type)
+    individual_roi_results = Histogram.load_and_restructure_jsons(config, jsons, combined_results[0], type='statistics')
 
     return individual_roi_results, combined_results
 
@@ -135,13 +132,7 @@ def statistics(param_queries, critical_params):
 def load_data():
     participants, _ = Utils.find_participant_dirs(os.getcwd())
 
-    if config.averaging_type == 'Session averaged':
-        paths = [f"{participant}/Summarised_results" for participant in participants]
-
-    elif config.averaging_type == 'Pooled voxel averaged':
-        paths = [f"{participant}/Raw_results" for participant in participants]
-
-    individual_roi_results, combined_results = structure_data(config, paths)
+    individual_roi_results, combined_results = structure_data(config, participants)
     individual_roi_results = split_individual_subject_df(individual_roi_results)
 
     return individual_roi_results, combined_results
@@ -407,11 +398,9 @@ def run_glm(dataset, critical_params, combined_results, ROI, glm_formula_type):
     current_df = dataset.copy()
     formula = construct_glm_formula(critical_params, glm_formula_type)
 
-    if config.averaging_type == 'Session averaged':
-        result, rsquared = linear_mixed_model(formula, current_df, glm_formula_type, ROI)
+    result, rsquared = linear_mixed_model(formula, current_df, glm_formula_type, ROI)
 
-    elif config.averaging_type == 'Pooled voxel averaged':
-        result, rsquared = ols(formula, current_df, glm_formula_type, ROI)
+    # TODO: result, rsquared = ols(formula, current_df, glm_formula_type, ROI)
 
     try:
         nobs = combined_results.loc[combined_results['index'] == ROI].sum()['Total voxels']

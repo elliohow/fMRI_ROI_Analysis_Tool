@@ -54,24 +54,14 @@ def df_setup():
 
     config = Utils.load_config(folder, 'analysis_log.toml')
 
-    if config.averaging_type == 'Session averaged':
-        subfolder = 'Session_averaged_results'
-
-    else:
-        subfolder = 'Pooled_voxel_results'
-
-    df = pd.read_json(f"{folder}/Overall/Summarised_results/{subfolder}/combined_results.json")
+    df = pd.read_json(f"{folder}/Overall/Summarised_results/combined_results.json")
 
     r = re.compile("Conf_Int_*")
     Conf_Int = list(filter(r.match, df.columns))[0]  # Find confidence interval level
 
-    if config.averaging_type == 'Session averaged':
-        column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev',
-                        'Minimum', 'Maximum', 'Total voxels', 'Excluded voxels', 'Average voxels per session',
-                        'Sessions', 'File_name']
-    else:
-        column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev',
-                        'Min', 'Max', 'Voxels', 'Excluded_Voxels', 'File_name']
+    column_order = ['index', 'Mean', Conf_Int, 'Median', 'Std_dev',
+                    'Minimum', 'Maximum', 'Total voxels', 'Excluded voxels', 'Average voxels per session',
+                    'Sessions', 'File_name']
 
     if 'Percentage change from baseline' in df.columns:
         column_order.insert(3, 'Percentage change from baseline')

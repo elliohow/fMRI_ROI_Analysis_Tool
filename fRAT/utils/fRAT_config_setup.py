@@ -37,15 +37,6 @@ General = {
                              'label': 'fRAT output directory location',
                              'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
-    'averaging_type': {'type': 'OptionMenu',
-                       'Recommended': 'Session averaged',
-                       'Options': ['Session averaged', 'Pooled voxel averaged'],
-                       'save_as': 'string',
-                       'Description': 'Participant averaged or Voxel averaged.\n'
-                                      'This setting is used to determine which statistics to use for plotting, '
-                                      'statistical analysis and when accessing results (for example through the '
-                                      'interactive report). \nNote: Histograms will always use the pooled voxel data.'},
-
     'parameter_file': {'type': 'Entry', 'Recommended': "paramValues.csv", 'save_as': 'string',
                        'Description': 'Recommended: paramValues.csv\n'
                                       'Name of the file to parse for critical params. Option added to allow quick '
@@ -226,8 +217,7 @@ Statistics = {
     #                                  'voxel values.'},
 
     'remove_intercept': {'type': 'CheckButton', 'Recommended': 'false',
-                         'Description': 'Remove intercept from model. Only to be used when using pooled voxel data in the '
-                                  'model, as the linear mixed model assigns an intercept to each subject. true or false.'},
+                         'Description': 'Remove intercept from model. Only to be used when using OLS model.'},
 
     'print_result': {'type': 'CheckButton', 'Recommended': 'false',
                      'label': 'Print results to terminal',
@@ -393,7 +383,7 @@ Plotting = {
 
     'Regional histogram': {'type': 'subheading'},
 
-    'histogram_binwidth': {'type': 'Entry', 'Recommended': 5, 'label': 'Bin width', 'Description': ""},
+    'histogram_binwidth': {'type': 'Entry', 'Recommended': 2, 'label': 'Bin width', 'Description': ""},
 
     'histogram_fig_label_x': {'type': 'Entry', 'Recommended': 'temporal Signal to Noise Ratio',
                               'save_as': 'string', 'label': 'x-axis label',
