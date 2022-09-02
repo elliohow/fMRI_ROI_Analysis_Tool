@@ -91,7 +91,6 @@ class Environment_Setup:
         if config.verbose:
             print(f'Saving output in directory: {cls.save_location}\n'
                   f'Using the {cls.atlas_name} atlas.\n'
-                  f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n'
                   f'Using parameter file: {config.parameter_file}.\n')
 
         # Make folder to save ROI_report if not already created
@@ -99,6 +98,15 @@ class Environment_Setup:
 
         # Move config file to analysis folder
         Utils.move_file('analysis_log.toml', cls.base_directory, cls.save_location)
+
+        if config.stat_map_folder == '':
+            print('Statistical map to find in subject directories statmap folders not specified.'
+                  '\nIf only one folder is found in the statmap directory, this folder will be selected. '
+                  '\nMake sure this folder contains the same kind of statistical map for each participant.'
+                  '\nIn future consider filling in the statistical map folder field '
+                  'as this information can then be added into the analysis_log.toml file.\n')
+        elif config.verbose:
+            print(f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n')
 
     @classmethod
     def setup_environment(cls, config):
@@ -115,8 +123,7 @@ class Environment_Setup:
             cls.base_directory = config.brain_file_loc
 
             if config.verbose:
-                print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
-                      f'Looking for statmaps in directory: statmaps/{config.stat_map_folder}\n')
+                print(f'Finding subject directories in directory: {config.brain_file_loc}\n')
 
         # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
         Utils.save_config(cls.base_directory, 'fRAT_config',
@@ -126,12 +133,7 @@ class Environment_Setup:
         try:
             os.chdir(cls.base_directory)
         except FileNotFoundError:
-            raise FileNotFoundError('brain_file_loc in fRAT_config.toml is not a valid directory.')
-
-        if config.stat_map_folder == '':
-            raise FileNotFoundError('Cannot find statistical maps as the "statistical map folder" field in the '
-                                    '"Analysis" tab is blank.'
-                                    '\nThis field should contain a folder found in the "statmaps" directories.')
+            raise FileNotFoundError('Chosen base directory of subjects is not a valid directory path.')
 
     @classmethod
     def roi_label_list(cls):
@@ -166,6 +168,27 @@ class Participant:
         self.grey_matter_segmentation = None
         self.white_matter_segmentation = None
         self.all_files_ignored = False
+        self.statmap_folder = ''
+
+        self.find_statmap_folder()
+
+    def find_statmap_folder(self):
+        if config.stat_map_folder:
+            self.statmap_folder = config.stat_map_folder
+
+        statmap_folders = glob(os.path.join(f"{self.participant_path}/statmaps", '*'))
+
+        if len(statmap_folders) > 1:
+            raise FileExistsError(f"No statistical map folder specified, however multiple statistical map folders "
+                                  f"found in {self.participant_name}'s statmap folder.")
+        elif len(statmap_folders) < 1:
+            raise FileNotFoundError(f"No statistical maps found in {self.participant_name}'s statmap folder.")
+
+        else:
+            self.statmap_folder = statmap_folders[0]
+
+            if config.verbose:
+                print(f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -189,6 +212,7 @@ class Participant:
                                          self.anat_to_mni_mat,
                                          self.grey_matter_segmentation,
                                          self.white_matter_segmentation,
+                                         self.statmap_folder,
                                          environment_globals)
 
         return self
@@ -397,6 +421,7 @@ class Participant:
 class Brain:
     def __init__(self, brain, participant_folder, participant_name, save_location,
                  anat_head, anat_brain, anat_to_mni_mat, grey_matter_segmentation, white_matter_segmentation,
+                 statmap_folder,
                  environment_globals):
         self.brain = brain
         self.save_location = save_location
@@ -406,7 +431,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
-        self.stat_brain = f"{participant_folder}/statmaps/{config.stat_map_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"{participant_folder}/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
         self.roi_temp_store = None
@@ -1061,7 +1086,8 @@ class MatchedBrain:
             participant_median = []
             for participant in self.participant_grouped_summarised_results:
                 participant_mean.append(np.nanmean(self.participant_grouped_summarised_results[participant], axis=0)[1])
-                participant_median.append(np.nanmedian(self.participant_grouped_summarised_results[participant], axis=0)[4])
+                participant_median.append(
+                    np.nanmedian(self.participant_grouped_summarised_results[participant], axis=0)[4])
 
             results[3, :] = np.nanmean(participant_mean, axis=0)
             results[4, :] = np.nanstd(participant_mean, axis=0)

@@ -2,8 +2,8 @@
 version = '0.15.0'
 
 # General
-run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
-run_statistics = true                                                             # true or false.
+run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
+run_statistics = false                                                            # true or false.
 run_plotting = false                                                              # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
@@ -29,7 +29,7 @@ noise_cutoff = true                                                             
 gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
 gaussian_outlier_contamination = 0.1                                              # Percent of expected outliers in dataset Recommended: 0.1
 gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
-stat_map_folder = 'temporalSNR_report'                                            # Folder name which contains the statistical map files. Example: temporalSNR_report
+stat_map_folder = ''                                                              # Folder name which contains the statistical map files. Example: temporalSNR_report
 stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
 binary_params = ['nordic']                                                        # Add parameters here which will either be on or off.

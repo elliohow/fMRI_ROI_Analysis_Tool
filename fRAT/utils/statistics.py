@@ -92,7 +92,8 @@ def find_baseline_parameters():
             non_baseline_params_query = " | ".join(" != ".join((str(k), str(v))) for k, v in baseline_params[0].items())
         except IndexError:
             Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
-                                 '\nNo baseline set in paramValues.csv. Change versus baseline statistics will not be calculated.\n')
+                                 '\nNo baseline set in paramValues.csv. Change versus baseline statistics will not be '
+                                 'calculated.\n')
 
         table.columns = columns
         return [baseline_param_query, non_baseline_params_query], table.columns[list(critical_column_locs)]
@@ -379,21 +380,6 @@ def calculate_information_criteria(formula, current_df, path_to_folder, ROI):
         f.write(information_criteria.to_csv(header=False))
 
 
-def ols(formula, current_df, glm_formula_type, ROI):
-    model = smf.ols(formula=formula, data=current_df)
-    result = model.fit()
-
-    with open(f"{STATISTICS_PATH}/{glm_formula_type}/{ROI}/{ROI}_GLM.csv", "w") as f:
-        f.write(result.summary().as_csv())
-
-    standardised_coeffs = calculate_glm_standardised_coeffs(current_df, ROI, formula, glm_formula_type)
-
-    Utils.print_and_save(STATISTICS_LOGFILE, config.print_result, result.summary(), '\n\n',
-                         'Standardised coefficients:\n', standardised_coeffs)
-
-    return result, result.rsquared
-
-
 def run_glm(dataset, critical_params, combined_results, ROI, glm_formula_type):
     Utils.check_and_make_dir(f"{STATISTICS_PATH}/{glm_formula_type}/{ROI}")
 
@@ -401,8 +387,6 @@ def run_glm(dataset, critical_params, combined_results, ROI, glm_formula_type):
     formula = construct_glm_formula(critical_params, glm_formula_type)
 
     result, rsquared = linear_mixed_model(formula, current_df, glm_formula_type, ROI)
-
-    # TODO: result, rsquared = ols(formula, current_df, glm_formula_type, ROI)
 
     try:
         nobs = combined_results.loc[combined_results['index'] == ROI].sum()['Total voxels']
