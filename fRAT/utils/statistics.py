@@ -46,10 +46,12 @@ def stats_setup():
     # Save log of only the statistics info from the config file
     Utils.save_config(STATISTICS_PATH,
                       f"{Path(os.path.abspath(__file__)).parents[1]}/fRAT_config",
-                      relevant_sections=['Statistics'], config_name='statistics_log')
+                      relevant_sections=['Statistics'], config_name='statistics_log',
+                      additional_info=[
+                          f'data_used_for_statistics = "{config.averaging_type.replace(" ", "_").lower()}"'])
 
     Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
-                         f'\nCalculating statistics using session averaged data.')
+                         f'\nCalculating statistics using {config.averaging_type} data.')
 
 
 def clean_data(combined_results, voxel_cutoff):
@@ -97,13 +99,13 @@ def find_baseline_parameters():
 
 
 def structure_data(config, participant_paths):
-    combined_results = Utils.read_combined_results(os.getcwd())
+    combined_results = Utils.read_combined_results(os.getcwd(), config.averaging_type)
 
     jsons = []
     for path in participant_paths:
-        jsons.extend([f"{path}/{jsn}" for jsn in Utils.find_files(path, "json") if 'combined_results' not in jsn])
+        jsons.extend([f"{path}/Summarised_results/{jsn}" for jsn in Utils.find_files(f"{path}/Summarised_results/", "json") if 'combined_results' not in jsn])
 
-    individual_roi_results = Histogram.load_and_restructure_jsons(config, jsons, combined_results[0], type='statistics')
+    individual_roi_results = Histogram.load_and_restructure_jsons(config, jsons, combined_results[0], data_type='statistics')
 
     return individual_roi_results, combined_results
 
@@ -446,9 +448,6 @@ def construct_glm_formula(critical_params, glm_formula_type):
         for param in critical_params:
             if param in config.categorical_variables:
                 formula = formula.replace(param.lower(), f"C({param.lower()})")
-
-        if config.remove_intercept:
-            formula += " -1"
 
     return formula
 

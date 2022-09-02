@@ -1,9 +1,9 @@
 # fMRI ROI Analysis Tool (fRAT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/hexpm/l/plug?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
 > **STILL IN ACTIVE DEVELOPMENT**
 >
-> A GUI-based pipeline to analyse and plot ROI-level analyses for **MacOS** and **Linux**. 
+> A GUI-based pipeline to analyse and plot ROI-level analyses for **MacOS**. 
 >
-> Tested and developed using **Python version 3.8.0**. 
+> Tested and developed using **Python version 3.8.0**.
 
 ## Table of Contents
 <!--ts-->
@@ -38,6 +38,9 @@ To install all required modules use the following command in the project directo
 
 To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
 the `example_data` folder to test whether the project dependencies are correctly installed.
+
+When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
+this library if possible.
 
 ### Install packages using a virtual environment
 Using virtual environments keeps dependencies required by different projects separate by creating an isolated virtual environment for each project, preventing a number of dependency issues. You can install all the dependencies required by the fRAT within a *virtual environment* using `conda`, the `venv` module built-in to python or any other virtual environment package installed on your system.

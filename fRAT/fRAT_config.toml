@@ -2,16 +2,17 @@
 version = '0.15.0'
 
 # General
-run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_statistics = false                                                            # true or false.
+run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
+run_statistics = true                                                             # true or false.
 run_plotting = false                                                              # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 brain_file_loc = '/Users/lpxeh10/Desktop/Working_directories/STRKVIS/Working_directories/fRAT_results'  # Either the absolute location of brain files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-report_output_folder = ''                                                         # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
-parameter_file = 'paramValues.csv'                                                # Recommended: paramValues.csv Name of the file to parse for critical params. Option added to allow quick swapping between different parameter files.
+report_output_folder = '/Users/lpxeh10/Desktop/Working_directories/STRKVIS/Working_directories/fRAT_results/test'  # Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.
+averaging_type = 'Participant averaged'                                           # Participant averaged or Session averaged. This setting is used to determine which statistics to use for plotting, and when accessing results (for example through the interactive report).  Note: Histograms will always use the raw results. The linear mixed model from the statistics will always use session averaged data Options: ['Session averaged', 'Participant averaged'].
+parameter_file = 'fastParamValues.csv'                                            # Recommended: paramValues.csv Name of the file to parse for critical params. Option added to allow quick swapping between different parameter files.
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 # Analysis
@@ -34,13 +35,12 @@ conf_level_number = '95%, 1.96'                                                 
 binary_params = ['nordic']                                                        # Add parameters here which will either be on or off.
 
 # Statistics
-statistics_subfolder_name = 'stats'                                               # Directory name for statistics folder.
+statistics_subfolder_name = 'averaged'                                            # Directory name for statistics folder.
 minimum_voxels = 400                                                              # Minimum voxels to include ROI in sample when bootstrapping parameter change. Highly recommended to set a value here, as ROIs with a small number of voxels may suggest poor fitting. Recommended value 400
 bootstrap_samples = 1000                                                          # Recommended value 1000.  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 bootstrap_confidence_interval = 95                                                # Recommended value: 95  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 categorical_variables = ['']                                                      # Select which variables (if any) are categorical. Used for the GLM.
-remove_intercept = false                                                          # Remove intercept from model. Only to be used when using OLS model.
-print_result = false                                                              # true or false. Prints results to terminal if true in addition to saving results to file.
+print_result = true                                                               # true or false. Prints results to terminal if true in addition to saving results to file.
 
 # Parsing
 parameter_dict1 = ['nordic']                                                      # Comma-separated list of parameter names to be parsed for and plotted.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: This field can be blank.
@@ -54,12 +54,12 @@ parsing_folder = 'func'                                                         
 plot_dpi = 200                                                                    # Recommended value 600
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
-make_violin_plot = false                                                          # true or false.
+make_violin_plot = true                                                           # true or false.
 make_brain_table = false                                                          # true or false.
-make_one_region_fig = false                                                       # true or false.
+make_one_region_fig = true                                                        # true or false.
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
-regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_fig_rois = [1, 2, 3]                                                     # Provide a comma-separated list of regions to plot e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 
 ## Brain table
 brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false

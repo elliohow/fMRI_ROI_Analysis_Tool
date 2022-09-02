@@ -37,6 +37,16 @@ General = {
                              'label': 'fRAT output directory location',
                              'Description': 'Either the absolute location of json files or blank, if blank then a browser window will allow you to search for the files at runtime. If passing in this information as a command line flag, this will be ignored.'},
 
+    'averaging_type': {'type': 'OptionMenu',
+                       'Recommended': 'Participant averaged',
+                       'Options': ['Session averaged', 'Participant averaged'],
+                       'save_as': 'string',
+                       'Description': 'Participant averaged or Session averaged.\n'
+                                      'This setting is used to determine which statistics to use for plotting, '
+                                      'and when accessing results (for example through the '
+                                      'interactive report). \nNote: Histograms will always use the raw results. The '
+                                      'linear mixed model from the statistics will always use session averaged data'},
+
     'parameter_file': {'type': 'Entry', 'Recommended': "paramValues.csv", 'save_as': 'string',
                        'Description': 'Recommended: paramValues.csv\n'
                                       'Name of the file to parse for critical params. Option added to allow quick '
@@ -215,9 +225,6 @@ Statistics = {
     #                   'Description': 'Mean or Median.\nNote: this setting is only used when '
     #                                  'looking at the overall effect, as statistics ran on individual ROIs will use raw '
     #                                  'voxel values.'},
-
-    'remove_intercept': {'type': 'CheckButton', 'Recommended': 'false',
-                         'Description': 'Remove intercept from model. Only to be used when using OLS model.'},
 
     'print_result': {'type': 'CheckButton', 'Recommended': 'false',
                      'label': 'Print results to terminal',

@@ -116,7 +116,7 @@ class Environment_Setup:
 
             if config.verbose:
                 print(f'Finding subject directories in directory: {config.brain_file_loc}\n'
-                      f'Looking for stat maps in directory: statmaps/{config.stat_map_folder}\n')
+                      f'Looking for statmaps in directory: statmaps/{config.stat_map_folder}\n')
 
         # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
         Utils.save_config(cls.base_directory, 'fRAT_config',
@@ -253,7 +253,7 @@ class Participant:
             else:
                 brain_list = list(itertools.starmap(Utils.instance_method_handler, iterable))
 
-            construct_combined_results(self.save_location, type='participant')
+            construct_combined_results(self.save_location, analysis_type='participant')
 
             self.anat_file_cleanup()
 
@@ -682,7 +682,7 @@ class Brain:
                                                                                              roi_temp_store, volumes)
 
         # Compile ROI statistics
-        roi_results = compile_roi_stats(roi_temp_store, roi_results, config)
+        roi_results = self.compile_roi_stats(roi_temp_store, roi_results)
 
         warnings.filterwarnings('default')  # Reactivate warnings
 
@@ -690,13 +690,70 @@ class Brain:
         #     roi_results = roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_current,
         #                                           brain_number_total)  # Bootstrapping
 
-        roi_stats_save(roi_temp_store, roi_results, self._labelArray,
-                       self.save_location, self.parameters, config,
-                       session_number=self.session_number)  # Save results
+        reformat_and_save_raw_data(roi_temp_store, self._labelArray,
+                                   self.save_location, self.parameters,
+                                   session_number=self.session_number)  # Save results
+
+        self.save_roi_results(roi_results)
 
         # Retain variables for atlas_scale function
         self.roi_results = roi_results
         self.roi_temp_store = roi_temp_store
+
+    def save_roi_results(self, roi_results):
+        headers = ['Voxels', 'Mean', 'Std_dev',
+                   f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
+                   'Median', 'Min', 'Max', 'Excluded_Voxels']
+
+        # Save results as dataframe
+        results = pd.DataFrame(data=roi_results,
+                               index=headers,
+                               columns=self._labelArray)
+
+        summary_results_path = f"{self.save_location}Summarised_results/"
+        Utils.check_and_make_dir(summary_results_path)
+
+        with open(f"{summary_results_path}{self.parameters}_ps{self.session_number}.json", 'w') as file:
+            json.dump(results.to_dict(), file, indent=2)
+
+    def compile_roi_stats(self, roi_temp_store, roi_results):
+        warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
+
+        axis = 1
+        read_start = 0
+        write_start = 0
+        write_end = -1
+
+        # First loop calculates summary stats for normal ROIs, second loop calculates stats for overall ROI
+        for i in range(2):
+            roi_results[0, write_start:write_end] = np.count_nonzero(~np.isnan(roi_temp_store[read_start:, :]),
+                                                                     axis=axis)  # Count number of non-nan voxels
+            roi_results[1, write_start:write_end] = np.nanmean(roi_temp_store[read_start:, :], axis=axis)
+            roi_results[2, write_start:write_end] = np.nanstd(roi_temp_store[read_start:, :], axis=axis, ddof=1)
+            # Confidence interval calculation
+            roi_results[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
+                                                    * roi_results[2, write_start:write_end] \
+                                                    / np.sqrt(roi_results[0, write_start:write_end])
+            roi_results[4, write_start:write_end] = np.nanmedian(roi_temp_store[read_start:, :], axis=axis)
+            roi_results[5, write_start:write_end] = np.nanmin(roi_temp_store[read_start:, :], axis=axis)
+            roi_results[6, write_start:write_end] = np.nanmax(roi_temp_store[read_start:, :], axis=axis)
+
+            axis = None
+            read_start = 1
+            write_start = -1
+            write_end = None
+
+        roi_results[7, -1] = np.sum(roi_results[7, 1:-1])  # Calculate excluded voxels
+
+        # Convert ROIs with no voxels from columns with NaNs to zeros
+        for column, voxel_num in enumerate(roi_results[0]):
+            if voxel_num == 0.0:
+                for row in list(range(1, 6)):
+                    roi_results[row][column] = 0.0
+
+        warnings.filterwarnings('default')  # Reactivate warnings
+
+        return roi_results
 
     def noise_correct_data_and_create_excluded_voxel_maps(self, roi_results, roi_temp_store, volumes):
         header, statmap_shape, save_location, stage, excluded_voxels_file_location = self.create_excluded_rois_volume(
@@ -842,19 +899,30 @@ class MatchedBrain:
         self.brains = brain_files
         self.parameters = "_".join([f"{param_name}{param_val}" for param_name, param_val
                                     in zip(config.parameter_dict2, parameters)])
-        self.overall_results = []
-        self.raw_results = []
-        self.session_averaged_results = []
 
+        self.participant_grouped_summarised_results = {participant: [] for participant in brain_files.keys()}
+        self.ungrouped_summarised_results = []
+        self.ungrouped_raw_results = []
+
+        self.session_averaged_results = []
+        self.participant_averaged_results = []
+
+        self.excluded_voxels = None
         self.noise_threshold = None
         self.lower_gaussian_threshold = None
         self.upper_gaussian_threshold = None
         self.conf_int = Environment_Setup.conf_level_list[int(config.conf_level_number)]
 
+        # Instance variables to be accessed by participant averaged function
+        self.session_number = None
+        self.maximum_result = None
+        self.minimum_result = None
+        self.total_voxels = None
+        self.average_voxels = None
+
         # Copying class attributes here is a workaround for dill, which can't access class attributes.
         self.label_array = self.label_array
         self.save_location = self.save_location
-        self.results_path = ''
 
     @classmethod
     def setup_class(cls, participant_list):
@@ -913,19 +981,10 @@ class MatchedBrain:
         if config.verbose:
             print(f'Combining results for parameter combination: {self.parameters}')
 
-        self.results_path = f"{self.save_location}Summarised_results/"
-        Utils.check_and_make_dir(self.results_path)
-
-        self.calculate_and_save_pooled_session_stats()
-
-        for result in self.overall_results:
-            result[0:-1, :] = 0  # Reset roi_results and only retain excluded voxels
-
-        # Collapse overall results and calculate total excluded voxels
-        self.overall_results = np.sum(self.overall_results, axis=0)
-
         # Combine raw results
-        self.raw_results = np.concatenate(self.raw_results, axis=1)
+        self.ungrouped_raw_results = np.concatenate(self.ungrouped_raw_results, axis=1)
+
+        self.create_array_to_calculate_excluded_voxels()
 
         if config.outlier_detection_method == 'pooled':
             if config.verbose:
@@ -933,28 +992,99 @@ class MatchedBrain:
 
             # Remove outliers from ROIs
             if config.noise_cutoff:
-                self.overall_results, self.raw_results, self.noise_threshold = noise_threshold_outlier_detection(
-                    self.overall_results,
-                    self.raw_results)
+                excluded_voxels, self.ungrouped_raw_results, self.noise_threshold = noise_threshold_outlier_detection(
+                    self.excluded_voxels,
+                    self.ungrouped_raw_results)
 
             if config.gaussian_outlier_detection:
-                self.overall_results, self.raw_results, self.lower_gaussian_threshold, self.upper_gaussian_threshold = gaussian_outlier_detection(
-                    self.overall_results,
-                    self.raw_results,
+                self.ungrouped_summarised_results, self.ungrouped_raw_results, self.lower_gaussian_threshold, self.upper_gaussian_threshold = gaussian_outlier_detection(
+                    self.excluded_voxels,
+                    self.ungrouped_raw_results,
                     config
                 )
 
-        # Compile ROI statistics
-        self.overall_results = compile_roi_stats(self.raw_results, self.overall_results, config)
+        Utils.check_and_make_dir(f"{self.save_location}/Summarised_results/")
+        self.calculate_and_save_session_averaged_results()
+        self.calculate_and_save_participant_averaged_results()
 
         # Save results
-        roi_stats_save(self.raw_results, self.overall_results, self.label_array,
-                       self.save_location, self.parameters, config)
+        reformat_and_save_raw_data(self.ungrouped_raw_results, self.label_array,
+                                   self.save_location, self.parameters)
 
         return self
 
-    def calculate_and_save_pooled_session_stats(self):
-        nan_data = copy.deepcopy(self.overall_results)
+    def create_array_to_calculate_excluded_voxels(self):
+        self.excluded_voxels = copy.deepcopy(self.ungrouped_summarised_results)
+
+        for result in self.excluded_voxels:
+            result[0:-1, :] = 0  # Reset roi_results and only retain excluded voxels
+
+        # Collapse list to get total excluded voxels
+        self.excluded_voxels = np.sum(self.excluded_voxels, axis=0)
+
+    def calculate_and_save_participant_averaged_results(self):
+        path = f"{self.save_location}/Summarised_results/Participant_averaged_results"
+        Utils.check_and_make_dir(path)
+
+        for participant in self.participant_grouped_summarised_results:
+            for session in self.participant_grouped_summarised_results[participant]:
+                for row in session:
+                    row[row == 0] = np.nan
+
+        row_labels = ['Total voxels',
+                      'Excluded voxels',
+                      'Average voxels per session',
+                      'Mean',
+                      'Std_dev',
+                      f'Conf_Int_{self.conf_int[0]}',
+                      'Median',
+                      'Minimum',
+                      'Maximum',
+                      'Participants',
+                      'Sessions'
+                      ]
+
+        results = np.full((len(row_labels), len(self.label_array)), np.inf)
+
+        results[0, :] = self.total_voxels
+        results[1, :] = self.excluded_voxels[7]
+        results[2, :] = self.average_voxels
+        results[7, :] = self.minimum_result
+        results[8, :] = self.maximum_result
+        results[10, :] = self.session_number
+
+        # Ignore runtime warnings about "Mean of empty slice" or "Degrees of freedom <= 0 for slice"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+
+            participant_mean = []
+            participant_median = []
+            for participant in self.participant_grouped_summarised_results:
+                participant_mean.append(np.nanmean(self.participant_grouped_summarised_results[participant], axis=0)[1])
+                participant_median.append(np.nanmedian(self.participant_grouped_summarised_results[participant], axis=0)[4])
+
+            results[3, :] = np.nanmean(participant_mean, axis=0)
+            results[4, :] = np.nanstd(participant_mean, axis=0)
+            results[6, :] = np.nanmedian(participant_median, axis=0)
+
+            # Counting nonzero as sometimes an ROI won't show up for a particular participant
+            results[9, :] = np.count_nonzero(~np.isnan(participant_mean), axis=0)  # Participants
+            results[5, :] = self.conf_int[1] * results[4, :] / np.sqrt(results[9, :])  # Confidence interval
+
+        results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
+
+        with open(f"{path}/{self.parameters}.json", 'w') as file:
+            json.dump(results_df.to_dict(), file, indent=2)
+
+        self.participant_averaged_results = results_df.to_numpy()
+
+        return results_df
+
+    def calculate_and_save_session_averaged_results(self):
+        path = f"{self.save_location}/Summarised_results/Session_averaged_results"
+        Utils.check_and_make_dir(path)
+
+        nan_data = copy.deepcopy(self.ungrouped_summarised_results)
 
         for session in nan_data:
             for row in session:
@@ -973,29 +1103,30 @@ class MatchedBrain:
 
         results = np.full((len(row_labels), len(self.label_array)), np.inf)
 
-        results[0, :] = np.nansum(self.overall_results, axis=0)[0]  # Total voxels
-        results[1, :] = np.nansum(self.overall_results, axis=0)[7]  # Excluded voxels
-        results[2, :] = np.nanmean(nan_data, axis=0)[0]  # Average voxels
-        results[3, :] = np.nanmean(nan_data, axis=0)[1]  # Mean
-        results[4, :] = np.nanstd(nan_data, axis=0)[1]  # Standard deviation
-        results[6, :] = np.nanmedian(nan_data, axis=0)[4]  # Median
-        results[7, :] = np.nanmin(self.overall_results, axis=0)[5]  # Minimum
-        results[8, :] = np.nanmax(self.overall_results, axis=0)[6]  # Maximum
-        results[9, :] = np.count_nonzero(self.overall_results, axis=0)[0]  # Sessions
+        self.total_voxels = results[0, :] = np.nansum(self.ungrouped_summarised_results, axis=0)[0]  # Total voxels
+        results[1, :] = self.excluded_voxels[7]  # Excluded voxels
+
+        # Ignore runtime warnings about "Mean of empty slice" or "Degrees of freedom <= 0 for slice"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+
+            self.average_voxels = results[2, :] = np.nanmean(nan_data, axis=0)[0]  # Average voxels
+            results[3, :] = np.nanmean(nan_data, axis=0)[1]  # Mean
+            results[4, :] = np.nanstd(nan_data, axis=0)[1]  # Standard deviation
+            results[6, :] = np.nanmedian(nan_data, axis=0)[4]  # Median
+
+        self.minimum_result = results[7, :] = np.nanmin(self.ungrouped_summarised_results, axis=0)[5]  # Minimum
+        self.maximum_result = results[8, :] = np.nanmax(self.ungrouped_summarised_results, axis=0)[6]  # Maximum
+        self.session_number = results[9, :] = np.count_nonzero(self.ungrouped_summarised_results, axis=0)[0]  # Sessions
 
         results[5, :] = self.conf_int[1] * results[4, :] / np.sqrt(results[9, :])  # Confidence interval
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
-        with open(f"{self.results_path}{self.parameters}.json", 'w') as file:
+        with open(f"{path}/{self.parameters}.json", 'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
 
-        print(self.overall_results)
-        print(results_df)
-
         self.session_averaged_results = results_df.to_numpy()
-
-        return results_df
 
     @classmethod
     def assign_parameters_to_brains(cls, matched_brains, participant_list):
@@ -1029,12 +1160,20 @@ class MatchedBrain:
                         except KeyError:
                             pass
 
-    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, config):
+    def atlas_scale(self, max_roi_stat, brain_number_current, brain_number_total, statistic_num, atlas_path, data,
+                    config):
         """Produces up to three scaled NIFTI files. Within brains, between brains (based on rois), between brains
         (based on the highest seen value of all brains and rois)."""
 
-        results = self.session_averaged_results
-        statistic_labels = config.statistic_options
+        if data == 'Session averaged':
+            results = self.session_averaged_results
+            subfolder = 'Session_averaged_results/'
+            statistic_labels = config.statistic_options['Session averaged']
+
+        else:
+            results = self.participant_averaged_results
+            subfolder = 'Participant_averaged_results/'
+            statistic_labels = config.statistic_options['Participant averaged']
 
         if config.verbose and max(max_roi_stat) != 0.0:
             print(f'Creating {statistic_labels[statistic_num]} NIFTI_ROI file for parameter combination '
@@ -1072,7 +1211,7 @@ class MatchedBrain:
 
         for scale_stat in scale_stats:
             scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))
-            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{scale_stat[1]}")
+            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{subfolder}{scale_stat[1]}")
 
     def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num, results):
         # Iterate through each voxel in the atlas
@@ -1113,46 +1252,6 @@ def print_outlier_removal_methods(config, method, parameters=None, brain=None):
         elif method == 'individual':
             print(f'Running {method} outlier removal using {" & ".join(string)} '
                   f'for parameter combination: {brain}')
-
-
-def compile_roi_stats(roi_temp_store, roi_results, config):
-    warnings.filterwarnings('ignore')  # Ignore warnings that indicate an ROI has only nan values
-
-    axis = 1
-    read_start = 0
-    write_start = 0
-    write_end = -1
-
-    # First loop calculates summary stats for normal ROIs, second loop calculates stats for overall ROI
-    for i in range(2):
-        roi_results[0, write_start:write_end] = np.count_nonzero(~np.isnan(roi_temp_store[read_start:, :]),
-                                                                 axis=axis)  # Count number of non-nan voxels
-        roi_results[1, write_start:write_end] = np.nanmean(roi_temp_store[read_start:, :], axis=axis)
-        roi_results[2, write_start:write_end] = np.nanstd(roi_temp_store[read_start:, :], axis=axis, ddof=1)
-        # Confidence interval calculation
-        roi_results[3, write_start:write_end] = Environment_Setup.conf_level_list[int(config.conf_level_number)][1] \
-                                                * roi_results[2, write_start:write_end] \
-                                                / np.sqrt(roi_results[0, write_start:write_end])
-        roi_results[4, write_start:write_end] = np.nanmedian(roi_temp_store[read_start:, :], axis=axis)
-        roi_results[5, write_start:write_end] = np.nanmin(roi_temp_store[read_start:, :], axis=axis)
-        roi_results[6, write_start:write_end] = np.nanmax(roi_temp_store[read_start:, :], axis=axis)
-
-        axis = None
-        read_start = 1
-        write_start = -1
-        write_end = None
-
-    roi_results[7, -1] = np.sum(roi_results[7, 1:-1])  # Calculate excluded voxels
-
-    # Convert ROIs with no voxels from columns with NaNs to zeros
-    for column, voxel_num in enumerate(roi_results[0]):
-        if voxel_num == 0.0:
-            for row in list(range(1, 6)):
-                roi_results[row][column] = 0.0
-
-    warnings.filterwarnings('default')  # Reactivate warnings
-
-    return roi_results
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, wmseg=None):
@@ -1362,15 +1461,11 @@ def roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_curren
     return roi_results
 
 
-def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ext_brain, config, session_number=None):
+def reformat_and_save_raw_data(roi_temp_store, labelArray, save_location, no_ext_brain, session_number=None):
     if session_number is None:
         session_suffix = ''
     else:
         session_suffix = f'_ps{session_number}'
-
-    headers = ['Voxels', 'Mean', 'Std_dev',
-               f'Conf_Int_{Environment_Setup.conf_level_list[int(config.conf_level_number)][0]}',
-               'Median', 'Min', 'Max', 'Excluded_Voxels']
 
     formatted_roi_temp_store = roi_temp_store.copy()  # Copy roi_temp_store so changes do get saved later
 
@@ -1382,10 +1477,6 @@ def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ex
     # Reorganise matrix with nans at end
     formatted_roi_temp_store[:] = formatted_roi_temp_store[a, i]
 
-    # Save results as dataframe
-    results = pd.DataFrame(data=roi_results,
-                           index=headers,
-                           columns=labelArray)
     raw_results = pd.DataFrame(data=formatted_roi_temp_store,
                                columns=labelArray[:-1])
 
@@ -1398,14 +1489,8 @@ def roi_stats_save(roi_temp_store, roi_results, labelArray, save_location, no_ex
     # Convert to dict and get rid of row numbers to significantly decrease file size
     roidict = Utils.dataframe_to_dict(raw_results)
 
-    summary_results_path = f"{save_location}Summarised_results/"
-    Utils.check_and_make_dir(summary_results_path)
-
     raw_results_path = f"{save_location}Raw_results/"
     Utils.check_and_make_dir(raw_results_path)
-
-    with open(f"{summary_results_path}{no_ext_brain}{session_suffix}.json", 'w') as file:
-        json.dump(results.to_dict(), file, indent=2)
 
     with open(f"{raw_results_path}{no_ext_brain}{session_suffix}_raw.json", 'w') as file:
         json.dump(roidict, file, indent=2)
@@ -1422,13 +1507,19 @@ def verify_param_values():
                             f'{config.parameter_file} headers.')
 
 
-def construct_combined_results(directory, type):
-    directory = f"{directory}/Summarised_results/"
+def construct_combined_results(directory, analysis_type='overall', subfolder=''):
+    if subfolder == 'session averaged':
+        directory = f"{directory}/Summarised_results/Session_averaged_results"
+    elif subfolder == 'participant averaged':
+        directory = f"{directory}/Summarised_results/Participant_averaged_results/"
+    else:
+        directory = f"{directory}/Summarised_results/"
+
     json_file_list = [os.path.basename(f) for f in glob(f"{directory}/*.json")]
 
     save_combined_results_file(directory, json_file_list)
 
-    if type == 'participant':
+    if analysis_type == 'participant':
         save_averaged_results_file(directory, json_file_list)
 
 
@@ -1458,9 +1549,10 @@ def save_averaged_results_file(directory, json_file_list):
             combined_dataframe = pd.concat((combined_dataframe, results))
 
         grouped_by_stat = combined_dataframe.groupby(combined_dataframe.index)
-        averaged_dataframe = grouped_by_stat.mean().reindex(row_order).transpose().reset_index()
+        averaged_dataframe = grouped_by_stat.mean().reindex(row_order)
 
-        averaged_dataframe.to_json(f"{directory}/Averaged_results/averaged_{parameter}.json", orient='records', indent=2)
+        with open(f"{directory}/Averaged_results/{parameter}.json", 'w') as file:
+            json.dump(averaged_dataframe.to_dict(), file, indent=2)
 
 
 def save_combined_results_file(directory, json_file_list):

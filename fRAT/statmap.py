@@ -327,7 +327,7 @@ def run_utility(file, participant_dir, output_folder, func, cfg):
 
     if func == 'Add Gaussian noise':
         noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
-        participant_noise_level = noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise_value']
+        participant_noise_level = noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise_value'][0]
         add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level)
 
 
@@ -338,7 +338,7 @@ def add_noise_to_file(file, no_ext_file, participant_dir, output_folder, partici
     save_brain(data, ext=f'_noiselevel0', no_ext_file=no_ext_file,
                output_folder=f"{participant_dir}/{output_folder}", header=header)
 
-    for multiplier in config.noise_multipliers:  # TODO add noise to each participant separately
+    for multiplier in config.noise_multipliers:
         gaussian_noise = np.random.default_rng().normal(loc=0.0,
                                                         scale=participant_noise_level * multiplier,
                                                         size=data.shape)

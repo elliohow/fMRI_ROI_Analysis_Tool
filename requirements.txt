@@ -42,7 +42,7 @@ networkx==2.4
 neurdflib==5.0.1
 nibabel==3.2.1
 nilearn==0.6.1
-nipype==1.8.3
+nipype==1.8.4
 numpy==1.20.2
 packaging==20.3
 palettable==3.3.0
