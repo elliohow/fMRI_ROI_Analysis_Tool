@@ -1,27 +1,22 @@
 Welcome to fRAT's documentation!
 ================================
 
-.. note::
-
-   This project is under active development.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
+```{note}
+This project is under active development.
+```
 
 Indices and tables
 ==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+* {ref}`genindex`
+* {ref}`modindex`
+* {ref}`search`
 
 Contents
 --------
+```{toctree}
+:caption: Contents
 
-.. toctree::
-   Home <self>
-   usage
-   api
+Home <self>
+usage
+api
+```
