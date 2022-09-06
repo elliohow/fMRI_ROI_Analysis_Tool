@@ -1,22 +1,16 @@
-Welcome to fRAT's documentation!
-================================
+# fRAT - fMRI ROI Analysis Tool
 
 ```{note}
 This project is under active development.
 ```
 
-Indices and tables
-==================
-* {ref}`genindex`
-* {ref}`modindex`
-* {ref}`search`
+## About
+fRAT is...
 
-Contents
---------
 ```{toctree}
 :caption: Contents
 
 Home <self>
-usage
-api
+Usage
+configuration_files
 ```
