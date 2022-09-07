@@ -1,3 +1,2 @@
-myst-parser==0.18.0
 Sphinx>=5,<6
 sphinx_rtd_theme

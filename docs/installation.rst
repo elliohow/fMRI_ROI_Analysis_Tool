@@ -1,10 +1,12 @@
-```{eval-rst}
 .. include:: links.rst
-```
 
-# Installation
+============
+Installation
+============
 
-## External Dependencies
+=====================
+External Dependencies
+=====================
 
 fRAT is written using Python 3.8.0 and is based on nipype.
 
