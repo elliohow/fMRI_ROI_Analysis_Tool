@@ -11,6 +11,7 @@ fRAT is...
 :caption: Contents
 
 Home <self>
+installation
 usage
 configuration_files
 ```
