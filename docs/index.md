@@ -11,6 +11,6 @@ fRAT is...
 :caption: Contents
 
 Home <self>
-Usage
+usage
 configuration_files
 ```
