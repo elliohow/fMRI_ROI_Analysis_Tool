@@ -1,9 +1,5 @@
-=============================
-fRAT - fMRI ROI Analysis Tool
-=============================
-
-.. note::
-    This project is under active development.
+.. include:: links.rst
+.. include:: ../README.rst
 
 About
 =============================

@@ -1,9 +1,27 @@
-# fMRI ROI Analysis Tool (fRAT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/hexpm/l/plug?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
-> **STILL IN ACTIVE DEVELOPMENT**
->
-> A GUI-based pipeline to analyse and plot ROI-level analyses for **MacOS**. 
->
-> Tested and developed using **Python version 3.8.0**.
+=============================
+fRAT - fMRI ROI Analysis Tool
+=============================
+
+fRAT is a GUI-based toolset used for analysis of task-based and resting-state functional MRI (fMRI) data. Primarily fRAT
+is used to analyse and plot region-of-interest data, with a number of supplemental functions provided within.
+
+.. note::
+    This project is under active development.
+
+    Tested and developed using **Python version 3.8.0** on **MacOS**.
+
+.. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
+  :target: http://makeapullrequest.com
+  :alt: PRs Welcome!
+
+.. image:: https://img.shields.io/hexpm/l/plug?style=flat-square
+  :target: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE
+  :alt: License information
+
+About
+-----
+
+More information and documentation can be found at https://fmri-roi-analysis-tool.readthedocs.io
 
 ## Table of Contents
 <!--ts-->
@@ -21,7 +39,6 @@
 * [Licensing](#licensing)
 <!--te-->
 
-## About
 
 ### GUI images
 <p align="center">
@@ -32,20 +49,6 @@
 <p align="center">
  <img src="docs/example_images/HTML_report.png" width=900>
 </p>
-
-## Installing / Getting started
-To install all required modules use the following command in the project directory: `pip install -r requirements.txt`.
-
-To run the GUI version of the fRAT, use `fRAT_GUI.py`. It is recommended that the fRAT is first ran using the files in 
-the `example_data` folder to test whether the project dependencies are correctly installed.
-
-When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
-this library if possible.
-
-### Install packages using a virtual environment
-Using virtual environments keeps dependencies required by different projects separate by creating an isolated virtual environment for each project, preventing a number of dependency issues. You can install all the dependencies required by the fRAT within a *virtual environment* using `conda`, the `venv` module built-in to python or any other virtual environment package installed on your system.
-
-For more detailed instructions [see here](docs/Virtual_environments.md).
 
 ## Running
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
