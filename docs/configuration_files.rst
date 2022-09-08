@@ -1,4 +1,4 @@
 .. autosummary::
    :toctree: generated
 
-   lumache
+   fRAT/dash_report.py
