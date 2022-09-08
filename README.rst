@@ -1,14 +1,13 @@
 =============================
 fRAT - fMRI ROI Analysis Tool
 =============================
-
 fRAT is a GUI-based toolset used for analysis of task-based and resting-state functional MRI (fMRI) data. Primarily fRAT
 is used to analyse and plot region-of-interest data, with a number of supplemental functions provided within.
 
 .. note::
     This project is under active development.
 
-    Tested and developed using **Python version 3.8.0** on **MacOS**.
+    fRAT is written using **Python version 3.8.0** for **MacOS** and is based on Nipype.
 
 .. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
   :target: http://makeapullrequest.com
@@ -23,10 +22,7 @@ About
 
 More information and documentation can be found at https://fmri-roi-analysis-tool.readthedocs.io
 
-## Table of Contents
-<!--ts-->
-* [Installing / Getting started](#installing--getting-started)
-  * [Virtual environments](#install-packages-using-a-virtual-environment)
+
 * [Running](#running)
   * [Folder structure](#folder-structure)
   * [paramValues.csv](#paramvaluescsv)
@@ -37,7 +33,7 @@ More information and documentation can be found at https://fmri-roi-analysis-too
   * [Multicore processing](#multicore-processing)
 * [Versioning](#versioning)
 * [Licensing](#licensing)
-<!--te-->
+
 
 
 ### GUI images
@@ -49,21 +45,6 @@ More information and documentation can be found at https://fmri-roi-analysis-too
 <p align="center">
  <img src="docs/example_images/HTML_report.png" width=900>
 </p>
-
-## Running
-The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively. Configuration 
-settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files. 
-The critical parameter validation method requires the creation of a paramValues.csv file ([further information here](#paramvaluescsv)).
-
-`combined_results.json` (found in `output_folder/Summarised_results/`) contains the summary results of all fMRI volumes 
-combined into one file. If paramValues.csv should be created before running the analysis, using the "Setup parameters"
-option in the GUI. `printResults.py` (or the print results GUI option) can be used to print the desired results to the terminal once
-`combined_results.json` has been created. A `config_log.py` file will be created in the output folder during 
-analysis to record which config settings were used for analysis.
-
-NOTE: For plotting, as scaling of figures is calculated during the analysis step, scaled figures should only be used if 
-all files analysed together are also displayed together, otherwise the scaling will be based on files which are not 
-present in the figures.
 
 ### Folder structure:
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by 
@@ -140,50 +121,6 @@ Output folder
 ├── config_log.toml (log of settings used for analysis)
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 ```
-
-### paramValues.csv:
-* A `paramValues.csv` file containing the MRI parameter values of each scan should be in the base folder. To create this
-  file, select the 'Setup parameters' option in the GUI. Alternatively, when running without the GUI, pass 
-  the --make_table flag when running `fRAT.py`, e.g. `fRAT.py --make_table`. 
-  
-  If "make_folder_structure" is true in `fRAT_config.toml`, then when one of these options to create `paramValues.csv`
-  is used, the folder structure required by fRAT will also be created.
-* To change which keywords to extract from file names when creating this table, edit the two critical parameters
-  options in the Parsing menu of the GUI. Alternatively edit the "parameter_dict1" and "parameter_dict2" options in
-  `config.toml`. Each critical parameter/parameter_dict list entry represents the name of the parameter and how it would
-  be represented in file name Even if not present in the file name, these options must still be filled in as they are 
-  used elsewhere such as for labelling plots.
-* If the file names do not contain information about which parameters were used (such as the file name
-  `P1_MB3_S2_matchBW.nii` showing that multiband 3 and SENSE 2 were used), edit paramValues.csv so it contains the correct
-  information.
-
-### anat folder:
-* A single skull stripped anatomical volume should be placed in a folder called "anat" with the suffix "_brain".
-* If you are using the BBR cost function for functional to anatomical registration -- which also requires a FAST 
-  segmentation to have been ran (see below) -- then a second, whole head, non-brain extracted volume should also be 
-  placed in the "anat" folder. This second file should not contain the word "brain" in the file name.
-
-### If aligning to FSL FAST segmentation (recommended):
-* FSL's FAST segmentation can be used to only include grey matter voxels in the analysis, FAST segmentations do not need 
-  to be completed before running fRAT analysis.
-* Output of FAST should be placed in a folder called "fslfast". All files output by fast should be placed in this folder.
-* FAST segmentation is recommended when cortical regions are being examined. Support for subcortical regions may
-  be added in the future.
-* As FAST requires a skull stripped anatomical volume, it is highly recommended that the accuracy of this skull 
-  stripping is assessed before running FAST. Overly conservative skull stripping can lead to skull being retained in the
-  resulting image, which FAST may then misidentify as grey matter. Conversely, overly liberal skull stripping can lead to
-  parts of the brain being removed, meaning that these voxels will also not be included in any ROIs.
-* Consider using [optiBET](https://montilab.psych.ucla.edu/fmri-wiki/optibet/) if having issues with standard skull
-  stripping methods as this method has produced the best results so far.
-* If aligning to FAST segmentation, it will also be possible to use the more accurate BBR cost function when aligning 
-  the functional volumes to anatomical volumes. This will require an additional whole head, non-brain extracted volume
-  to be placed in the "anat" folder.
-
-### Shell scripts
-For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
-(for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting plotting),
-e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`. Help text for available flags can be accessed with the
-command: `fRAT.py --help`.
 
 ## Potential errors
 ### Multicore processing

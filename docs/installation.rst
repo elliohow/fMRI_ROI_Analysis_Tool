@@ -22,25 +22,26 @@ These instructions apply if you are running under `Linux` or `MacOS`. For `Windo
 however be aware that fRAT is untested with Windows due to difficulties running software important to fRAT such as FSL.
 
 .. note::
-    Make sure Python is downloaded and is the same as the tested version or higher (found on :doc:`Home page <index>`)
+    Make sure Python is downloaded and is the same as the tested version (found on the :doc:`home page <index>`) or
+    higher.
 
 First, create a virtual environment called fRAT:
 
-``conda``::
+`conda` version::
 
     $ conda create --name fRAT python==3.8.0
 
-``venv``::
+`venv` version::
 
     $ python3 -m venv fRAT
 
 Next activate the virtual environment:
 
-``conda``::
+`conda` version::
 
     $ conda activate fRAT
 
-``venv``::
+`venv` version::
 
     $ source fRAT/bin/activate
 
@@ -48,24 +49,27 @@ After changing directory into the base fRAT folder, install dependencies using p
 
     $ pip install -r requirements.txt
 
-You should see ``(fRAT)`` at start of your prompt. Now you can run the tool after changing directory into the fRAT folder: ::
+You should see ``(fRAT)`` at the start of your prompt. Now you can run the tool after changing directory into the fRAT
+folder: ::
 
     $ cd fRAT
     $ python fRAT_GUI.py
 
-`venv` python version
+`venv` notes
 ~~~~~~~~~~~~~~~~~~~~~
-* ``venv`` by default uses the currently installed version of Python to set up the virtual environment, however some other
-    virtual environment packages (such as ``virtualenv`` and ``conda``) do not have this limitation.
+* ``venv`` by default uses the currently installed version of Python to set up the virtual environment, however some other virtual environment packages (such as ``virtualenv`` and ``conda``) do not have this limitation.
+* To deactive the ``venv`` environment you can use ``deactivate``.
 
-`conda` commands
+`conda` notes
 ~~~~~~~~~~~~~~~~
 * To check currently installed conda environments can use ``conda env list``.
 * To revert back to another environment you can use ``conda deactivate``. This should set your prompt back to ``(base)``.
 
 External Dependencies
 =====================
-fRAT is written using Python 3.8.0 and is based on nipype.
-
-As FSL_ is a core component of the fRAT and is not able to be downloaded through Python’s Package Index (Pypi),
+As FSL_ is a core component of fRAT and is not able to be downloaded through Python’s Package Index (PyPI), therefore
 FSL_ (version 6.0.2 or above) neuroimaging software tool should be downloaded and setup separately.
+
+While optiBET_ is not required for fRAT, it is highly recommended that this software tool be used for brain extraction
+due to the necessity of accurate skull stripping for the fRAT to function optimally and the consistently better brain
+extraction performance when using optiBET.

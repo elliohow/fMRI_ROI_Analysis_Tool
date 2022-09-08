@@ -108,8 +108,8 @@ Analysis = {
                                                 'folder.'},
 
     'grey_matter_segment': {'type': 'CheckButton',
-                            'Recommended': 'true', 'label': 'Use FSL FAST segmentation',
-                            'Description': 'true or false. Recommended: true.'
+                            'Recommended': 'true', 'label': 'Use FAST to only include grey matter',
+                            'Description': 'true or false. Recommended: true if using a cortical atlas.'
                                            '\nNote: FSL FAST segmentation files should be placed in the '
                                            'sub-{id}/fslfast/ directory. Only the FSL FAST file appended with pve_1 '
                                            'needs to be in this directory, however if all files output by FAST are '
