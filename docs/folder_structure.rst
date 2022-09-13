@@ -30,7 +30,7 @@ the base folder should be structured like this:
 Therefore, an example folder structure with two subjects would be (sub-2 directory contents not shown as folder
 structure should be the same as for sub-01):
 
-.. image:: images/HTML_report.png
+.. image:: images/input_folder.png
 
 
 | │ Base folder

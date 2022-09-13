@@ -1,0 +1,4 @@
+MB3_S1.5: Removed noise volume from end of timeseries
+MB3_S2_matchBW: Removed noise volume from end of timeseries
+MB3_S1.5: Removed motion outlier timepoints
+MB3_S2_matchBW: Removed motion outlier timepoints
