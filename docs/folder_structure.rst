@@ -12,7 +12,7 @@ Folder structure for running fRAT
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
 
-.. image:: images/input_folder.png
+
 
 | │ Base folder
 | ├── stat_maps (name can be chosen by user)
@@ -28,7 +28,11 @@ the base folder should be structured like this:
 | ├── NIFTI/Analyze fMRI files
 | └── paramValues.csv (created through GUI)
 
-Therefore, an example folder structure with two subjects would be:
+Therefore, an example folder structure with two subjects would be (sub-2 directory contents not shown as folder
+structure should be the same as for sub-01):
+
+.. image:: /images/input_folder.png
+
 
 | │ Base folder
 | │
