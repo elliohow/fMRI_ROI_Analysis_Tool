@@ -1,3 +1,4 @@
+================
 Folder structure
 ================
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by
@@ -23,10 +24,10 @@ Base folder
 │
 ├── NIFTI/Analyze fMRI files
 └── paramValues.csv (created through GUI)
-```
+
 
 Therefore, an example folder structure is:
-```
+
 Base folder
 ├── stat_maps (name can be chosen by user)
 │   ├── P1_MB3_S2_matchBW_tSNR.nii
