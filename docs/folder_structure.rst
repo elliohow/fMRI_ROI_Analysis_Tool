@@ -89,3 +89,34 @@ Output folder
 |     └── simpleble.py
 |
 |
+
+|____statmap_config_setup.py
+|____.DS_Store
+|____fRAT_config_setup.py
+|____analysis.py
+|____bootstrap.css
+|____html_report.py
+|______init__.py
+|______pycache__
+| |____html_report.cpython-37.pyc
+| |______init__.cpython-38.pyc
+| |____statmap_config_setup.cpython-37.pyc
+| |____analysis.cpython-38.pyc
+| |____statistics.cpython-38.pyc
+| |____fRAT_config_setup.cpython-37.pyc
+| |____utils.cpython-38.pyc
+| |____figures.cpython-38.pyc
+| |____figures.cpython-37.pyc
+| |____config_setup.cpython-37.pyc
+| |____utils.cpython-37.pyc
+| |____analysis.cpython-37.pyc
+| |____statistics.cpython-37.pyc
+| |____fRAT_config_setup.cpython-38.pyc
+| |____html_report.cpython-38.pyc
+| |______init__.cpython-37.pyc
+| |____paramparser.cpython-37.pyc
+| |____statmap_config_setup.cpython-38.pyc
+|____script.js
+|____utils.py
+|____figures.py
+|____statistics.py
