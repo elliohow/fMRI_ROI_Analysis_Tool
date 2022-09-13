@@ -7,23 +7,25 @@ running the fRAT. An example of the folder structure needed to run the fRAT is g
 the folder containing the statistical map files and 'HarvardOxford-Cortical_ROI_report' is the folder that has been
 output by the fRAT.
 
-#### Folder structure for running fRAT
+Folder structure for running fRAT
+---------------------------------
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
+.. image:: images/input_folder.png
 
-Base folder
-├── stat_maps (name can be chosen by user)
-│   └── NIFTI/Analyze statistical map files
-│
-├── anat
-│   ├── skull stripped anatomy file (should have '_brain' extension)
-│   └── anatomical file (necessary if using BBR cost function)
-│
-├── fslfast (optional but recommended)
-│   └── ... (All files output by fslfast)
-│
-├── NIFTI/Analyze fMRI files
-└── paramValues.csv (created through GUI)
+| │ Base folder
+| ├── stat_maps (name can be chosen by user)
+| │   └── NIFTI/Analyze statistical map files
+| │
+| ├── anat
+| │   ├── skull stripped anatomy file (should have '_brain' extension)
+| │   └── anatomical file (necessary if using BBR cost function)
+| │
+| ├── fslfast (optional but recommended)
+| │   └── ... (All files output by fslfast)
+| │
+| ├── NIFTI/Analyze fMRI files
+| └── paramValues.csv (created through GUI)
 
 
 Therefore, an example folder structure is:
@@ -61,7 +63,7 @@ Base folder
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 
 Therefore, an example folder structure with two subjects would be:
-| Base folder
+| │ Base folder
 | │
 | ├── paramValues.csv
 | │
@@ -128,7 +130,7 @@ Therefore, an example folder structure with two subjects would be:
 | │   │       └── ... (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
 | │   │
 | │   ├── Raw_results
-| │   │   └── ... (JSON files containing non-summarised results for every ROI. Used to create histogram plots.)
+| │   │   └── ... (JSON files containing non-summarised results for every ROI)
 | │   │
 | │   └── Summarised_results
 | │       ├── Participant_averaged_results
@@ -142,11 +144,11 @@ Therefore, an example folder structure with two subjects would be:
 | │   ├── Intermediate_files
 | │   │   └── ... (All intermediate files created during analysis)
 | │   ├── Raw_results
-| │   │   └── ... (JSON files containing non-summarised results for every ROI. Used to create histogram plots.)
+| │   │   └── ... (JSON files containing non-summarised results for every ROI)
 | │   └── Summarised_results (JSON files containing summarised results for each ROI)
 | │       ├── ... (JSON files containing summarised results for each ROI)
 | │       └── Averaged_results
-| │           └── ... (JSON files showing the mean average across all sessions for each parameter combination, for all statistics)
+| │           └── ... (JSON files showing the mean average across all sessions)
 | └── sub-2
 |     └── ... (Folders in the same format as for sub-1)
 

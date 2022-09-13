@@ -1,7 +1,5 @@
-File name,MB,SENSE,"Ignore file? (y for yes, otherwise blank)"
-P1_MB3_S2_matchBW,3,2,
-P2_MB1_S1P5_match_BW,1,1.5,
-P3_MB3_S1P5,3,1.5,
-P4_MB4_S1P5,4,1.5,
-P5_MB4_S2_matchBW,4,2,
-P6_MB2_S1P5,2,1.5,
+Participant,File name,Multiband,Sense,"Ignore file during analysis? (y for yes, otherwise blank)","Baseline parameter combination for statistics (y for yes, otherwise blank)"
+sub-01,P1_MB3_S2_matchBW,3,2,,
+sub-01,P2_MB1_S1.5_match_BW,1,1.5,,
+sub-02,P1_MB3_S2_matchBW,3,2,,
+sub-02,P2_MB1_S2_match_BW,1,2,,
