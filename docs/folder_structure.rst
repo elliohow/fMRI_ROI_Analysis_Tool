@@ -3,11 +3,10 @@ Folder structure
 ================
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by
 running the fRAT. An example of the folder structure needed to run the fRAT is given
-`here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/example_data>`_. In this example 'QA_report' is the name of
-the folder containing the statistical map files and 'HarvardOxford-Cortical_ROI_report' is the folder that has been
-output by the fRAT.
+`here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/example_data>`_. In this example
+'HarvardOxford-Cortical_ROI_report' is the folder that has been output by the fRAT.
 
-Folder structure for running fRAT
+Input folder structure for running fRAT
 ---------------------------------
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
@@ -31,7 +30,7 @@ the base folder should be structured like this:
 Therefore, an example folder structure with two subjects would be (sub-2 directory contents not shown as folder
 structure should be the same as for sub-01):
 
-.. image:: /images/input_folder.png
+.. image:: images/HTML_report.png
 
 
 | │ Base folder
