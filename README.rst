@@ -20,6 +20,7 @@ is used to analyse and plot region-of-interest data, with a number of supplement
 About
 -----
 Documentation: https://fmri-roi-analysis-tool.readthedocs.io
+
 Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 GUI images

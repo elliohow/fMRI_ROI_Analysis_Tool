@@ -9,13 +9,16 @@ running the fRAT. An example of the folder structure needed to run the fRAT is g
 Input folder structure
 ----------------------
 Firstly, the base folder should be structured with participant files organised into folders with the format ``sub-{number}``:
+
 .. image:: images/input_folder_subjects.png
 
 After using the parsing GUI option, the necessary directories will be created with the files put into the folder ``func``:
+
 .. image:: images/input_folder_parsed.png
 
 Here, the temporal SNR statmap option has been used to be used with the ROI analysis. The folder ``func_cleaned`` has
 been created, which contains functional volumes better suited to be used for the ROI analysis.
+
 .. image:: images/input_folder_statistics.png
 
 .. note::
@@ -24,6 +27,7 @@ been created, which contains functional volumes better suited to be used for the
 
 After running the analysis, the base folder will contain the folders created before in addition to the newly created
 output folder:
+
 .. image:: images/input_folder_analysis.png
 
 
