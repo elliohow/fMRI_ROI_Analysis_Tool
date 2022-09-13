@@ -7,7 +7,7 @@ running the fRAT. An example of the folder structure needed to run the fRAT is g
 'HarvardOxford-Cortical_ROI_report' is the folder that has been output by the fRAT.
 
 Input folder structure for running fRAT
----------------------------------
+---------------------------------------
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
 
