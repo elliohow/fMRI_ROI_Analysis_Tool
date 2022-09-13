@@ -39,12 +39,14 @@ Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 ### GUI images
 .. image:: images/GUI.png
-    :width: 700
+
+#:width: 700
 
 
 ### HTML report images
 .. image:: images/HTML_report.png
-    :width: 900
+
+#:width: 900
 
 
 ### Folder structure:
