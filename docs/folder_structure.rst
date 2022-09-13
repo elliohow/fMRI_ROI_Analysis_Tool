@@ -11,35 +11,33 @@ Input folder structure
 Firstly, the base folder should be structured with participant files organised into folders with the format ``sub-{number}``:
 
 .. image:: images/input_folder_subjects.png
+    :width: 200
 
 After using the parsing GUI option, the necessary directories will be created with the files put into the folder ``func``:
 
 .. image:: images/input_folder_parsed.png
+    :width: 600
 
-Here, the temporal SNR statmap option has been used to be used with the ROI analysis. The folder ``func_cleaned`` has
-been created, which contains functional volumes better suited to be used for the ROI analysis.
+Here, the anatomical files have been put into the ``anat`` folder and the temporal SNR statmap option has been ran to
+be produce the voxelwise map necessary for the ROI analysis. During creation of the statmap, the folder ``func_cleaned``
+has been created, which contains functional volumes better suited to be used for the ROI analysis.
 
 .. image:: images/input_folder_statistics.png
+    :width: 600
 
 .. note::
-    The option to use the files in ``func_cleaned`` over those in ``func`` can be changed using the ``Input folder name``
+    The ``changes_made_to_files.txt`` contain details of how the files have been cleaned. While ``func_cleaned`` is the
+    default folder that the ROI analysis will search for function volumes in, if you are unhappy with using
+    these files over the original files, this option can be changed using the ``Input folder name``
     setting on the analysis screen of the GUI.
 
-After running the analysis, the base folder will contain the folders created before in addition to the newly created
+After running the analysis, in addition to the folders created before the base folder will now contain to the newly created
 output folder:
 
 .. image:: images/input_folder_analysis.png
+    :width: 200
 
 
-Therefore, an example folder structure with two subjects would be (sub-2 directory contents not shown as folder
-structure should be the same as for sub-01):
-
-
-
-
-
-
-Example of how to write up folder structure:
 Folder structure
 ================
 Let’s start by showcasing the folder structure that we should aim for. Here is the folder structure of an example project, named ``simpleble`` (See `GitHub <https://github.com/sglvladi/simpleble>`_ repo and `ReadTheDocs <http://simpleble.readthedocs.io/en/latest/index.html>`_ documentation), which is also the package which we will base our tutorial on:
