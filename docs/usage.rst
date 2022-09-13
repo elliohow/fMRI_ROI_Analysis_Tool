@@ -117,3 +117,5 @@ At the end of the bash_profile file add the line:
 
 Then save and exit the bash_profile. Solution originally found here:
 [Link](https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr)
+
+Make sure there are no spaces in the path to the folder you want to analyse

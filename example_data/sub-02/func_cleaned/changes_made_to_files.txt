@@ -1,4 +1,32 @@
-MB3_S1.5: Removed noise volume from end of timeseries
-MB3_S2_matchBW: Removed noise volume from end of timeseries
-MB3_S1.5: Removed motion outlier timepoints
-MB3_S2_matchBW: Removed motion outlier timepoints
+P13_MB1_S2.5_match_BW: Removed noise volume from end of timeseries
+P8_MB1_S1.5_match_BW: Removed noise volume from end of timeseries
+P11_MB3_S1_match_BW: Removed noise volume from end of timeseries
+P7_MB2_S2_matchBW: Removed noise volume from end of timeseries
+P12_MB4_S1_match_BW: Removed noise volume from end of timeseries
+P4_MB4_S1.5: Removed noise volume from end of timeseries
+P13_MB1_S2.5_match_BW: Removed motion outlier timepoints
+P8_MB1_S1.5_match_BW: Removed motion outlier timepoints
+P12_MB4_S1_match_BW: Removed motion outlier timepoints
+P4_MB4_S1.5: Removed motion outlier timepoints
+P11_MB3_S1_match_BW: Removed motion outlier timepoints
+P7_MB2_S2_matchBW: Removed motion outlier timepoints
+P15_MB3_S2.5_match_BW: Removed noise volume from end of timeseries
+P10_MB2_S1_match_BW: Removed noise volume from end of timeseries
+P9_MB1_S1_match_BW: Removed noise volume from end of timeseries
+P3_MB3_S1.5: Removed noise volume from end of timeseries
+P14_MB2_S2.5_match_BW: Removed noise volume from end of timeseries
+P1_MB3_S2_matchBW: Removed noise volume from end of timeseries
+P15_MB3_S2.5_match_BW: Removed motion outlier timepoints
+P9_MB1_S1_match_BW: Removed motion outlier timepoints
+P10_MB2_S1_match_BW: Removed motion outlier timepoints
+P3_MB3_S1.5: Removed motion outlier timepoints
+P1_MB3_S2_matchBW: Removed motion outlier timepoints
+P14_MB2_S2.5_match_BW: Removed motion outlier timepoints
+P6_MB2_S1.5: Removed noise volume from end of timeseries
+P5_MB4_S2_matchBW: Removed noise volume from end of timeseries
+P16_MB4_S2.5_match_BW: Removed noise volume from end of timeseries
+P2_MB1_S2_match_BW: Removed noise volume from end of timeseries
+P6_MB2_S1.5: Removed motion outlier timepoints
+P5_MB4_S2_matchBW: Removed motion outlier timepoints
+P16_MB4_S2.5_match_BW: Removed motion outlier timepoints
+P2_MB1_S2_match_BW: Removed motion outlier timepoints

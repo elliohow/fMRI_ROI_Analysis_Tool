@@ -6,121 +6,33 @@ running the fRAT. An example of the folder structure needed to run the fRAT is g
 `here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/example_data>`_. In this example
 'HarvardOxford-Cortical_ROI_report' is the folder that has been output by the fRAT.
 
-Input folder structure for running fRAT
----------------------------------------
-The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
-the base folder should be structured like this:
+Input folder structure
+----------------------
+Firstly, the base folder should be structured with participant files organised into folders with the format ``sub-{number}``:
+.. image:: images/input_folder_subjects.png
 
+After using the parsing GUI option, the necessary directories will be created with the files put into the folder ``func``:
+.. image:: images/input_folder_parsed.png
 
+Here, the temporal SNR statmap option has been used to be used with the ROI analysis. The folder ``func_cleaned`` has
+been created, which contains functional volumes better suited to be used for the ROI analysis.
+.. image:: images/input_folder_statistics.png
 
-| │ Base folder
-| ├── stat_maps (name can be chosen by user)
-| │   └── NIFTI/Analyze statistical map files
-| │
-| ├── anat
-| │   ├── skull stripped anatomy file (should have '_brain' extension)
-| │   └── anatomical file (necessary if using BBR cost function)
-| │
-| ├── fslfast (optional but recommended)
-| │   └── ... (All files output by fslfast)
-| │
-| ├── NIFTI/Analyze fMRI files
-| └── paramValues.csv (created through GUI)
+.. note::
+    The option to use the files in ``func_cleaned`` over those in ``func`` can be changed using the ``Input folder name``
+    setting on the analysis screen of the GUI.
+
+After running the analysis, the base folder will contain the folders created before in addition to the newly created
+output folder:
+.. image:: images/input_folder_analysis.png
+
 
 Therefore, an example folder structure with two subjects would be (sub-2 directory contents not shown as folder
 structure should be the same as for sub-01):
 
-.. image:: images/input_folder.png
 
 
-| │ Base folder
-| │
-| ├── paramValues.csv
-| │
-| ├── sub-1
-| │   ├── anat
-| │   │   ├── MPRAGE.nii
-| │   │   └── MPRAGE_stripped_brain.nii
-| │   │
-| │   ├── fslfast
-| │   │   └── ... (All files output by fslfast)
-| │   │
-| │   ├── func
-| │   │   ├── P1_MB3_S2_matchBW.nii
-| │   │   └── P2_MB1_S3_matchBW.nii
-| │   │
-| │   ├── func_cleaned
-| │   │   ├── changes_made_to_files.txt
-| │   │   ├── P1_MB3_S2_matchBW.nii
-| │   │   └── P2_MB1_S3_matchBW.nii
-| │   │
-| │   └── statmaps
-| │       └── temporalSNR_report
-| │           └── config_log.toml
-| │           └── P1_MB3_S2_matchBW_tSNR.nii
-| │           └── P2_MB1_S3_matchBW_tSNR.nii
-| │
-| └── sub-2
-|     └── ... (Folders in the same format as for sub-1)
 
-| HarvardOxford-Cortical_ROI_report
-| │
-| ├── additional_info.csv
-| ├── analysis_log.toml
-| ├── copy_paramValues.csv
-| ├── index.html
-| │
-| ├── Figures
-| │   ├── figure_log.toml
-| │   ├── Barcharts
-| │   │   └── ...
-| │   ├── Brain_grids
-| │   │   └── ...
-| │   ├── Brain_images
-| │   │   └── ... (Individual images of brains used for the brain grid images)
-| │   ├── Histograms
-| │   │   └── ...
-| │   └── Violin_plots
-| │       └── ...
-| │
-| ├── fRAT_report
-| │   └── ... (Pages of HTML report accessed using index.html)
-| │
-| ├── Statistics
-| │   └── stats
-| │       ├── statistics_log.toml
-| │       ├── statistics_terminal_output.txt
-| │       └── ... (Folders containing statistics results)
-| │
-| ├── Overall
-| │   ├── NIFTI_ROI
-| │   │   ├── Participant_averaged_results
-| │   │   │   └── ... (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
-| │   │   └── Session_averaged_results
-| │   │       └── ... (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
-| │   │
-| │   ├── Raw_results
-| │   │   └── ... (JSON files containing non-summarised results for every ROI)
-| │   │
-| │   └── Summarised_results
-| │       ├── Participant_averaged_results
-| │       │   └── ... (JSON files containing summarised results for each ROI)
-| │       └── Session_averaged_results
-| │           └── ... (JSON files containing summarised results for each ROI)
-| │
-| ├── sub-1
-| │   ├── Excluded_voxels
-| │   │   └── ...
-| │   ├── Intermediate_files
-| │   │   └── ... (All intermediate files created during analysis)
-| │   ├── Raw_results
-| │   │   └── ... (JSON files containing non-summarised results for every ROI)
-| │   └── Summarised_results (JSON files containing summarised results for each ROI)
-| │       ├── ... (JSON files containing summarised results for each ROI)
-| │       └── Averaged_results
-| │           └── ... (JSON files showing the mean average across all sessions)
-| └── sub-2
-|     └── ... (Folders in the same format as for sub-1)
 
 
 Example of how to write up folder structure:
