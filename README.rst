@@ -38,14 +38,14 @@ Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 
 ### GUI images
-<p align="center">
- <img src="docs/example_images/GUI.png" width=700>
-</p>
+.. image:: images/GUI.png
+    :width: 700
+
 
 ### HTML report images
-<p align="center">
- <img src="docs/example_images/HTML_report.png" width=900>
-</p>
+.. image:: images/HTML_report.png
+    :width: 900
+
 
 ### Folder structure:
 The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by 
