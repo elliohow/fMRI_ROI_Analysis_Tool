@@ -11,6 +11,7 @@ Folder structure for running fRAT
 ---------------------------------
 The base folder is the folder which contains all the files to be used by the fRAT. Before running the fRAT analysis,
 the base folder should be structured like this:
+
 .. image:: images/input_folder.png
 
 | │ Base folder
@@ -27,42 +28,8 @@ the base folder should be structured like this:
 | ├── NIFTI/Analyze fMRI files
 | └── paramValues.csv (created through GUI)
 
-
-Therefore, an example folder structure is:
-
-Base folder
-├── stat_maps (name can be chosen by user)
-│   ├── P1_MB3_S2_matchBW_tSNR.nii
-│   └── P2_MB1_S1P5_matchBW_tSNR.nii
-│
-├── anat
-│   └── MPRAGE_brain.nii
-│
-├── fslfast (optional but recommended)
-│   └── ... (fslfast files)
-│
-├── P1_MB3_S2_matchBW.nii
-├── P2_MB1_S1P5_matchBW.nii
-└── paramValues.csv (created through GUI)
-
-
-├── fRAT_report
-│   └── (Pages of HTML report accessed using index.html)
-├── Intermediate files
-│   └── (All intermediate files created during analysis)
-├── NIFTI_ROI
-│   └── (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
-├── Raw_results
-│   └──  and can be used for further statistical tests)
-├── Summarised_results
-│   ├── combined_results.json (Combines results from all other JSON files in this folder)
-│   └── (JSON files containing summarised results for each ROI)
-│
-├── index.html (Index page of HTML report showing created figures)
-├── config_log.toml (log of settings used for analysis)
-└── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
-
 Therefore, an example folder structure with two subjects would be:
+
 | │ Base folder
 | │
 | ├── paramValues.csv
