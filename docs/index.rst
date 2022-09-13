@@ -7,3 +7,4 @@
     Home <self>
     installation
     usage
+    folder structure
