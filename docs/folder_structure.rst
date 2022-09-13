@@ -44,21 +44,6 @@ Base folder
 └── paramValues.csv (created through GUI)
 
 
-#### Folder structure of fRAT output
-
-Output folder
-├── Figures
-│   ├── Barcharts
-│   │   └── ...
-│   ├── Brain_grids
-│   │   └── ...
-│   ├── Brain_images
-│   │   └── (Individual images of brains used for the brain grid images)
-│   ├── Histograms
-│   │   └── ...
-│   └── Scatterplots
-│       └── ...
-│
 ├── fRAT_report
 │   └── (Pages of HTML report accessed using index.html)
 ├── Intermediate files
@@ -66,7 +51,7 @@ Output folder
 ├── NIFTI_ROI
 │   └── (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
 ├── Raw_results
-│   └── (JSON files containing non-summarised results for every ROI. Used to create the histogram figures and can be used for further statistical tests)
+│   └──  and can be used for further statistical tests)
 ├── Summarised_results
 │   ├── combined_results.json (Combines results from all other JSON files in this folder)
 │   └── (JSON files containing summarised results for each ROI)
@@ -75,6 +60,101 @@ Output folder
 ├── config_log.toml (log of settings used for analysis)
 └── copy_paramValues.csv (will be present if paramValues.csv was created before analysis)
 
+Therefore, an example folder structure with two subjects would be:
+| Base folder
+| │
+| ├── paramValues.csv
+| │
+| ├── sub-1
+| │   ├── anat
+| │   │   ├── MPRAGE.nii
+| │   │   └── MPRAGE_stripped_brain.nii
+| │   │
+| │   ├── fslfast
+| │   │   └── ... (All files output by fslfast)
+| │   │
+| │   ├── func
+| │   │   ├── P1_MB3_S2_matchBW.nii
+| │   │   └── P2_MB1_S3_matchBW.nii
+| │   │
+| │   ├── func_cleaned
+| │   │   ├── changes_made_to_files.txt
+| │   │   ├── P1_MB3_S2_matchBW.nii
+| │   │   └── P2_MB1_S3_matchBW.nii
+| │   │
+| │   └── statmaps
+| │       └── temporalSNR_report
+| │           └── config_log.toml
+| │           └── P1_MB3_S2_matchBW_tSNR.nii
+| │           └── P2_MB1_S3_matchBW_tSNR.nii
+| │
+| └── sub-2
+|     └── ... (Folders in the same format as for sub-1)
+
+| HarvardOxford-Cortical_ROI_report
+| │
+| ├── additional_info.csv
+| ├── analysis_log.toml
+| ├── copy_paramValues.csv
+| ├── index.html
+| │
+| ├── Figures
+| │   ├── figure_log.toml
+| │   ├── Barcharts
+| │   │   └── ...
+| │   ├── Brain_grids
+| │   │   └── ...
+| │   ├── Brain_images
+| │   │   └── ... (Individual images of brains used for the brain grid images)
+| │   ├── Histograms
+| │   │   └── ...
+| │   └── Violin_plots
+| │       └── ...
+| │
+| ├── fRAT_report
+| │   └── ... (Pages of HTML report accessed using index.html)
+| │
+| ├── Statistics
+| │   └── stats
+| │       ├── statistics_log.toml
+| │       ├── statistics_terminal_output.txt
+| │       └── ... (Folders containing statistics results)
+| │
+| ├── Overall
+| │   ├── NIFTI_ROI
+| │   │   ├── Participant_averaged_results
+| │   │   │   └── ... (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
+| │   │   └── Session_averaged_results
+| │   │       └── ... (NIFTI-GZ files used to create the files in the 'Brain_images' folder)
+| │   │
+| │   ├── Raw_results
+| │   │   └── ... (JSON files containing non-summarised results for every ROI. Used to create histogram plots.)
+| │   │
+| │   └── Summarised_results
+| │       ├── Participant_averaged_results
+| │       │   └── ... (JSON files containing summarised results for each ROI)
+| │       └── Session_averaged_results
+| │           └── ... (JSON files containing summarised results for each ROI)
+| │
+| ├── sub-1
+| │   ├── Excluded_voxels
+| │   │   └── ...
+| │   ├── Intermediate_files
+| │   │   └── ... (All intermediate files created during analysis)
+| │   ├── Raw_results
+| │   │   └── ... (JSON files containing non-summarised results for every ROI. Used to create histogram plots.)
+| │   └── Summarised_results (JSON files containing summarised results for each ROI)
+| │       ├── ... (JSON files containing summarised results for each ROI)
+| │       └── Averaged_results
+| │           └── ... (JSON files showing the mean average across all sessions for each parameter combination, for all statistics)
+| └── sub-2
+|     └── ... (Folders in the same format as for sub-1)
+
+
+Example of how to write up folder structure:
+Folder structure
+================
+Let’s start by showcasing the folder structure that we should aim for. Here is the folder structure of an example project, named ``simpleble`` (See `GitHub <https://github.com/sglvladi/simpleble>`_ repo and `ReadTheDocs <http://simpleble.readthedocs.io/en/latest/index.html>`_ documentation), which is also the package which we will base our tutorial on:
 
 | simpleble-master
 | ├── docs
@@ -90,33 +170,11 @@ Output folder
 |
 |
 
-|____statmap_config_setup.py
-|____.DS_Store
-|____fRAT_config_setup.py
-|____analysis.py
-|____bootstrap.css
-|____html_report.py
-|______init__.py
-|______pycache__
-| |____html_report.cpython-37.pyc
-| |______init__.cpython-38.pyc
-| |____statmap_config_setup.cpython-37.pyc
-| |____analysis.cpython-38.pyc
-| |____statistics.cpython-38.pyc
-| |____fRAT_config_setup.cpython-37.pyc
-| |____utils.cpython-38.pyc
-| |____figures.cpython-38.pyc
-| |____figures.cpython-37.pyc
-| |____config_setup.cpython-37.pyc
-| |____utils.cpython-37.pyc
-| |____analysis.cpython-37.pyc
-| |____statistics.cpython-37.pyc
-| |____fRAT_config_setup.cpython-38.pyc
-| |____html_report.cpython-38.pyc
-| |______init__.cpython-37.pyc
-| |____paramparser.cpython-37.pyc
-| |____statmap_config_setup.cpython-38.pyc
-|____script.js
-|____utils.py
-|____figures.py
-|____statistics.py
+In the folder structure above:
+
+- ``simpleble-master`` is the folder we get when we issue a ``git pull/clone`` command
+- ``simpleble-master/docs`` is the directory where our Sphinx documentation will reside
+- ``simpleble-master/docs/build`` and ``simpleble-master/docs/source`` being the Sphinx build and source directories respectively. These folders are autogenerated for us by Sphinx.
+- ``simpleble-master/simpleble`` is the actual Python package directory, where our Python source files reside.
+
+An important note here is that the folder ``simpleble-master`` is what we will refer to as our `Repository root`, while the folder ``simpleble-master/docs`` will be our `Sphinx root` or, equivalently, our `Documentation root`. Similarly, ``simpleble-master/docs/source`` will be our `Sphinx source root` and ``simpleble-master/docs/build`` is our `Sphinx build root`.
