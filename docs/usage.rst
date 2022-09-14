@@ -118,7 +118,11 @@ will be created, which contains functional volumes better suited to be used for 
     these files over the original files, this option can be changed using the ``Input folder name``
     setting on the analysis screen of the GUI.
 
-
+Running the ROI analysis
+------------------------
+The same process for creating voxel-wise maps applies here, check each options menu from the "Settings" panel in the
+"fRAT" section of the GUI and then click the "Run fRAT" button to run the ROI analysis. Again, the default options
+should be sufficient, however the **bolded**
 
 
 
