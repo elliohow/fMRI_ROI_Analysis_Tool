@@ -144,7 +144,34 @@ output folder:
 .. image:: images/input_folder_analysis.png
     :width: 200
 
-In this folder, ``Overall/Summarised_results/`` will contain
+Here is the folder structure of the output folder:
+
+| simpleble-master
+| ├── docs
+| │   ├── build
+| │   ├── make.bat
+| │   ├── Makefile
+| │   └── source
+| ├── LICENSE
+| ├── README.md
+| ├── requirements.txt
+| └── simpleble
+|     └── simpleble.py
+|
+|
+
+In the folder structure above:
+- ``additional_info.csv`` contains information about
+- ``analysis_log.toml`` is the configuration files used to run the analysis step
+- ``copy_paramValues.csv`` is the parameter values used for the analysis
+- ``index.html`` is the
+- ``Overall`` is the
+- ``Statistics`` is the
+- ``Figures`` is the
+- ``fRAT_report`` is the
+- ``sub-{number}`` is the
+
+In the output folder, ``Overall/Summarised_results/`` will contain
 ``Participant_averaged_results`` and ``Session_averaged_results``. Participant averaged results refers to region of
 interest (ROI) results being first averaged within participants before being averaging between participants (i.e. the
 more traditional method). Whereas session averaged results instead averages the ROI results between all sessions,

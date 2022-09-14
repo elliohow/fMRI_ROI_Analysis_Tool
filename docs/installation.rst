@@ -1,5 +1,7 @@
 .. include:: links.rst
 
+.. contents:: :local:
+
 ============
 Installation
 ============
