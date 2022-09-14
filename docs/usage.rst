@@ -3,7 +3,7 @@
 =====
 Usage
 =====
-This tutorial will first explain key concepts of fRAT and then will give instructions on how to use fRAT to:
+This page will first explain key concepts of fRAT and then will give instructions on how to use fRAT to:
 
 #. Create a voxel-wise tSNR map
 #. Convert this voxel-wise map into an ROI based map
@@ -11,7 +11,10 @@ This tutorial will first explain key concepts of fRAT and then will give instruc
 
 .. note::
     It is recommended that the fRAT is first ran using the files in the ``example_data`` folder to test whether the project
-    dependencies are correctly installed.
+    dependencies are correctly installed. This folder also gives demonstrates the input necessary for the fRAT and
+    the output produced by the fRAT.
+
+.. contents:: :local:
 
 Key concepts of fRAT
 ====================
@@ -42,10 +45,8 @@ Tutorial
 File setup
 ----------
 .. tip::
-    In the GUI, settings that will most often need changing are **bold**.
-
-    Additionally, most settings have a tooltip giving an explanation of what the option does, and if relevant, how to
-    format the option entry.
+    In the GUI, settings that will most often need changing are **bold**. Additionally, most settings have a tooltip
+    giving an explanation of what the setting changes, and if relevant, how the format the setting expects.
 
 Before being able to run the ROI analysis, a few initial setup steps need to be taken. Firstly, the base folder should
 be structured with functional files organised into folders named using the format ``sub-{number}`` (e.g. ``sub-42``):
@@ -121,21 +122,35 @@ will be created, which contains functional volumes better suited to be used for 
 Running the ROI analysis
 ------------------------
 The same process for creating voxel-wise maps applies here, check each options menu from the "Settings" panel in the
-"fRAT" section of the GUI and then click the "Run fRAT" button to run the ROI analysis. Again, the default options
-should be sufficient, however the **bolded**
+"fRAT" section of the GUI and then click the "Run fRAT" button to run the ROI analysis when you are ready to run the
+analysis. Again, the default options should be sufficient, however the **bolded** options are the ones most likely to
+need changing. In particular, the "General" option menu allows ROI analysis pipeline steps to be skipped if desired.
+Further, the "Statistical map folder" setting in the "Analysis" option menu should be changed to "temporalSNR_report".
+If you wish to analyse any of the other files output by the tSNR map creation, the "Statistical map suffix" option can
+for example be changed to "tStd.nii.gz". The ``Atlas information`` option on the home page allows you to print the
+ROIs and their corresponding numeric key for the atlas chosen from the dropdown menu. This allows you to both select
+which atlas is more appropriate to use for analysis, but also allows you to specify using this numeric tags which
+ROIs to produce figures and statistics for, e.g. ``1,5,32`` to choose specific ROIs or ``all`` for all ROIs.
 
+.. note::
+    If running the ``Plotting`` or ``Statistics`` steps separately, the folder output by the analysis should be selected
+    instead of the base folder.
 
+Exploring ROI analysis output
+-----------------------------
+After running the analysis, in addition to the folders created before, the base folder will now contain the newly created
+output folder:
 
+.. image:: images/input_folder_analysis.png
+    :width: 200
 
-After running the analysis, ``(OUTPUT_FOLDER)/Overall/Summarised_results/`` will contain
+In this folder, ``Overall/Summarised_results/`` will contain
 ``Participant_averaged_results`` and ``Session_averaged_results``. Participant averaged results refers to region of
 interest (ROI) results being first averaged within participants before being averaging between participants (i.e. the
 more traditional method). Whereas session averaged results instead averages the ROI results between all sessions,
 disregarding which participant was scanned in each session; this can be useful where the statistical map being converted
 should be participant agnostic. ``combined_results.json`` found in these folders contains the final summary results of the
-data. Both the  and `interactive table` GUI options can be used to explore the data once the analysis has
-been ran. The `print results` option prints the results for the selected region of interests to the terminal, whereas
-the `interactive table` option opens up the result in a browser window.
+data.
 
 Figure creation also makes html file
 
@@ -147,7 +162,9 @@ Figure creation also makes html file
 Statistical map creation
 ------------------------
 
-
+Both the  and `interactive table` GUI options can be used to explore the data once the analysis has
+been ran. The `print results` option prints the results for the selected region of interests to the terminal, whereas
+the `interactive table` option opens up the result in a browser window.
 
 
 ## Potential errors

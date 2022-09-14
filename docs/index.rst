@@ -7,4 +7,3 @@
     Home <self>
     installation
     usage
-    folder_structure
