@@ -1,24 +1,11 @@
 ================
 Folder structure
 ================
-The following section details the folder structure needed to run the fRAT and the structure of the folder outputted by
-running the fRAT. An example of the folder structure needed to run the fRAT is given
-`here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tree/master/example_data>`_. In this example
-'HarvardOxford-Cortical_ROI_report' is the folder that has been output by the fRAT.
+
 
 Input folder structure
 ----------------------
 
-
-
-
-
-
-After running the analysis, in addition to the folders created before the base folder will now contain to the newly created
-output folder:
-
-.. image:: images/input_folder_analysis.png
-    :width: 200
 
 
 Folder structure
