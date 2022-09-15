@@ -1,3 +1,4 @@
+.. _basic_tutorial:
 .. include:: ../links.rst
 
 ==================
