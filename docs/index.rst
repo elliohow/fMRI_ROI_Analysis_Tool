@@ -8,3 +8,4 @@
     Home <self>
     installation
     usage
+    tutorials

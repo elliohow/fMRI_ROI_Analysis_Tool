@@ -1,5 +1,5 @@
 .. image:: images/fRAT.gif
-  :width: 700
+  :width: 500
 
 =============================
 fRAT - fMRI ROI Analysis Tool
