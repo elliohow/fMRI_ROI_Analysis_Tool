@@ -71,7 +71,7 @@ to each file. Alternatively, when running without the GUI, pass the --make_table
 put into the folder ``func``:
 
 .. image:: images/input_folder_parsed.png
-    :width: 200
+    :width: 300
 
 .. warning::
     Make sure the lists of critical parameters given are in the same order, otherwise the critical parameter names
@@ -111,7 +111,7 @@ folder, the tSNR will be created for each participant. During creation of the ma
 will be created, which contains functional volumes better suited to be used for the ROI analysis.
 
 .. image:: images/input_folder_statistics.png
-    :width: 200
+    :width: 300
 
 .. note::
     The ``changes_made_to_files.txt`` contain details of how the files have been cleaned. While ``func_cleaned`` is the
@@ -142,42 +142,53 @@ After running the analysis, in addition to the folders created before, the base 
 output folder:
 
 .. image:: images/input_folder_analysis.png
-    :width: 200
+    :width: 300
 
 Here is the folder structure of the output folder:
 
-| simpleble-master
-| ├── docs
-| │   ├── build
-| │   ├── make.bat
-| │   ├── Makefile
-| │   └── source
-| ├── LICENSE
-| ├── README.md
-| ├── requirements.txt
-| └── simpleble
-|     └── simpleble.py
-|
-|
+.. image:: images/output_folder.png
+    :width: 300
+
 
 In the folder structure above:
-- ``additional_info.csv`` contains information about
-- ``analysis_log.toml`` is the configuration files used to run the analysis step
-- ``copy_paramValues.csv`` is the parameter values used for the analysis
-- ``index.html`` is the
-- ``Overall`` is the
-- ``Statistics`` is the
-- ``Figures`` is the
-- ``fRAT_report`` is the
-- ``sub-{number}`` is the
 
-In the output folder, ``Overall/Summarised_results/`` will contain
-``Participant_averaged_results`` and ``Session_averaged_results``. Participant averaged results refers to region of
-interest (ROI) results being first averaged within participants before being averaging between participants (i.e. the
-more traditional method). Whereas session averaged results instead averages the ROI results between all sessions,
+- ``additional_info.csv`` contains information about
+- ``analysis_log.toml`` is the configuration files used to run the analysis step (logs are also output for the statistics and plotting steps)
+- ``copy_paramValues.csv`` is the parameter values used for the analysis
+- ``index.html`` is used to open the html report output by the plotting step
+- ``Statistics`` contains the statistical analysis output
+- ``Figures`` contains folders for each plot type created
+- ``fRAT_report`` contains the pages of the html report
+- ``Overall`` contains the final results, summarised across participants/sessions
+- ``sub-{number}`` contains the results computed for each participant
+
+In the ``Overall`` folder, ``Summarised_results`` will contain ``Participant_averaged_results`` and
+``Session_averaged_results``, with each folder containing a separate file for each parameter combination and also a
+``combined_results.json`` file which combines the data from every other file in this folder.
+Participant averaged data first averages data within participants before being averaging between participants.
+Whereas session averaged results instead averages data between all sessions,
 disregarding which participant was scanned in each session; this can be useful where the statistical map being converted
-should be participant agnostic. ``combined_results.json`` found in these folders contains the final summary results of the
-data.
+should be participant agnostic.
+
+The ``NIFTI_ROI`` folder also found in the ``Overall`` folder contains the results from the the
+``Participant_averaged_results`` and ``Session_averaged_results`` folders in ``.nii.gz`` format, with a separate file
+created for each statistic type and parameter combination. These are used for the brain grid figures during the plotting
+step. There are 3 types of ``NIFTI_ROI`` files:
+
+* Standard (no suffix)
+* Within ROI scaled
+* Between ROI scaled
+
+The "standard" files contain the actual statistic values for each ROI. "Within ROI scaled" and "between ROI scaled"
+files scale the values to a range between 0 and 100, with "Within ROI scaled" files have scaled each ROI based on the
+maximum value seen within that ROI across all parameters, and "between ROI scaled" files have scaled each ROI based on
+the maximum value seen across all ROIs across all parameters.
+
+``Raw_results``, found in both the ``Overall`` and the ``sub-{number}`` folders contains the value of every voxel in
+each ROI. This data is used to produce histograms in the plotting step.
+
+In each ``sub-{number}`` folder, ``Summarised_results`` in addition to the results from each session for this participant, there
+is also an ``Averaged_results`` folder. This folder allows you to check if any of the participant results are outliers.
 
 Figure creation also makes html file
 
