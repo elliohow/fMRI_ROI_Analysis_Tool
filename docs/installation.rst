@@ -1,27 +1,33 @@
 .. include:: links.rst
 
-.. contents:: :local:
-
 ============
 Installation
 ============
-To install all required modules use the following command in the project directory: ``pip install -r requirements.txt``.
+.. contents:: :local:
 
-The ``requirements.txt`` file in the base folder lists the dependencies necessary for fRAT. However when running fRAT,
-you will be notified if there is an update available for Nipype; it is recommended that you update this library if
-possible.
+Firstly navigate to where you wish to install fRAT, and then run the following command in the terminal::
+
+    $ git clone https://github.com/elliohow/fMRI_ROI_Analysis_Tool.git
+
+The ``requirements.txt`` file in the base folder lists the dependencies necessary for fRAT. To install all required
+dependencies globally (as opposed to in a virtual environment), use the following command in the project directory::
+
+    $ pip install -r requirements.txt
+
+When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
+this library if possible.
 
 Virtual environments
 ====================
-Using virtual environments keeps dependencies required by different projects separate by creating an isolated virtual
-environment for each project, preventing a number of dependency issues. You can install all the dependencies required by
-the fRAT within a *virtual environment* using `conda`, the `venv` module built-in to python or any other virtual
-environment package installed on your system.
+While it is possible to install the fRAT dependencies as shown above, installing the dependencies within a
+virtual environment keeps dependencies required by different projects separate, preventing a number of dependency issues.
+You can install all the dependencies required by the fRAT within a *virtual environment* using the `venv` module
+built-in to python, `conda`, or any other virtual environment package installed on your system.
 
 `venv` and `conda` setup
 ------------------------
 These instructions apply if you are running under `Linux` or `MacOS`. For `Windows` there may be similar solutions,
-however be aware that fRAT is untested with Windows due to difficulties running software important to fRAT such as FSL.
+however be aware that fRAT is untested with Windows due to difficulties running software necessary for fRAT such as FSL.
 
 .. note::
     Make sure Python is downloaded and is the same as the tested version (found on the :doc:`home page <index>`) or
@@ -55,7 +61,7 @@ You should see ``(fRAT)`` at the start of your prompt. Now you can run the tool 
 folder: ::
 
     $ cd fRAT
-    $ python fRAT_GUI.py
+    $ python3 fRAT_GUI.py
 
 `venv` notes
 ~~~~~~~~~~~~~~~~~~~~~
