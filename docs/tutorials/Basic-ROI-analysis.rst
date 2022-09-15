@@ -169,7 +169,7 @@ preprocessing steps of the fRAT.
 
 The ``Excluded_voxels`` contains 5 types of files, the first being the original fMRI volume (named handily ``fMRI_volume``).
 This is placed here to more easily create figures ``using fsleyes``. The next type of file is the pre-corrected
-standard space to native space registered ROI atlas (named ``orig_mni_to_{fMRI_volume_name}``). Next is the files which show
+standard to native space registered ROI atlas (named ``orig_mni_to_{fMRI_volume_name}``). Next is the files which show
 each stage of corrections made to the ROI atlas file. Each of these files is named in the format:
 ``ExcludedVoxStage{stage}_{fMRI_volume_name}_{method}``. For example:
 ``ExcludedVoxStage3_P2_MB1_S2_match_BW_noiseThreshOutliers``. Next is the binary mask files, the first
@@ -179,6 +179,17 @@ The next binary mask file named ``binary_mask_filled_{fMRI_volume_name}`` is the
 during the previous step. Finally, is the ROI atlas which has undergone correction and filled in gaps in its mask.
 This is the final ROI atlas used for the analysis and is named ``final_mni_to_{fMRI_volume_name}``.
 
+.. figure::
+    ../images/excluded_voxels.png
+
+    A visualisation of which voxels have been retained after correction. Red voxels were excluded during the original
+    standard to native space registration, whereas blue voxels have been excluded as they have been marked as
+    potentially white matter.
+
+.. figure::
+    ../images/final_roi_atlas.png
+
+    The final standard to native space registered ROI atlas overlaid on the original functional volume.
 
 .. note::
     For plotting, as scaling of brain grid figures are calculated during the analysis step, scaled brain grid figures
