@@ -1,3 +1,5 @@
+.. include:: ../links.rst
+
 ==================
 Basic ROI analysis
 ==================
@@ -15,7 +17,7 @@ File setup
 Before being able to run the ROI analysis, a few initial setup steps need to be taken. Firstly, the base folder should
 be structured with functional files organised into folders named using the format ``sub-{number}`` (e.g. ``sub-42``):
 
-.. image:: images/input_folder_subjects.png
+.. image:: ../images/input_folder_subjects.png
     :width: 200
 
 Next, enter the "Parsing" options menu found under the "Settings" panel in the GUI. The "critical parameters" setting
@@ -34,7 +36,7 @@ to each file. Alternatively, when running without the GUI, pass the --make_table
 ``fRAT.py --make_table``. After using the parsing GUI option, the necessary directories will be created with the files
 put into the folder ``func``:
 
-.. image:: images/input_folder_parsed.png
+.. image:: ../images/input_folder_parsed.png
     :width: 300
 
 .. warning::
@@ -74,7 +76,7 @@ appear allowing you to navigate to the base folder where your subject folders ar
 folder, the tSNR will be created for each participant. During creation of the maps, the folder ``func_cleaned``
 will be created, which contains functional volumes better suited to be used for the ROI analysis.
 
-.. image:: images/input_folder_statistics.png
+.. image:: ../images/input_folder_statistics.png
     :width: 300
 
 .. note::
@@ -105,12 +107,12 @@ Exploring ROI analysis output
 After running the analysis, in addition to the folders created before, the base folder will now contain the newly created
 output folder:
 
-.. image:: images/input_folder_analysis.png
+.. image:: ../images/input_folder_analysis.png
     :width: 300
 
 Here is the folder structure of the output folder:
 
-.. image:: images/output_folder.png
+.. image:: ../images/output_folder.png
     :width: 300
 
 
