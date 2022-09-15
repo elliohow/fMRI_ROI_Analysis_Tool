@@ -167,17 +167,17 @@ folder there are also ``Intermediate_files`` and ``Excluded_voxels`` folders. Th
 contains all intermediate files produced by the fRAT, and can be used to produce figures or check the accuracy of the different
 preprocessing steps of the fRAT.
 
-The ``Excluded_voxels`` contains 5 types of files, the first being the original fMRI volume (named handily `fMRI_volume`).
+The ``Excluded_voxels`` contains 5 types of files, the first being the original fMRI volume (named handily ``fMRI_volume``).
 This is placed here to more easily create figures ``using fsleyes``. The next type of file is the pre-corrected
-standard space to native space registered ROI atlas (named `orig_mni_to_{fMRI_volume_name}`). Next is the files which show how each
-stage of voxel exclusion cleaned the precorrected ROI atlas file. Each of these files is named in the format:
-`ExcludedVoxStage{stage}_{fMRI_volume_name}_{method}`. For example:
-`ExcludedVoxStage3_P2_MB1_S2_match_BW_noiseThreshOutliers`. The next file type is the corrected ROI atlas, as a result
-of the cleaning of the precorrected ROI atlas file (named `final_mni_to_{fMRI_volume_name}`). Finally is the binary mask files, the first
-named `binary_mask_{fMRI_volume_name}` is merely a binarised mask created from the corrected ROI atlas. The next binary mask
-file named `binary_mask_filled_{fMRI_volume_name}` is the binary mask with the holes filled using the ``fslmaths`` flag
-``-fillh``. The last binary mask file (`filled_voxels_{fMRI_volume_name}`) highlights which voxels were filled in
-during the previous step.
+standard space to native space registered ROI atlas (named ``orig_mni_to_{fMRI_volume_name}``). Next is the files which show
+each stage of corrections made to the ROI atlas file. Each of these files is named in the format:
+``ExcludedVoxStage{stage}_{fMRI_volume_name}_{method}``. For example:
+``ExcludedVoxStage3_P2_MB1_S2_match_BW_noiseThreshOutliers``. Next is the binary mask files, the first
+named ``binary_mask_{fMRI_volume_name}`` is merely a binarised mask of voxels retained after the above correction stages.
+The next binary mask file named ``binary_mask_filled_{fMRI_volume_name}`` is the binary mask with holes filled using the ``fslmaths`` flag
+``-fillh``. The last binary mask file (``filled_voxels_{fMRI_volume_name}``) highlights which voxels were filled in
+during the previous step. Finally, is the ROI atlas which has undergone correction and filled in gaps in its mask.
+This is the final ROI atlas used for the analysis and is named ``final_mni_to_{fMRI_volume_name}``.
 
 
 .. note::
