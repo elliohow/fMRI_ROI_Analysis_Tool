@@ -8,7 +8,7 @@ This page will first explain key concepts of fRAT and then will give instruction
 
 #. Create a voxel-wise tSNR map
 #. Convert this voxel-wise map into an ROI based map
-#. Produce figures and statistically analyse this data
+#. Understand the basics of the ROI analysis output
 
 .. note::
     This tutorial will focus on how to use the GUI version of the fRAT, as while many settings and functions can be
@@ -125,15 +125,15 @@ Here is the folder structure of the output folder:
 
 In the folder structure above:
 
-- ``additional_info.csv`` contains further information about files such as the displacement values as measured during motion correction
+- ``additional_info.csv`` contains further information about files such as the displacement values as measured during motion correction.
 - ``analysis_log.toml`` is the configuration files used to run the analysis step (logs are also output for the statistics and plotting steps)
-- ``copy_paramValues.csv`` is the parameter values used for the analysis
-- ``index.html`` is used to open the html report output by the plotting step
-- ``Statistics`` contains the statistical analysis output
-- ``Figures`` contains folders for each plot type created
-- ``fRAT_report`` contains the pages of the html report
-- ``Overall`` contains the final results, summarised across participants/sessions
-- ``sub-{number}`` contains the results computed for each participant
+- ``copy_paramValues.csv`` is the parameter values used for the analysis.
+- ``index.html`` is used to open the html report output by the plotting step.
+- ``Statistics`` contains the statistical analysis output.
+- ``Figures`` contains folders for each plot type created.
+- ``fRAT_report`` contains the pages of the html report.
+- ``Overall`` contains the final results, summarised across participants/sessions.
+- ``sub-{number}`` contains the results computed for each participant.
 
 In the ``Overall`` folder, ``Summarised_results`` will contain ``Participant_averaged_results`` and
 ``Session_averaged_results``, with each folder containing a separate file for each parameter combination and also a
@@ -160,10 +160,25 @@ the maximum value seen across all ROIs across all parameters.
 ``Raw_results``, found in both the ``Overall`` and the ``sub-{number}`` folders contains the value of every voxel in
 each ROI. This data is used to produce histograms in the plotting step.
 
-In each ``sub-{number}`` folder, ``Summarised_results`` in addition to the results from each session for this participant, there
-is also an ``Averaged_results`` folder. This folder allows you to check if any of the participant results are outliers.
+In each ``sub-{number}`` folder, the ``Summarised_results`` folder contains, in addition to the results from each
+session for this participant, an ``Averaged_results`` folder. This folder has taken the mean average for every statistic
+across all sessions. This allows you to check if any of the participant results are outliers. In each ``sub-{number}``
+folder there are also ``Intermediate_files`` and ``Excluded_voxels`` folders. The ``Intermediate_files`` folder
+contains all intermediate files produced by the fRAT, and can be used to produce figures or check the accuracy of the different
+preprocessing steps of the fRAT.
 
-Figure creation also makes html file
+The ``Excluded_voxels`` contains 5 types of files, the first being the original fMRI volume (named handily `fMRI_volume`).
+This is placed here to more easily create figures ``using fsleyes``. The next type of file is the pre-corrected
+standard space to native space registered ROI atlas (named `orig_mni_to_{fMRI_volume_name}`). Next is the files which show how each
+stage of voxel exclusion cleaned the precorrected ROI atlas file. Each of these files is named in the format:
+`ExcludedVoxStage{stage}_{fMRI_volume_name}_{method}`. For example:
+`ExcludedVoxStage3_P2_MB1_S2_match_BW_noiseThreshOutliers`. The next file type is the corrected ROI atlas, as a result
+of the cleaning of the precorrected ROI atlas file (named `final_mni_to_{fMRI_volume_name}`). Finally is the binary mask files, the first
+named `binary_mask_{fMRI_volume_name}` is merely a binarised mask created from the corrected ROI atlas. The next binary mask
+file named `binary_mask_filled_{fMRI_volume_name}` is the binary mask with the holes filled using the ``fslmaths`` flag
+``-fillh``. The last binary mask file (`filled_voxels_{fMRI_volume_name}`) highlights which voxels were filled in
+during the previous step.
+
 
 .. note::
     For plotting, as scaling of brain grid figures are calculated during the analysis step, scaled brain grid figures

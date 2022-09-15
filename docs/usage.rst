@@ -57,7 +57,7 @@ Then save and exit the bash_profile. Solution originally found here:
 [Link](https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr)
 
 FileNotFoundError: No such file or directory
-********************************************
+--------------------------------------------
 While this error can be caused for a number of reasons, such as a file that is present in the  ``paramValues.csv``
 table that is no longer present in its subject directory. If this error occurs at the beginning of the ROI
 analysis, during the anatomical file alignment step, it is likely that in the path to the chosen base directory, there
