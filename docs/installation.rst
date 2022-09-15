@@ -4,7 +4,7 @@
 Installation
 ============
 .. contents:: :local:
-    :maxdepth: 2
+    :depth: 2
 
 Firstly navigate to where you wish to install fRAT, and then run the following command in the terminal::
 

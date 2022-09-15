@@ -37,13 +37,16 @@ plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`. 
 accessed with the command: `fRAT.py --help`.
 
 
-## Potential errors
-### Multicore processing
+Potential errors
+================
+Multicore processing
+--------------------
 On some Mac OS systems, multicore processing may cause the below issue:
 
 ```objc[16599]: +[__NSCFConstantString initialize] may have been in progress in another thread when fork()```
 
-#### Solution
+Solution
+********
 In the terminal, edit your bash_profile with:
 
 ```nano ~/.bash_profile```
