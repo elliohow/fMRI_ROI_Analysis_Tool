@@ -5,12 +5,6 @@ Usage
 =====
 .. contents:: :local:
 
-This page will first explain key concepts of fRAT and then will give instructions on how to use fRAT to:
-
-#. Create a voxel-wise tSNR map
-#. Convert this voxel-wise map into an ROI based map
-#. Produce figures and statistically analyse this data
-
 .. note::
     It is recommended that the fRAT is first ran using the files in the ``example_data`` folder to test whether the project
     dependencies are correctly installed. This folder also gives demonstrates the input necessary for the fRAT and
@@ -58,4 +52,11 @@ At the end of the bash_profile file add the line:
 Then save and exit the bash_profile. Solution originally found here:
 [Link](https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr)
 
-Make sure there are no spaces in the path to the folder you want to analyse
+FileNotFoundError: No such file or directory
+********************************************
+While this error can be caused for a number of reasons, such as a file that is present in the  ``paramValues.csv``
+table that is no longer present in its subject directory. If this error occurs at the beginning of the ROI
+analysis, during the anatomical file alignment step, it is likely that in the path to the chosen base directory, there
+is a space which Nipype does not know how to handle. An example can be seen below:
+
+``FileNotFoundError: No such file or directory '/Users/elliohow/spa ce_test/sub-03/to_mni_from_CS_MPRAGE_optiBET_brain.mat' for output 'out_matrix_file' of a FLIRT interface``

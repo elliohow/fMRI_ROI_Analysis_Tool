@@ -3,6 +3,12 @@
 ==================
 Basic ROI analysis
 ==================
+This page will first explain key concepts of fRAT and then will give instructions on how to use fRAT to:
+
+#. Create a voxel-wise tSNR map
+#. Convert this voxel-wise map into an ROI based map
+#. Produce figures and statistically analyse this data
+
 .. note::
     This tutorial will focus on how to use the GUI version of the fRAT, as while many settings and functions can be
     accessed without the GUI, it is suggested that the GUI is used where possible until you already have familiarity
@@ -18,7 +24,7 @@ Before being able to run the ROI analysis, a few initial setup steps need to be 
 be structured with functional files organised into folders named using the format ``sub-{number}`` (e.g. ``sub-42``):
 
 .. image:: ../images/input_folder_subjects.png
-    :width: 200
+    :width: 300
 
 Next, enter the "Parsing" options menu found under the "Settings" panel in the GUI. The "critical parameters" setting
 indicates what are the independent variables of the experiment and will be used when labelling plots, whereas the
@@ -29,7 +35,7 @@ will represent that multiband 3 and SENSE 2 were used.
 
 After filling these options in, select the "Make folder structure" option. This will create the basic folder structure
 required for the fRAT and will sort the files into the correct directory. After returning to the home
-page, click the "Setup parameters" button in the "Run" panel of the GUI. This will parse files names for critical
+page, click the :guilabel:`Setup parameters` button in the "Run" panel of the GUI. This will parse files names for critical
 parameters using the "critical parameters abbreviation" option set above, with the output being saved in
 ``paramValues.csv``. This file should be checked before proceeding to make sure the correct parameters have been applied
 to each file. Alternatively, when running without the GUI, pass the --make_table flag when running ``fRAT.py``, e.g.
@@ -65,7 +71,7 @@ also not be included in any ROIs.
 
 Voxel-wise tSNR map creation
 ----------------------------
-Before creating the tSNR maps, click the "Settings" button in the "Statistical maps" section of the GUI. The default
+Before creating the tSNR maps, click the :guilabel:`Settings` button in the "Statistical maps" section of the GUI. The default
 options will normally be sufficient, however if a noise scan has been added to the functional volumes, make sure under
 the "Image SNR calculation" header that information about this noise volume is given. This allows the fRAT to remove it
 when creating tSNR maps, and if creating iSNR maps, it will be used to calculate the noise value.
@@ -88,7 +94,7 @@ will be created, which contains functional volumes better suited to be used for 
 Running the ROI analysis
 ------------------------
 The same process for creating voxel-wise maps applies here, check each options menu from the "Settings" panel in the
-"fRAT" section of the GUI and then click the "Run fRAT" button to run the ROI analysis when you are ready to run the
+"fRAT" section of the GUI and then click the :guilabel:`Run fRAT` button to run the ROI analysis when you are ready to run the
 analysis. Again, the default options should be sufficient, however the **bolded** options are the ones most likely to
 need changing. In particular, the "General" option menu allows ROI analysis pipeline steps to be skipped if desired.
 Further, the "Statistical map folder" setting in the "Analysis" option menu should be changed to "temporalSNR_report".

@@ -15,8 +15,9 @@ dependencies globally (as opposed to in a virtual environment), use the followin
 
     $ pip install -r requirements.txt
 
-When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
-this library if possible.
+.. note::
+    When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
+    this library if possible.
 
 Virtual environments
 ====================
