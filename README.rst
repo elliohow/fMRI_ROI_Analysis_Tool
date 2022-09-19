@@ -22,6 +22,8 @@ is used to analyse and plot region-of-interest data, with a number of supplement
 
 About
 -----
+.. image:: images/voxel_and_roi_example.png
+
 Documentation: https://fmri-roi-analysis-tool.readthedocs.io
 
 Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
