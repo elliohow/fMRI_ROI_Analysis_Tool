@@ -8,6 +8,5 @@
     Home <self>
     key_concepts_of_frat
     installation
-    usage
     tutorials
     troubleshooting
