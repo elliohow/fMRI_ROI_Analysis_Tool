@@ -35,7 +35,7 @@ For shell scripting multiple analyses/plots, flags can be passed when running fR
 plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
 statistical map creation is not currently possible. Help text for available flags can be
 accessed with the command: `fRAT.py --help`. To learn the procedure of how to run an ROI analysis, follow this
-:doc:`tutorial </docs/tutorials/Basic-ROI-analysis>`.
+:doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 .. note::
     It is recommended that the fRAT is first ran using the files in the ``example_data`` folder to test whether the project
