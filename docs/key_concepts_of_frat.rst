@@ -9,11 +9,13 @@ Key concepts of fRAT
 
     * - .. figure:: images/voxelwise_example.png
 
-           Fig 1. Representations
+           A voxel-wise temporal Signal-to-Noise map created using fRAT and used as one of the inputs for the ROI
+           analysis. Data is from a single subject and is displayed in native space.
 
       - .. figure:: images/ROI_example.png
 
-           Fig 2. Representations
+           A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region.
+           Data is displayed in MNI152 standard space and combines data from multiple subjects.
 
 
 
