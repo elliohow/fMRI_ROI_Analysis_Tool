@@ -26,6 +26,23 @@ Documentation: https://fmri-roi-analysis-tool.readthedocs.io
 
 Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
+Using fRAT
+----------
+The ``fRAT.py`` or ``fRAT_GUI.py`` files are used to run the non-GUI or GUI versions of fRAT respectively.
+Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
+For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
+(for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
+plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
+statistical map creation is not currently possible. Help text for available flags can be
+accessed with the command: `fRAT.py --help`. To learn the procedure of how to run an ROI analysis, follow this
+:doc:`tutorial </docs/tutorials/Basic-ROI-analysis>`.
+
+.. note::
+    It is recommended that the fRAT is first ran using the files in the ``example_data`` folder to test whether the project
+    dependencies are correctly installed. This folder also gives demonstrates the input necessary for the fRAT and
+    the output produced by the fRAT.
+
+
 GUI images
 ----------
 .. image:: images/GUI.png

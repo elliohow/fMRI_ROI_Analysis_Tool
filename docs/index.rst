@@ -6,6 +6,8 @@
     :maxdepth: 3
 
     Home <self>
+    key-concepts-of-fRAT
     installation
     usage
     tutorials
+    troubleshooting

@@ -4,7 +4,9 @@
 ==================
 Basic ROI analysis
 ==================
-This page will first explain key concepts of fRAT and then will give instructions on how to use fRAT to:
+.. contents:: :local:
+
+This page will give instructions on how to use the fRAT to:
 
 #. Create a voxel-wise tSNR map
 #. Convert this voxel-wise map into an ROI based map
@@ -157,11 +159,15 @@ files scale the values to a range between 0 and 100, with "Within ROI scaled" fi
 maximum value seen within that ROI across all parameters, and "between ROI scaled" files have scaled each ROI based on
 the maximum value seen across all ROIs across all parameters.
 
+.. warning::
+    The plotting step uses the files found in the ``NIFTI_ROI`` folder to produce brain grids, however as scaling of these files
+    is based on the other files and takes place during the analysis step, files present in this folder should not be deleted.
+
 ``Raw_results``, found in both the ``Overall`` and the ``sub-{number}`` folders contains the value of every voxel in
 each ROI. This data is used to produce histograms in the plotting step.
 
-In each ``sub-{number}`` folder, the ``Summarised_results`` folder contains, in addition to the results from each
-session for this participant, an ``Averaged_results`` folder. This folder has taken the mean average for every statistic
+The ``Summarised_results`` folder in each ``sub-{number}`` folder, contains in addition to the results from each
+session for this participant, an ``Averaged_results`` folder. This folder has computed the mean average for every statistic
 across all sessions. This allows you to check if any of the participant results are outliers. In each ``sub-{number}``
 folder there are also ``Intermediate_files`` and ``Excluded_voxels`` folders. The ``Intermediate_files`` folder
 contains all intermediate files produced by the fRAT, and can be used to produce figures or check the accuracy of the different
@@ -184,17 +190,15 @@ This is the final ROI atlas used for the analysis and is named ``final_mni_to_{f
 
     A visualisation of which voxels have been retained after correction. Red voxels were excluded during the original
     standard to native space registration, whereas blue voxels have been excluded as they have been marked as
-    potentially white matter.
+    potentially white matter. This visualisation was created by overlaying each stage of the excluded voxel files on top
+    of the original functional volume.
 
 .. figure::
     ../images/final_roi_atlas.png
 
     The final standard to native space registered ROI atlas overlaid on the original functional volume.
 
-.. note::
-    For plotting, as scaling of brain grid figures are calculated during the analysis step, scaled brain grid figures
-    should only be used if all files analysed together are also displayed together, otherwise the scaling will be based
-    on files which are not present in the figures. WHAT DOES THIS MEAN
+
 
 Statistical map creation
 ------------------------
