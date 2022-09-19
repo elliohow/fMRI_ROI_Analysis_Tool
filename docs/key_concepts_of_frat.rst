@@ -5,13 +5,18 @@ Key concepts of fRAT
 ====================
 .. contents:: :local:
 
-|pic1| any text |pic2|
+.. list-table::
 
-.. |pic1| image:: images/voxelwise_example.png
-   :width: 45%
+    * - .. figure:: images/voxelwise_example.png
 
-.. |pic2| image:: images/ROI_example.png
-   :width: 45%
+           Fig 1. Representations
+
+      - .. figure:: images/ROI_example.png
+
+           Fig 2. Representations
+
+
+
 
 The ROI analysis pipeline has 3 main steps: ROI analysis, statistical analysis and figure creation; the latter two steps
 requiring the ROI analysis step to first be ran. Each step outputs a configuration log file to log what
