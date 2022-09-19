@@ -5,7 +5,7 @@ Troubleshooting
     :depth: 1
 
 Below you can find solutions for some of the issues that you may come across when using the fRAT. However
-if this page does not help resolve your issue please submit an issue report `here. <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues>`_
+if this page does not help resolve your issue please submit an issue report `here. <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues>`__
 
 Mac OS multicore processing issue
 ---------------------------------
@@ -23,7 +23,7 @@ At the end of the bash_profile file add the line:
 
 ```export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES```
 
-Then save and exit the bash_profile. Solution originally found `here. <https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr>`_
+Then save and exit the bash_profile. Solution originally found `here. <https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr>`__
 
 
 FileNotFoundError: No such file or directory

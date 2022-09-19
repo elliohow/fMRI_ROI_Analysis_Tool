@@ -6,7 +6,7 @@
     :maxdepth: 3
 
     Home <self>
-    key-concepts-of-fRAT
+    key_concepts_of_fRAT
     installation
     usage
     tutorials
