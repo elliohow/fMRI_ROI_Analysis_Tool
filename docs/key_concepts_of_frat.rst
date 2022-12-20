@@ -5,7 +5,7 @@ Key concepts of fRAT
 ====================
 .. contents:: :local:
 
-.. figure:: images/voxelwise_and_roi_example.png
+.. figure:: images/voxel_and_roi_example.png
 
     Representation of how ROI-wise maps are produced. Data from a single participant is shown here.
     **(A)** Voxelwise tSNR map (in native space). **(B)** Harvard-Oxford Cortical atlas regions assigned to participant
