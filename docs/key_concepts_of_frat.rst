@@ -25,5 +25,5 @@ requiring the ROI analysis step to first be ran. Each step outputs a configurati
 settings were used during this step. As seen in the image below, the fRAT requires: functional volumes, anatomical
 volumes, voxelwise statistical maps and optionally (but recommended for cortical ROIs) an FSL FAST segmentation.
 
-.. image:: images/entire_process.png
+.. image:: images/process_overview.svg
 
