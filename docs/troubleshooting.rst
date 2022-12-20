@@ -13,8 +13,8 @@ On some Mac OS systems, multicore processing may cause the below issue:
 
 ```objc[16599]: +[__NSCFConstantString initialize] may have been in progress in another thread when fork()```
 
-Solution
-********
+.. rubric:: Solution
+
 In the terminal, edit your bash_profile with:
 
 ```nano ~/.bash_profile```

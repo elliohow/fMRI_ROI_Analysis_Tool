@@ -83,3 +83,10 @@ FSL_ (version 6.0.2 or above) neuroimaging software tool should be downloaded an
 While optiBET_ is not required for fRAT, it is highly recommended that this software tool be used for brain extraction
 due to the necessity of accurate skull stripping for the fRAT to function optimally and the consistently better brain
 extraction performance when using optiBET.
+
+Checking installation
+=====================
+To check that fRAT and its dependencies are working correctly, click the :guilabel:`General` button in the ``fRAT`` section
+of the GUI and then click the :guilabel:`Run tests` button. This will create a voxel-wise tSNR map for each subject in the
+``example_data`` folder and will run an ROI analysis using these maps. After the analysis has been created, the tSNR maps
+and output from the ROI analysis will be compared to those already present in the ``example_data`` folder.

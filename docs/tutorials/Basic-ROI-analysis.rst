@@ -97,9 +97,9 @@ will be created, which contains functional volumes better suited to be used for 
 Running the ROI analysis
 ------------------------
 The same process for creating voxel-wise maps applies here, check each options menu from the "Settings" panel in the
-"fRAT" section of the GUI and then click the :guilabel:`Run fRAT` button to run the ROI analysis when you are ready to run the
+``fRAT`` section of the GUI and then click the :guilabel:`Run fRAT` button to run the ROI analysis when you are ready to run the
 analysis. Again, the default options should be sufficient, however the **bolded** options are the ones most likely to
-need changing. In particular, the "General" option menu allows ROI analysis pipeline steps to be skipped if desired.
+need changing. In particular, the ``General`` option menu allows ROI analysis pipeline steps to be skipped if desired.
 Further, the "Statistical map folder" setting in the "Analysis" option menu should be changed to "temporalSNR_report".
 If you wish to analyse any of the other files output by the tSNR map creation, the "Statistical map suffix" option can
 for example be changed to "tStd.nii.gz". The ``Atlas information`` option on the home page allows you to print the

@@ -10,3 +10,4 @@
     installation
     tutorials
     troubleshooting
+    future_additions
