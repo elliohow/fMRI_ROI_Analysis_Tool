@@ -4,8 +4,8 @@
 =============================
 fRAT - fMRI ROI Analysis Tool
 =============================
-fRAT is a GUI-based toolset used for analysis of task-based and resting-state functional MRI (fMRI) data. Primarily fRAT
-is used to analyse and plot region-of-interest data, with a number of supplemental functions provided within.
+fRAT is an open-source python-based analysis pipeline used to simplify the processing and analysis of fMRI data by
+converting voxelwise maps into ROI-wise maps.
 
 .. note::
     This project is under active development.
@@ -22,7 +22,10 @@ is used to analyse and plot region-of-interest data, with a number of supplement
 
 About
 -----
-.. image:: images/voxel_and_roi_example.png
+.. figure:: images/ROI_example.png
+
+    A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region.
+    Data is displayed in MNI152 standard space and combines data from multiple subjects.
 
 Documentation: https://fmri-roi-analysis-tool.readthedocs.io
 

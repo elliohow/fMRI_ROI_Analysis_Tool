@@ -5,25 +5,17 @@ Key concepts of fRAT
 ====================
 .. contents:: :local:
 
-.. list-table::
+.. figure:: images/voxelwise_and_roi_example.png
 
-    * - .. figure:: images/voxelwise_example.png
+    Representation of how ROI-wise maps are produced. Data from a single participant is shown here.
+    **(A)** Voxelwise tSNR map (in native space). **(B)** Harvard-Oxford Cortical atlas regions assigned to participant
+    (in native space). **(C)** Combination of **(A)** and **(B)** to produce final ROI-wise tSNR map (in standard space).
 
-           A voxel-wise temporal Signal-to-Noise map created using fRAT and used as one of the inputs for the ROI
-           analysis. Data is from a single subject and is displayed in native space.
-
-      - .. figure:: images/ROI_example.png
-
-           A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region.
-           Data is displayed in MNI152 standard space and combines data from multiple subjects.
-
-
-
-
-The ROI analysis pipeline has 3 main steps: ROI analysis, statistical analysis and figure creation; the latter two steps
-requiring the ROI analysis step to first be ran. Each step outputs a configuration log file to log what
-settings were used during this step. As seen in the image below, the fRAT requires: functional volumes, anatomical
-volumes, voxelwise statistical maps and optionally (but recommended for cortical ROIs) an FSL FAST segmentation.
+As seen in the figure below, fRAT contains 3 main components: voxelwise map creation, ROI analysis, and
+inferential statistics and visualisation. Each step component a configuration log file to log what
+settings were used during this step. The ROI analysis step requires: functional volumes, anatomical
+volumes, and voxelwise statistical maps. While voxelwise statistical maps can be created using fRAT itself, any
+voxelwise map can be used for the ROI analysis.
 
 .. image:: images/process_overview.svg
 

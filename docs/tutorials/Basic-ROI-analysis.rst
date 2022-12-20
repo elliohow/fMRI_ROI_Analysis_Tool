@@ -198,11 +198,6 @@ This is the final ROI atlas used for the analysis and is named ``final_mni_to_{f
 
     The final standard to native space registered ROI atlas overlaid on the original functional volume.
 
-
-
-Statistical map creation
-------------------------
-
-Both the  and `interactive table` GUI options can be used to explore the data once the analysis has
+Both the `print results` and `interactive table` GUI options can be used to explore the data once the analysis has
 been ran. The `print results` option prints the results for the selected region of interests to the terminal, whereas
-the `interactive table` option opens up the result in a browser window.
+the `interactive table` option opens up the results in a browser window.
