@@ -9,11 +9,12 @@ from pathlib import Path
 from utils import *
 
 
-def fRAT():
+def fRAT(config_filename):
     start_time = time.perf_counter()
     Utils.checkversion()
 
-    config, orig_path = load_config()
+    config_path = f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis/'
+    config, orig_path = load_config(config_filename)
     config = argparser(config)
 
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
@@ -24,7 +25,11 @@ def fRAT():
 
     # Run the ROI analysis
     if config.run_analysis:
-        analysis(config)
+        analysis(config, config_path, config_filename)
+
+    # Plot the results
+    if config.run_plotting:
+        plotting(config, config_path, config_filename, orig_path)
 
     # Run the statistical analysis
     if config.run_statistics:
@@ -32,11 +37,7 @@ def fRAT():
             print('\n------------------\n--- Statistics ---\n------------------')
 
         Utils.chdir_to_output_directory('Statistics', config)
-        statistics_main(config)
-
-    # Plot the results
-    if config.run_plotting:
-        plotting(config, orig_path)
+        statistics_main(config, config_path, config_filename)
 
     os.chdir(orig_path)  # Reset path
 
@@ -47,9 +48,12 @@ def fRAT():
         print(f"--- Completed in {elapsed_min} minutes {elapsed_sec} seconds ---\n\n")
 
 
-def load_config():
+def load_config(config_filename):
     orig_path = Path(os.path.abspath(__file__)).parents[0]
-    config = Utils.load_config(orig_path, 'fRAT_config.toml')  # Reload config file incase GUI has changed it
+
+    # Reload config file incase GUI has changed it
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
+                               config_filename)
     config_check(config)
     return config, orig_path
 
@@ -75,13 +79,13 @@ def argparser(config):
     return config
 
 
-def plotting(config, orig_path):
+def plotting(config, config_path, config_filename, orig_path):
     if config.verbose:
         print('\n----------------\n--- Plotting ---\n----------------')
 
     # Plotting
     Utils.chdir_to_output_directory('Plotting', config)
-    Figures.make_figures(config)
+    Figures.make_figures(config, config_path, config_filename)
 
     # Create html report
     html_report.main(str(orig_path))
@@ -89,7 +93,7 @@ def plotting(config, orig_path):
         print('Created html report.')
 
 
-def analysis(config):
+def analysis(config, config_path, config_filename):
     if config.verbose:
         print('\n----------------\n--- Analysis ---\n----------------')
 
@@ -99,7 +103,7 @@ def analysis(config):
         pool = None
 
     # Run class setup
-    participant_list, matched_brains = Environment_Setup.setup_analysis(config, pool)
+    participant_list, matched_brains = Environment_Setup.setup_analysis(config, config_path, config_filename, pool)
 
     Utils.move_file(config.parameter_file, os.getcwd(), os.getcwd() + f"/{Environment_Setup.save_location}",
                     copy=True, parameter_file=True)
@@ -275,7 +279,7 @@ def atlas_scale(matched_brains, config, pool):
         run_atlas_scale_function_for_each_statistic(first_combination, matched_brains, statistic_number,
                                                     pool, config, data='Session averaged')
     if config.verbose:
-        print('\nCreating NIFTI ROI images using pooled voxel data.\n')
+        print('\nCreating NIFTI ROI images using participant data.\n')
 
     for statistic_number in range(len(first_combination.participant_averaged_results)):
         run_atlas_scale_function_for_each_statistic(first_combination, matched_brains, statistic_number,

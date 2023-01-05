@@ -86,13 +86,6 @@ Statistical_maps = {
                               'Description': "'max' to select number of cores available on the system, alternatively "
                                              "an int to manually select number of cores to use. Recommended: 'max'"},
 
-    'manual_noise_value': {'type': 'Entry', 'Recommended': "", 'save_as': 'string',
-                           'label': 'Noise value (if not using noise volume)',
-                           'Description': 'Noise value can be calculated as the standard deviation of voxel values '
-                                          'outside of the brain. If noise volume is set to true, standard deviation of '
-                                          'noise will be calculated using the noise volume, even if a noise value has '
-                                          'been provided.'},
-
     'iSNR_std_use_only_nonzero_voxels': {'type': 'CheckButton', 'Recommended': 'true',
                                          'label': 'Use only nonzero voxels for iSNR calc',
                                          'Description': 'true or false.'},
@@ -101,9 +94,9 @@ Statistical_maps = {
 
     'create_noise_level_file': {'type': 'Button', 'Command': 'create_noise_file', 'Text': 'Create noiseValues.csv',
                                 'Description': 'Create a noiseValues.csv file to determine what the standard deviation'
-                                               'of the Gaussian should be when adding noise to each participant'
+                                               "of the Gaussian should be when adding noise to each participant's data "
                                                '(the distribution will have a mean of 0).'
-                                               'This will not overwrite the original files.'
+                                               'This will not overwrite the original files. '
                                                'Recommended: The standard deviation over time found in '
                                                'the dataset.'
                                                '\nNOTE: Can be used to see how additional noise affects '
@@ -111,7 +104,13 @@ Statistical_maps = {
                                                'create tSNR maps with the fRAT and run the '
                                                'full analysis using the tStd files. The mean values of '
                                                'this analysis in each participants subfolder, will then show you the '
-                                               'average noise for each region for each participant.'},
+                                               'average noise for each region for each participant.'
+                                               '\n\nThis file can also be used to manually set a noise value for each '
+                                               'participant for use in iSNR calculation. This noise value can be '
+                                               'calculated as the standard deviation of voxel values outside of the '
+                                               'brain. If "Noise volume included in time series" is set to true, '
+                                               'standard deviation of noise will be calculated using the noise volume, '
+                                               'even if a noise value has been provided in this file.'},
 
     'noise_multipliers': {'type': 'Entry', 'Recommended': 1, 'save_as': 'list', 'label': 'Noise multiplier(s)',
                           'Description': "Provide a comma-separated list of multipliers for the standard deviation of "
