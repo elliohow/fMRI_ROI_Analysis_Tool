@@ -8,6 +8,7 @@ Future updates
 
 .. note::
    Any update ideas can be given here: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/discussions
+
    Any issues can be reported here: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues
 
 General

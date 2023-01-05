@@ -43,9 +43,10 @@ accessed with the command: `fRAT.py --help`. To learn the procedure of how to ru
 :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 .. note::
-    It is recommended that the fRAT is first ran using the files in the ``example_data`` folder to test whether the project
-    dependencies are correctly installed. This folder also gives demonstrates the input necessary for the fRAT and
-    the output produced by the fRAT.
+    Before running fRAT, it is recommended that the fRAT and project dependency installation is tested.
+    To test fRAT, download the files provided here: https://osf.io/pbm3d/ This ``example_data`` folder should be placed
+    in the base folder, allowing the fRAT tests to find them.
+    This folder also gives demonstrates the input necessary for the fRAT and the output produced by the fRAT.
 
 
 GUI images
