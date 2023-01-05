@@ -1,3 +1,8 @@
+import time
+
+import numpy as np
+import toml
+
 try:
     import Tkinter as tk
 except ImportError:
@@ -26,6 +31,7 @@ from fRAT import fRAT
 from printResults import printResults
 from statmap import main as statmap_calc
 from utils import *
+from utils.directory_comparison import *
 from utils.fRAT_config_setup import *
 from utils.statmap_config_setup import *
 
@@ -39,12 +45,12 @@ def start_gui():
     '''Starting point when module is the main routine.'''
     global val, w, root, top
     root = tk.Tk()
-    top = Config_GUI(root)
+    top = GUI(root)
 
     root.mainloop()
 
 
-class Config_GUI:
+class GUI:
     def __init__(self, window=None, page='Home', load_initial_values=True):
         '''This class configures and populates the toplevel window.
            top is the toplevel containing window.'''
@@ -55,7 +61,13 @@ class Config_GUI:
         self.background = '#d9d9d9'
 
         if load_initial_values:
-            for toml_file in ['fRAT_config.toml', 'statmap_config.toml']:
+            # Load config file last used
+            with open(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/latest_settings.toml',
+                      'r') as tomlfile:
+                parse = tomlfile.readlines()
+                parse = toml.loads(''.join(parse))
+
+            for toml_file in [f'{folder}/{config_file}' for folder, config_file in parse.items()]:
                 self.load_initial_values(toml_file)
 
             self.style = ttk.Style()
@@ -91,7 +103,7 @@ class Config_GUI:
         if self.page == 'Home':
             window.geometry("512x860")
         elif self.page == 'General':
-            window.geometry("450x620")
+            window.geometry("480x860")
         elif self.page == 'Analysis':
             window.geometry("480x860")
         elif self.page == 'Parsing':
@@ -99,7 +111,7 @@ class Config_GUI:
         elif self.page == 'Plotting':
             window.geometry("512x860")
         elif self.page == 'Statistics':
-            window.geometry("460x450")
+            window.geometry("530x860")
         elif self.page == 'Statistical_maps':
             window.geometry("500x860")
 
@@ -123,7 +135,8 @@ class Config_GUI:
 
         self.statmap_save_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_save_button.place(relx=0.02, rely=0.08, height=42, width=105)
-        self.statmap_save_button.configure(command=lambda: Save_settings(['Statistical_maps'], 'statmap_config.toml'))
+        self.statmap_save_button.configure(
+            command=lambda: Save_settings(['Statistical_maps'], 'maps/statmap_config.toml'))
         self.statmap_save_button.configure(text='''Save settings''')
         Tooltip.CreateToolTip(self.statmap_save_button, 'Save all statistical map settings')
 
@@ -162,7 +175,7 @@ class Config_GUI:
 
     @staticmethod
     def load_initial_values(toml_file):
-        with open(toml_file, 'r') as f:
+        with open(f"configuration_profiles/{toml_file}", 'r') as f:
             for line in f.readlines():
                 if line[:2] == '##':  # Subheadings
                     continue
@@ -209,7 +222,7 @@ class Config_GUI:
 
         self.Save_button = ttk.Button(self.Options_frame)
         self.Save_button.place(relx=0.05, y=10, height=42, width=150)
-        self.Save_button.configure(command=lambda: Save_settings(pages, 'fRAT_config.toml'))
+        self.Save_button.configure(command=lambda: Save_settings(pages, 'roi_analysis/fRAT_config.toml'))
         self.Save_button.configure(text='''Save settings''')
         Tooltip.CreateToolTip(self.Save_button, 'Save all fRAT settings')
 
@@ -412,11 +425,9 @@ class Config_GUI:
         dynamic_widgets = {}
 
         if info['subtype'] == 'OptionMenu':
-            if not text:
-                text = " "
-
             info['DynamOptions'] = [*text]
 
+            # If not currently set by user, set to default value
             if info['Current'] not in info['DynamOptions']:
                 try:
                     info['Current'] = info['DynamOptions'][info['DefaultNumber']]
@@ -430,7 +441,33 @@ class Config_GUI:
 
             dynamic_widgets = {**dynamic_widgets, **widget}
 
+        elif info['subtype'] == 'OptionMenu2':
+            if info['Current'] == 'FILL IV TYPE AS BETWEEN-SUBJECTS':
+                info['Current'] = info['Options2'][info['DefaultNumber']]
+
+            try:
+                info['Current'] = info['Current'].split(', ')
+            except AttributeError:
+                # Error occurs if string has already been converted to list
+                pass
+
+            if len(info['Current']) != len(text):
+                info['Current'] = info['Current'] * len(text)
+
+            for counter, value in enumerate(text):
+                widget = self.optionmenu_create(f"{name}_{value}", info, row, counter)
+
+                dynamic_widgets = {**dynamic_widgets, **widget}
+
+                # Replace current labels and create one for each row
+                self.label_create(f"{info['label']} - {value}", row, info, fixed_name=True)
+
+                row += 1
+
         elif info['subtype'] == 'Checkbutton':
+            if info['Current'] == 'INCLUDE ALL VARIABLES':
+                info['Current'] = Parsing['parameter_dict1']['Current'].split(', ')
+
             for value in text:
                 widget = self.checkbutton_create(f"{name}_{value}", info, row)
                 [widget.configure(text=value) for widget in widget.values()]
@@ -441,15 +478,16 @@ class Config_GUI:
 
         return dynamic_widgets, row
 
-    def label_create(self, name, row, info=None, font=None):
+    def label_create(self, name, row, info=None, font=None, fixed_name=False):
         self.__setattr__(name, tk.Label(self.settings_frame))
         label_name = getattr(self, name)
 
-        try:
-            name = info['label']
-        except KeyError:
-            if info['type'] != 'subheading':
-                name = name.capitalize()
+        if not fixed_name:
+            try:
+                name = info['label']
+            except KeyError:
+                if info['type'] != 'subheading':
+                    name = name.capitalize()
 
         label_name.configure(background=self.background)
         label_name.configure(foreground="#000000")
@@ -508,7 +546,9 @@ class Config_GUI:
         current_val = info['Current']
 
         # Dynamic widget handler
-        if not isinstance(info['Current'], bool) and name.rsplit('_', 1)[1] in info['Current']:
+        if not isinstance(info['Current'], bool) and info['Current'] == 'all':
+            current_val = True
+        elif not isinstance(info['Current'], bool) and name.rsplit('_', 1)[1] in info['Current']:
             current_val = True
         elif not isinstance(info['Current'], bool) and not name.rsplit('_', 1)[1] in info['Current']:
             current_val = False
@@ -529,15 +569,20 @@ class Config_GUI:
         widget.configure(highlightcolor="black")
         widget.configure(justify='left')
 
-    def optionmenu_create(self, name, info, row):
+    def optionmenu_create(self, name, info, row, counter=None):
         state = tk.StringVar()
-
-        state.set(info['Current'])
+        if counter is not None:
+            state.set(info['Current'][counter])
+        else:
+            state.set(info['Current'])
 
         try:
             options = info['DynamOptions']
         except KeyError:
-            options = info['Options']
+            try:
+                options = info['Options2']
+            except KeyError:
+                options = info['Options']
 
         self.__setattr__(name, tk.OptionMenu(self.settings_frame, state, *options))
         widget = getattr(self, name)
@@ -575,6 +620,8 @@ class Config_GUI:
         widget.configure(selectforeground="white")
 
     def change_frame(self, page):
+        current_options2_menu = {}
+
         for widget in self.widgets:
             if eval(self.page)[widget]['type'] != 'Button':
                 try:
@@ -607,13 +654,36 @@ class Config_GUI:
                             '')  # If list is empty, set first element to blank string
 
             else:
-                eval(self.page)[widget]['Current'] = self.dynamic_widgets[widget].val.get()
+                try:
+                    eval(self.page)[widget]['Current'] = self.dynamic_widgets[widget].val.get()
+                except KeyError:
+                    # Will raise KeyError for OptionsMenu2
+                    current_widget = eval(self.page)[widget.rpartition('_')[0]]
+
+                    if current_widget['label'] in current_options2_menu:
+                        current_options2_menu[current_widget['label']].append(self.dynamic_widgets[widget].val.get())
+                    else:
+                        current_options2_menu[current_widget['label']] = []
+
+                    current_widget['Current'][len(current_options2_menu[current_widget['label']])] = self.dynamic_widgets[widget].val.get()
 
         for frame in self.frames:
             frame.destroy()
+
         self.frames.clear()
 
         self.__init__(root, page, load_initial_values=False)
+
+
+class ConfigurationFiles:
+    """Class container for processing configuration files."""
+
+    analysis_config = 'fRAT_config.toml'
+    statmap_config = 'statmap_config.toml'
+
+    def update_latest_settings_file(self):
+        """Update latest_settings.toml when configuration file changes"""
+        pass
 
 
 class Tooltip:
@@ -678,12 +748,9 @@ class Tooltip:
 
 
 class AutoHidingScrollbar(tk.Scrollbar):
-
-    # Defining set method with all
-    # its parameter
     def set(self, lo, hi):
         if float(lo) <= 0.0 and float(hi) >= 1.0:
-            # grid_remove is currently missing from Tkinter!
+            # grid_remove is currently missing from Tkinter
             self.pack_forget()
         else:
             if self.cget("orient") == 'horizontal':
@@ -699,6 +766,7 @@ class ScrollbarFrame(tk.LabelFrame):
     This class is independent from the widgets to be scrolled and
     can be used to replace a standard tk.Frame
     """
+
     def __init__(self, parent, **kwargs):
         tk.LabelFrame.__init__(self, parent, **kwargs)
 
@@ -734,25 +802,24 @@ def button_handler(command, *args):
         if command == 'Run_fRAT':
             check_stale_state()
 
-            Save_settings(pages, 'fRAT_config.toml')
+            Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
             print('----- Running fRAT -----')
-            fRAT()
+            fRAT(ConfigurationFiles.analysis_config)
 
         elif command == 'Print_results':
             printResults()
 
         elif command == "Make paramValues.csv":
-            Save_settings(pages, 'fRAT_config.toml')
+            Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
             make_table()
-            sys.exit()
 
         elif command == "Run_dash":
-            dash_report.main()
+            dash_report.main(f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
         elif command == "Make maps":
-            Save_settings(['Statistical_maps'], 'statmap_config.toml')
-            statmap_calc(args[0])
+            Save_settings(['Statistical_maps'], f'maps/{ConfigurationFiles.statmap_config}')
+            statmap_calc(args[0], ConfigurationFiles.statmap_config)
 
     except Exception as err:
         if err.args[0] == 'No folder selected.':
@@ -763,8 +830,38 @@ def button_handler(command, *args):
             sys.exit()
 
 
+def run_tests():
+    print('----- Running tests -----')
+    Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
+
+    # Create tSNR maps and run ROI analysis
+    # statmap_calc('Temporal SNR', 'test_config.toml')
+    fRAT('test_config.toml')
+
+    path_to_example_data = f'{Path(os.path.abspath(__file__)).parents[1]}/example_data'
+
+    # Run tests to check if output of fRAT matches the example data
+    roi_output_test = Test_differences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
+                                        f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
+                                       General['verbose_errors']['Current'])
+
+    voxelwise_map_test = Test_differences([f'{path_to_example_data}/test_ROI_report',
+                                           f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
+                                          General['verbose_errors']['Current'])
+
+    # Delete files
+    if General['delete_test_folder']['Current'] == 'Always' \
+            or (General['delete_test_folder']['Current'] == 'If completed without error'
+                and roi_output_test.status == 'No errors'
+                and voxelwise_map_test.status == 'No errors'):
+        shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
+        shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
+        shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
+        shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
+
+
 def check_stale_state():
-    current_critical_params = [value.strip() for value in Parsing['parameter_dict1']['Current'].split(',')]
+    current_critical_params = Parsing['parameter_dict1']['Current'].split(', ')
 
     if current_critical_params == ['']:
         raise Exception('No critical parameters set in Parsing options.')
@@ -775,9 +872,11 @@ def check_stale_state():
                                  'histogram_fig_x_facet', 'histogram_fig_y_facet',
                                  'brain_table_col_labels', 'brain_table_row_labels')(Plotting)
 
+    dynamic_widgets += itemgetter('IV_type', 'include_as_variable')(Statistics)
+
     for counter, widget in enumerate(dynamic_widgets):
         if widget['Current'] == '' and len(current_critical_params) > 1:
-            # If current value is blank but shouldnt be as number of critical params is above 1
+            # If current value is blank but shouldn't be as number of critical params is above 1
             dynamic_widgets[counter]['Current'] = current_critical_params[dynamic_widgets[counter]['DefaultNumber']]
 
         elif widget['Recommended'] == 'CHANGE TO DESIRED LABEL' and widget['Current'] != 'CHANGE TO DESIRED LABEL':
@@ -785,6 +884,13 @@ def check_stale_state():
             # This allows these labels to be updated automatically if user never enters the brain table menu
             # But does not change to the default value if labels have been set either manually or automatically
             pass
+
+        elif widget['Current'] == 'FILL IV TYPE AS BETWEEN-SUBJECTS':
+            # Set all IV's to between subjects if not been modified already
+            dynamic_widgets[counter]['Current'] = [widget['Options2'][widget['DefaultNumber']]] * len(current_critical_params)
+
+        elif widget['Current'] == 'INCLUDE ALL VARIABLES':
+            dynamic_widgets[counter]['Current'] = current_critical_params
 
         elif not widget['Current'] == '' and widget['Current'] not in current_critical_params:
             try:
@@ -807,12 +913,11 @@ def Print_atlas_ROIs(selection):
         atlas_label_dict = xmltodict.parse(fd.read())
 
     roiArray = []
-    roiArray.append('No ROI')
-
     for roiLabelLine in atlas_label_dict['atlas']['data']['label']:
         roiArray.append(roiLabelLine['#text'])
 
-    roiArray.append('Overall')
+    roiArray.extend(['No ROI', 'Overall'])
+    roiArray = sorted(roiArray)
 
     print(f"----------------------------\n{selection} Atlas:\n----------------------------")
 
@@ -823,7 +928,7 @@ def Print_atlas_ROIs(selection):
 
 
 def Save_settings(page_list, file):
-    with open(f'{Path(os.path.abspath(__file__)).parents[0]}/{file}', 'w') as f:
+    with open(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/{file}', 'w') as f:
         f.write(f"# Version Info\n")
         f.write(f"version = '{VERSION}'\n")
         f.write("\n")
@@ -890,8 +995,15 @@ def Save_settings(page_list, file):
                             f"{offset}# {description}\n")
 
                 elif convert == 'split_list':  # Split items then convert to list
+                    # Take out the string 'all' for Dynamic Checkbuttons, which will be the case if Recommended is set
+                    # to 'all'
+                    if eval(page)[key]['type'] == 'Dynamic' \
+                            and eval(page)[key]['subtype'] == 'Checkbutton' \
+                            and 'all,' in eval(page)[key]['Current']:
+                        eval(page)[key]['Current'] = eval(page)[key]['Current'].replace('all, ', '')
+
                     offset = ' ' * (
-                                80 - len(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}"))
+                            80 - len(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}"))
                     f.write(f"{key} = {[val.strip() for val in eval(page)[key]['Current'].split(',')]}  "
                             f"{offset}# {description}\n")
 
@@ -900,7 +1012,7 @@ def Save_settings(page_list, file):
         f.flush()
         f.close()
 
-    print('----- Saved settings -----')
+    print(f'----- Saved config file: {file.split("/")[-1]} -----')
 
 
 def Reset_settings(pages):
@@ -918,11 +1030,12 @@ def Reset_settings(pages):
 
 
 def make_table():
-    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'fRAT_config.toml')  # Load config file
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
+                               ConfigurationFiles.analysis_config)  # Load config file
 
     print('--- Creating paramValues.csv ---')
     print('Select the base directory.')
-    base_directory = Utils.file_browser(title='Select the base directory', chdir=True)
+    base_directory = Utils.file_browser(title='Select the base directory', chdir=False)
 
     participant_dirs = find_participant_dirs(config)
 
@@ -958,7 +1071,7 @@ def make_table():
                                'Baseline parameter combination for statistics (y for yes, otherwise blank)'],
                       data=data)
 
-    df.to_csv('paramValues.csv', index=False)
+    df.to_csv(f'{base_directory}/paramValues.csv', index=False)
 
     print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv to continue "
           f"analysis."
@@ -968,20 +1081,66 @@ def make_table():
     if config.make_folder_structure:
         print(f"\nSet up folder structure and moved fMRI volumes into {config.parsing_folder} directory.")
 
+    if config.automatically_create_statistics_options_file:
+        create_statistics_file(directory=base_directory)
+
+
+def create_statistics_file(directory=''):
+    Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
+
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
+             ConfigurationFiles.analysis_config)
+
+    if not directory:
+        directory = Utils.file_browser('Select base directory or report output directory')
+
+    table, folder_type = Utils.load_paramValues_file(directory=directory)
+
+    if folder_type == 'report_folder':
+        # Go back to base folder if report folder is selected
+        directory += '/..'
+
+    data = []
+
+    for parameter in config.parameter_dict1:
+        data.append([parameter, 'Calculate main effect'])
+
+        table.columns = [x.lower() for x in table.columns]
+
+        unique_vals = table[parameter.lower()].unique()
+        unique_vals.sort()
+
+        combinations = list(itertools.combinations(sorted(unique_vals), 2))
+
+        for combination in combinations:
+            data.append([' v '.join(str(v) for v in combination), np.NaN])
+
+        data.extend([[np.NaN, np.NaN],
+                     [parameter, 'Calculate simple effect', 'Exclude from analysis']])
+
+        for value in unique_vals:
+            data.append([value, np.NaN, np.NaN])
+
+        data.append([np.NaN, np.NaN, np.NaN])
+
+    df = pd.DataFrame(data=data)
+    df.to_csv(f'{directory}/statisticsOptions.csv', index=False, header=False)
+
+    print('--- Created statisticsOptions.csv ---')
+
 
 def create_noise_file():
-    # Load config file to check if verbose is true
-    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'fRAT_config.toml')
-
     print('--- Creating noiseValues.csv ---')
+    Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/maps', ConfigurationFiles.statmap_config)
+
     directory = Utils.file_browser('Select base directory')
     _, participant_names = Utils.find_participant_dirs(directory=directory)
 
     data = []
     for participant in participant_names:
-        data.append([participant, np.NaN])
+        data.append([participant, np.NaN, np.NaN])
 
-    df = pd.DataFrame(columns=['Participant', 'Noise_value'],
+    df = pd.DataFrame(columns=['Participant', 'Noise over time', 'Background noise'],
                       data=data)
 
     df.to_csv(f'{directory}/noiseValues.csv', index=False)
@@ -1041,7 +1200,7 @@ def parse_params_from_file_name(json_file_name, cfg=config):
                 param_nums.append(param[0][1] + "." + param[0][-1])
                 continue
 
-            # If float search didnt work then Integer search
+            # If float search didn't work then integer search
             param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
             if param is not None:
                 param_nums.append(param[0][-1])  # Extract the number from the parameter

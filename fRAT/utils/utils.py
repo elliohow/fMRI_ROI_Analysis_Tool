@@ -129,13 +129,14 @@ class Utils:
             file_object.write(str(line) + "\n")
 
     @staticmethod
-    def save_config(newdir, config_file, additional_info=None, relevant_sections='all', config_name='config_log'):
-        with open(f'{newdir}/{config_name}.toml', 'w') as f, open(f'{config_file}.toml', 'r') as r:
+    def save_config(newdir, config_path, config_filename, additional_info=None, relevant_sections='all', new_config_name='config_log'):
+        with open(f'{newdir}/{new_config_name}.toml', 'w') as f, open(f'{config_path}/{config_filename}', 'r') as r:
             if additional_info:
                 for line in additional_info:
                     f.write(line)
 
-                f.write('\n\n')
+            f.write(f"config_file_used = '{config_filename}'\n")
+            f.write('\n')
 
             current_section = None
             for line in r:
@@ -178,6 +179,53 @@ class Utils:
             Utils.mk_dir(path)
 
     @staticmethod
+    def find_chosen_rois(all_rois, func_name, config_region_var):
+        if config_region_var == 'Runtime':  # If no ROI has been selected
+            chosen_rois = []
+            print("\n")
+
+            for roi_num, roi in enumerate(all_rois):
+                print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))
+
+            while not chosen_rois:
+                print(f'\n--- {func_name} creation ---')
+                roi_ans = input(
+                    "Type a comma-separated list of the ROIs (listed above) you want to produce a figure for, "
+                    "'e.g. 2, 15, 7, 23' or 'all' for all rois. \nAlternatively press enter twice to skip this step: ")
+
+                if roi_ans.lower() == "all":
+                    chosen_rois = list(range(0, len(all_rois)))
+
+                elif len(roi_ans) > 0:
+                    chosen_rois = [x.strip() for x in roi_ans.split(',')]  # Split by comma and whitespace
+
+                    try:
+                        chosen_rois = list(map(int, chosen_rois))  # Convert each list item to integers
+                    except ValueError:
+                        print('Comma-separated list contains non integers.\n')
+                        chosen_rois = []
+
+                else:  # Else statement for blank input, this skips creating this plot
+                    chosen_rois = []
+                    break
+
+        else:  # Else if an ROI selection has been made, convert it into the correct format
+            if isinstance(config_region_var, list) and isinstance(config_region_var[0], str) \
+                    and config_region_var[0].lower() == "all":
+                chosen_rois = list(range(0, len(all_rois)))
+            else:
+                chosen_rois = config_region_var
+
+                if isinstance(chosen_rois, int):
+                    chosen_rois = [chosen_rois]
+                else:
+                    chosen_rois = list(chosen_rois)
+
+        chosen_rois = [all_rois[roi_number] for roi_number in chosen_rois]
+
+        return chosen_rois
+
+    @staticmethod
     def read_combined_results(folder, averaging_type):
         df = pd.DataFrame()
         path = ''
@@ -193,6 +241,8 @@ class Utils:
 
         except ValueError:
             raise Exception(f"combined_results.json not found in {config.averaging_type} folder.")
+
+        df = df.sort_values('index')
 
         return df, path
 
@@ -222,18 +272,27 @@ class Utils:
         return ignore_column_loc, critical_column_locs, baseline_column_loc
 
     @staticmethod
-    def load_paramValues_file():
-        if os.path.isfile(f"{os.getcwd()}/{config.parameter_file}"):
-            table = pd.read_csv(config.parameter_file)  # Load param table
+    def load_paramValues_file(directory=''):
+        if directory:
+            folder = directory
+        else:
+            folder = os.getcwd()
+
+        if os.path.isfile(f"{folder}/{config.parameter_file}"):
+            table = pd.read_csv(f"{folder}/{config.parameter_file}")  # Load param table
+            folder_type = 'base_folder'
+
         else:
             try:
-                table = pd.read_csv(f"copy_paramValues.csv")  # Load param table
+                table = pd.read_csv(f"{folder}/copy_paramValues.csv")  # Load param table
+                folder_type = 'report_folder'
+
             except FileNotFoundError:
                 raise Exception('Make sure a copy of paramValues.csv is in the chosen folder. \n'
                                 'Also make sure the selected folder contains all the participant directories '
                                 'in the necessary BIDS format e.g. sub-01.')
 
-        return table
+        return table, folder_type
 
     @staticmethod
     def mk_dir(path):
@@ -290,7 +349,7 @@ class Utils:
 
                 config = SimpleNamespace(**parse)
 
-                if filename == 'fRAT_config.toml':
+                if os.path.split(config_path)[-1] == 'roi_analysis':
                     config.statistic_options = {
                         'Participant averaged': ['Total voxels',
                                                  'Excluded voxels',
@@ -320,6 +379,13 @@ class Utils:
                                                  config.parameter_dict2[i] for i in range(len(config.parameter_dict1))}
 
                     Utils.clean_config_options(config)
+
+                if filename == 'test_config.toml':
+                    # Set test config settings so files are retrieved from and outputted to the correct place
+                    config.brain_file_loc = f'{Path(os.path.abspath(__file__)).parents[2]}/example_data'
+                    config.base_folder = f'{Path(os.path.abspath(__file__)).parents[2]}/example_data'
+                    config.output_folder = 'test_ROI_report'
+                    config.output_folder_name = 'test_maps'
 
                 return config
 
@@ -392,7 +458,7 @@ class Utils:
 
     @staticmethod
     def chdir_to_output_directory(current_step, config):
-        if current_step == 'Plotting' and config.run_statistics:
+        if current_step == 'Statistics' and config.run_plotting:
             return  # Will already be in the correct directory
 
         elif config.run_analysis:
@@ -412,7 +478,7 @@ class Utils:
                 os.chdir(json_directory)
             except FileNotFoundError:
                 raise FileNotFoundError(
-                    'Output folder location (fRAT output folder location) in fRAT_config.toml is not a valid directory.')
+                    'Output folder location (fRAT output folder location) is not a valid directory.')
 
             if config.verbose:
                 print(f'Output folder selection: {json_directory}')

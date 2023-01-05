@@ -54,6 +54,23 @@ General = {
 
     'file_cleanup': {'type': 'OptionMenu', 'Recommended': 'move', 'Options': ['move', 'delete'], 'save_as': 'string',
                      'Description': 'Move or delete intermediate files.', 'label': 'File cleanup method'},
+
+    'Installation testing': {'type': 'subheading'},
+
+    'run_tests': {'type': 'Button', 'Command': 'run_tests', 'Text': 'Run installation tests',
+                  'Description': 'true or false. Run tests to verify fRAT output of current installation matches that '
+                                 'in the "example_data" folder.'},
+
+    'delete_test_folder': {'type': 'OptionMenu',
+                           'Recommended': 'Always',
+                           'Options': ['Always', 'If completed without error', 'Never'],
+                           'save_as': 'string',
+                           'Description': 'Option to choose whether the folder generated while running tests is '
+                                          'deleted upon completion.'},
+
+    'verbose_errors': {'type': 'CheckButton', 'Recommended': 'false',
+                       'Description': 'true or false. '
+                                      'Print all missing files and differences found during testing to the terminal.'}
 }
 
 '''Analysis settings'''
@@ -126,6 +143,34 @@ Analysis = {
     'fslfast_min_prob': {'type': 'Scale', 'Recommended': 0.1, 'From': 0, 'To': 1, 'Resolution': 0.05,
                          'label': 'FSL FAST minimum probability', 'Description': 'Recommended: 0.1'},
 
+    'stat_map_folder': {'type': 'Entry', 'Recommended': '', 'save_as': 'string',
+                        'status': 'important',
+                        'label': 'Statistical map folder',
+                        'Description': 'Folder name which contains the statistical map files. '
+                                       'Example: temporalSNR_report'},
+
+    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
+                        'status': 'important',
+                        'label': 'Statistical map suffix',
+                        'Description': 'File name suffix of the statistical map files. Include the file extension. '
+                                       'Example: _tSNR.img'},
+
+    # 'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
+    #               'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
+
+    'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
+                          'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
+                          'save_as': 'string', 'label': 'Confidence level',
+                          'Description': 'Set the confidence level for confidence interval calculations.\n'
+                                         'Numbers represent the confidence level and the corresponding critical z value.\n'
+                                         'Recommended: 95%, 1.96.'},
+
+    'binary_params': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
+                      'subtype': 'Checkbutton', 'label': 'Binary parameters',
+                      'save_as': 'list', 'Description': 'Add parameters here which will either be on or off.'},
+
+    'Outlier detection': {'type': 'subheading'},
+
     'outlier_detection_method': {'type': 'OptionMenu', 'Recommended': 'individual',
                                  'Options': ['individual', 'pooled'],
                                  'save_as': 'string',
@@ -160,44 +205,41 @@ Analysis = {
                                   'Description': 'Data to remove (if gaussian outlier detection is true).\n'
                                                  'For example: if set to below gaussian, data below the gaussian will be removed.\n'
                                                  'Recommended: below gaussian.'},
-
-    'stat_map_folder': {'type': 'Entry', 'Recommended': '', 'save_as': 'string',
-                        'status': 'important',
-                        'label': 'Statistical map folder',
-                        'Description': 'Folder name which contains the statistical map files. '
-                                       'Example: temporalSNR_report'},
-
-    'stat_map_suffix': {'type': 'Entry', 'Recommended': '_tSNR.nii.gz', 'save_as': 'string',
-                        'status': 'important',
-                        'label': 'Statistical map suffix',
-                        'Description': 'File name suffix of the statistical map files. Include the file extension. '
-                                       'Example: _tSNR.img'},
-
-    # 'bootstrap': {'type': 'CheckButton', 'Recommended': 'false',
-    #               'Description': 'true or false. Calculate bootstrapped mean and confidence intervals using 10,000 iterations'},
-
-    'conf_level_number': {'type': 'OptionMenu', 'Recommended': '95%, 1.96',
-                          'Options': ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'],
-                          'save_as': 'string', 'label': 'Confidence level',
-                          'Description': 'Set the confidence level for confidence interval calculations.\n'
-                                         'Numbers represent the confidence level and the corresponding critical z value.\n'
-                                         'Recommended: 95%, 1.96.'},
-
-    'binary_params': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
-                      'subtype': 'Checkbutton', 'label': 'Binary parameters',
-                      'save_as': 'list', 'Description': 'Add parameters here which will either be on or off.'},
 }
 
 '''Statistics settings'''
 Statistics = {
+    'create_statistics_options_file': {'type': 'Button', 'Command': 'create_statistics_file',
+                                       'Text': 'Create statisticsOptions.csv',
+                                       'Description': 'Create file in base folder to choose statistics options. Such as '
+                                                      'which parameters to exclude from analysis and what main effect '
+                                                      'contrasts to calculate.'},
+
+    'automatically_create_statistics_options_file': {'type': 'CheckButton',
+                                                     'Recommended': 'true',
+                                                     'Description': 'true or false.\n'
+                                                     "Usually statisticsOptions.csv is automatically created when creating "
+                                                     "paramValues.csv. Deselect this option if you won't be running "
+                                                     "the statistics step. The create statisticsOptions.csv button "
+                                                     "above can also be used to manually create this file."},
+
     'statistics_subfolder_name': {'type': 'Entry',
                                   'Recommended': 'stats',
                                   'save_as': 'string',
                                   'Description': 'Directory name for statistics folder.'},
 
+    'print_result': {'type': 'CheckButton', 'Recommended': 'true',
+                     'label': 'Print results to terminal',
+                     'Description': 'true or false. Prints results to terminal if true in addition to saving results '
+                                    'to file.'},
+
     'minimum_voxels': {'type': 'Entry',
                        'Recommended': 400,
-                       'Description': 'Minimum voxels to include ROI in sample when bootstrapping parameter change.'
+                       'Description': 'For bootstrapped change versus baseline, for each ROI, the average number of '
+                                      'voxels per session for an ROI must be above this value to be included in the '
+                                      'analysis.'
+                                      'For running the linear mixed model, for each ROI, any sessions with a voxel '
+                                      'count below this value will be removed.'
                                       '\nHighly recommended to set a value here, as ROIs with a small number of voxels '
                                       'may suggest poor fitting.'
                                       '\nRecommended value 400'},
@@ -212,10 +254,41 @@ Statistics = {
                                                      'Note: Bootstrapping is only used to calculate percentage change '
                                                      'versus baseline.'},
 
-    'categorical_variables': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
-                              'subtype': 'Checkbutton',
-                              'save_as': 'list',
-                              'Description': 'Select which variables (if any) are categorical. Used for the GLM.'},
+    'regional_stats_rois': {'type': 'Entry', 'Recommended': 'all', 'save_as': 'list',
+                            'label': 'ROIs to calculate statistics for',
+                            'Description': "Provide a comma-separated list of regions, e.g. '3, 5', the string "
+                                           "'all' for all rois or the string 'Runtime' to provide regions at runtime."},
+
+    'include_as_variable': {'type': 'Dynamic', 'Recommended': 'INCLUDE ALL VARIABLES',
+                            'status': 'important',
+                            'Options': 'Parsing["parameter_dict1"]',
+                            'subtype': 'Checkbutton',
+                            'save_as': 'list',
+                            'Description': 'Select which variables to include in statistical analysis.\nUsed to '
+                                           'determine which variables to use as fixed effects in linear mixed models '
+                                           'and which variables to take to average across when running main effect '
+                                           't-tests.'},
+
+    'brain_map_p_thresh': {'type': 'Entry', 'Recommended': 0.05,
+                           'label': 'Coefficient map p-threshold',
+                           'Description': "P-value threshold to use when creating brain coefficient maps. "
+                                          "Any fixed effect that doesn't have a p-value equal to or less than this "
+                                          "value will not be included in the coefficient map.\n",
+                           'status': 'important'},
+
+    'T-tests': {'type': 'subheading'},
+
+    'run_t_tests': {'type': 'CheckButton', 'status': 'important',
+                    'Recommended': 'true',
+                    'Description': 'true or false.\n'},
+
+    'IV_type': {'type': 'Dynamic', 'Recommended': 'FILL IV TYPE AS BETWEEN-SUBJECTS',
+                'Options': 'Parsing["parameter_dict1"]',
+                'subtype': 'OptionMenu2', 'save_as': 'list', 'Options2': ['Within-subjects', 'Between-subjects'],
+                'label': 'IV type', 'status': 'important', 'DefaultNumber': 1,
+                'Description': 'Type of variable collected. Used to choose which t-test to use for pairwise '
+                               'comparisons.'},
+
 
     # 'glm_statistic': {'type': 'OptionMenu',
     #                   'label': 'GLM statistic for overall effect',
@@ -226,10 +299,34 @@ Statistics = {
     #                                  'looking at the overall effect, as statistics ran on individual ROIs will use raw '
     #                                  'voxel values.'},
 
-    'print_result': {'type': 'CheckButton', 'Recommended': 'false',
-                     'label': 'Print results to terminal',
-                     'Description': 'true or false. Prints results to terminal if true in addition to saving results '
-                                    'to file.'},
+    'Linear mixed models': {'type': 'subheading'},
+
+    'run_linear_mixed_models': {'type': 'CheckButton', 'status': 'important',
+                     'Recommended': 'true',
+                     'Description': 'true or false.\n'},
+
+    'categorical_variables': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
+                              'subtype': 'Checkbutton',
+                              'save_as': 'list',
+                              'Description': 'Select which variables (if any) are categorical. Used for the LMM.'},
+
+    'main_effects': {'type': 'CheckButton',
+                     'Recommended': 'true',
+                     'label': 'Compute main effects',
+                     'Description': 'true or false.\n'
+                                    'Note: This option is independent from the other effect calculations.'},
+
+    'main_and_interaction_effects': {'type': 'CheckButton',
+                                     'Recommended': 'true',
+                                     'label': 'Compute main and interaction effects',
+                                     'Description': 'true or false.\n'
+                                                    'Note: This option is independent from the other effect calculations.'},
+
+    'interaction_effects': {'type': 'CheckButton',
+                            'Recommended': 'false',
+                            'label': 'Compute interaction effects',
+                            'Description': 'true or false.\n'
+                                           'Note: This option is independent from the other effect calculations.'},
 }
 
 '''Parsing settings'''
@@ -237,11 +334,11 @@ Parsing = {
     'parameter_dict1': {'type': 'Entry',
                         'status': 'important',
                         'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
-                        'Description': 'Comma-separated list of parameter names to be parsed for and plotted. '
+                        'Description': 'Comma-separated list of independent variables. '
                                        '\n As these critical parameters will also be used when labelling the rows and '
                                        'columns of both the violin plots and histograms, they should be written as '
                                        'you want them to appear in these figures.'
-                                       '\nNote: This field can be blank.'},
+                                       '\nNote: This field can also be blank.'},
 
     'parameter_dict2': {'type': 'Entry',
                         'status': 'important',

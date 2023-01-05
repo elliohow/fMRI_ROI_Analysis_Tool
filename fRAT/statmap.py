@@ -5,12 +5,16 @@ import time
 
 from utils import *
 
+config = None
+config_path = ''
+config_filename = ''
+
 
 def file_setup(func):
     file_location = config.input_folder_name
 
     if config.output_folder_name != 'DEFAULT':
-        output_folder = config.output_folder_name
+        output_folder = f"statmaps/{config.output_folder_name}"
     elif func == 'Image SNR':
         output_folder = 'statmaps/imageSNR_report'
     elif func == 'Temporal SNR':
@@ -36,8 +40,8 @@ def file_setup(func):
         if 'statmaps' in output_folder:
             Utils.check_and_make_dir(f"{participant}/statmaps")
             Utils.check_and_make_dir(f"{participant}/{output_folder}", delete_old=True)
-            Utils.save_config(f"{participant}/{output_folder}", 'statmap_config',
-                              additional_info=[f"statistical_map_created = '{func}'\n"])
+            Utils.save_config(f"{participant}/{output_folder}", config_path, config_filename,
+                              additional_info=[f"statistical_map_created = '{func}'\n"], new_config_name='statmap_config')
         else:
             Utils.check_and_make_dir(f"{participant}/{file_location}/{output_folder}", delete_old=True)
 
@@ -74,7 +78,7 @@ def temporalSNR_calc(file, no_ext_file, output_folder):
                     out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
 
 
-def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
+def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant_dir):
     maths.MeanImage(in_file=func_file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
     if config.iSNR_std_use_only_nonzero_voxels:
@@ -88,7 +92,11 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder):
         noise_value = std.outputs.get()['out_stat']
 
     else:
-        noise_value = int(noise_file)
+        base_sub_location = Path(participant_dir).parents[0]
+        participant_name = os.path.split(Path(participant_dir))[1]
+
+        noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
+        noise_value = float(noise_value_csv[noise_value_csv['Participant'] == participant_name]['Background noise'])
 
     # tMean / Std
     maths.BinaryMaths(operation='div',
@@ -154,15 +162,15 @@ def delete_files(redundant_files):
         os.remove(file)
 
 
-def create_statmaps(func, file, no_ext_file, noise_file, output_folder):
+def create_statmaps(func, file, no_ext_file, noise_file, output_folder, participant):
     if func == 'Image SNR':
-        imageSNR_calc(file, noise_file, no_ext_file, output_folder)
+        imageSNR_calc(file, noise_file, no_ext_file, output_folder, participant)
     elif func == 'Temporal SNR':
         temporalSNR_calc(file, no_ext_file, output_folder)
 
 
 def prepare_statmap_files(file, no_ext_file, output_folder, participant):
-    noise_file = config.manual_noise_value
+    noise_file = None
 
     redundant_files = []
     outliers = []
@@ -235,7 +243,7 @@ def process_files_for_statmaps(file, participant, output_folder, file_location, 
         print(f'        Analysing file: {no_ext_file}')
 
     file, noise_file, redundant_files, outliers = prepare_statmap_files(file, no_ext_file, output_folder, participant)
-    create_statmaps(func, file, no_ext_file, noise_file, output_folder)
+    create_statmaps(func, file, no_ext_file, noise_file, output_folder, participant)
 
     delete_files(redundant_files)
 
@@ -327,7 +335,7 @@ def run_utility(file, participant_dir, output_folder, func, cfg):
 
     if func == 'Add Gaussian noise':
         noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
-        participant_noise_level = noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise_value'][0]
+        participant_noise_level = float(noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise over time'])
         add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level)
 
 
@@ -350,14 +358,18 @@ def add_noise_to_file(file, no_ext_file, participant_dir, output_folder, partici
                    output_folder=f"{participant_dir}/{output_folder}", header=header)
 
 
-def main(func):
+def main(func, config_file):
+    global config, config_path, config_filename
+
     start_time = time.time()
     Utils.checkversion()
 
-    global config
+    # Set global variables
+    config_path = f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/maps/'
+    config_filename = config_file
 
-    # Reload config file incase GUI has changed it
-    config = Utils.load_config(Path(os.path.abspath(__file__)).parents[0], 'statmap_config.toml')
+    # Load config file
+    config = Utils.load_config(config_path, config_file)
 
     if config.verbose:
         print('\n--------------------------------\n'
@@ -367,13 +379,9 @@ def main(func):
 
     logging.getLogger('nipype.workflow').setLevel(0)  # Suppress workflow terminal output
 
-    if func == 'Image SNR' and not config.noise_volume and config.manual_noise_value == '':
-        raise Exception('Image SNR calculation selected but "Noise volume" is not true. \n '
-                        'Make sure this option is set to true and the position of the noise '
-                        'volume in the fMRI data is correctly set.')
-    elif func == 'Image SNR' and config.noise_volume and config.manual_noise_value != '':
-        warnings.warn('"Noise volume" is true and a manual noise value has also been given. Using noise volume for '
-                      'image SNR calculation. If this is not correct, set "Noise volume" to false.')
+    if func == 'Image SNR' and not config.noise_volume and config.verbose:
+        print('"Noise volume included in time series" is false. Trying to find values for each participant in '
+              'noiseValues.csv instead. If this is not correct, set "Noise volume included in time series" to true.\n')
 
     participants, output_folder, file_location = file_setup(func)
 

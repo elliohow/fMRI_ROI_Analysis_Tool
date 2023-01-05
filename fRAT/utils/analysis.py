@@ -56,7 +56,7 @@ class Environment_Setup:
     label_array = []
 
     @classmethod
-    def setup_analysis(cls, cfg, pool):
+    def setup_analysis(cls, cfg, config_path, config_filename, pool):
         """Set up environment and find files before running analysis."""
         global config
         config = cfg
@@ -64,14 +64,17 @@ class Environment_Setup:
         if config.verbose:
             print('\n--- Environment Setup ---')
 
-        cls.setup_environment(config)
+        cls.setup_environment(config_path, config_filename)
 
         if config.run_plotting:
             verify_param_values()
 
-        cls.setup_save_location(config)
+        cls.setup_save_location()
 
         # Extract labels from selected FSL atlas
+        cls.atlas_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][0]}'
+        cls.atlas_label_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][1]}'
+
         cls.roi_label_list()
 
         participant_list = Participant.setup_class(cls.base_directory, cls.save_location, pool)
@@ -80,7 +83,7 @@ class Environment_Setup:
         return participant_list, matched_brain_list
 
     @classmethod
-    def setup_save_location(cls, config):
+    def setup_save_location(cls):
         cls.atlas_name = os.path.splitext(cls.atlas_label_list[int(config.atlas_number)][1])[0]
 
         if config.output_folder == 'DEFAULT':
@@ -109,10 +112,10 @@ class Environment_Setup:
             print(f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n')
 
     @classmethod
-    def setup_environment(cls, config):
+    def setup_environment(cls, config_path, config_filename):
         try:
             cls.fsl_path = os.environ['FSLDIR']
-        except OSError:
+        except (KeyError, OSError) as e:
             raise Exception('FSL environment variable not set.')
 
         if config.brain_file_loc in ("", " "):
@@ -126,8 +129,8 @@ class Environment_Setup:
                 print(f'Finding subject directories in directory: {config.brain_file_loc}\n')
 
         # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
-        Utils.save_config(cls.base_directory, 'fRAT_config',
-                          config_name='analysis_log',
+        Utils.save_config(cls.base_directory, config_path, config_filename,
+                          new_config_name='analysis_log',
                           relevant_sections=['General', 'Analysis', 'Parsing'])
 
         try:
@@ -138,9 +141,6 @@ class Environment_Setup:
     @classmethod
     def roi_label_list(cls):
         """Extract labels from specified FSL atlas XML file."""
-        cls.atlas_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][0]}'
-        cls.atlas_label_path = f'{cls.fsl_path}/data/atlases/{cls.atlas_label_list[int(config.atlas_number)][1]}'
-
         with open(cls.atlas_label_path) as fd:
             atlas_label_dict = xmltodict.parse(fd.read())
 
@@ -176,19 +176,20 @@ class Participant:
         if config.stat_map_folder:
             self.statmap_folder = config.stat_map_folder
 
-        statmap_folders = glob(os.path.join(f"{self.participant_path}/statmaps", '*'))
-
-        if len(statmap_folders) > 1:
-            raise FileExistsError(f"No statistical map folder specified, however multiple statistical map folders "
-                                  f"found in {self.participant_name}'s statmap folder.")
-        elif len(statmap_folders) < 1:
-            raise FileNotFoundError(f"No statistical maps found in {self.participant_name}'s statmap folder.")
-
         else:
-            self.statmap_folder = statmap_folders[0]
+            statmap_folders = glob(os.path.join(f"{self.participant_path}/statmaps", '*'))
 
-            if config.verbose:
-                print(f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
+            if len(statmap_folders) > 1:
+                raise FileExistsError(f"No statistical map folder specified, however multiple statistical map folders "
+                                      f"found in {self.participant_name}'s statmap folder.")
+            elif len(statmap_folders) < 1:
+                raise FileNotFoundError(f"No statistical maps found in {self.participant_name}'s statmap folder.")
+
+            else:
+                self.statmap_folder = statmap_folders[0]
+
+                if config.verbose:
+                    print(f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -431,7 +432,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
-        self.stat_brain = f"{participant_folder}/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
         self.roi_temp_store = None
@@ -842,7 +843,7 @@ class Brain:
 
         # Multiply mni_to_fMRI with binary_mask_filled
         fsl_functions(self, output_folder, self.no_ext_brain, 'maths.BinaryMaths',
-                      self.mni_brain, 'final_mni_to_', binary_mask, 'mul', 'Save output to self')
+                      self.mni_brain, 'final_mni_to_', binary_mask_filled, 'mul', 'Save output to self')
 
         # Calculate how many voxels have been filled in for each ROI. This will be subtracted from the excluded voxels
         # row of roi_results to create an accurate count after rerunning the analysis
@@ -971,7 +972,7 @@ class MatchedBrain:
 
     @classmethod
     def find_shared_params(cls, participant_list):
-        table = Utils.load_paramValues_file()
+        table, _ = Utils.load_paramValues_file()
         ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
 
         matched_brains = dict()
@@ -1213,45 +1214,60 @@ class MatchedBrain:
 
             return
 
-        roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_roi_stat, results[statistic_num, :])]
+        self.scale_and_save_atlas_images(atlas_path, max_roi_stat, results, statistic_num,
+                                         f"{self.save_location}NIFTI_ROI/{subfolder}",
+                                         f"{self.parameters}_{statistic_labels[statistic_num]}")
 
-        # Find maximum statistic value (excluding No ROI and overall category)
-        global_scaled_stat = [(y / max(max_roi_stat[1:-1])) * 100 for y in results[statistic_num, :]]
+    @classmethod
+    def scale_and_save_atlas_images(cls, atlas_path, max_stat, results, statistic_num, file_path, file_name):
+        if max_stat:
+            roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_stat, results[statistic_num, :])]
+
+            # Find maximum statistic value (excluding No ROI and overall category)
+            global_scaled_stat = [(y / max(max_stat[1:-1])) * 100 for y in results[statistic_num, :]]
+        else:
+            roi_scaled_stat, global_scaled_stat = None, None
 
         atlas = nib.load(atlas_path)
+        affine = atlas.affine
         atlas = atlas.get_fdata()
 
-        unscaled_stat, within_roi_stat, mixed_roi_stat = self.group_roi_stats(atlas, global_scaled_stat,
-                                                                              roi_scaled_stat, statistic_num,
-                                                                              results)
-
+        unscaled_stat, within_roi_stat, mixed_roi_stat = cls.group_roi_stats(atlas, global_scaled_stat,
+                                                                             roi_scaled_stat, statistic_num,
+                                                                             results)
         # Convert atlas to NIFTI and save it
         scale_stats = [
-            (unscaled_stat,
-             f"{self.parameters}_{statistic_labels[statistic_num]}.nii.gz"),
-            (within_roi_stat,
-             f"{self.parameters}_{statistic_labels[statistic_num]}_within_roi_scaled.nii.gz"),
-            (mixed_roi_stat,
-             f"{self.parameters}_{statistic_labels[statistic_num]}_mixed_roi_scaled.nii.gz")
+            (unscaled_stat, f"{file_path}/{file_name}.nii.gz"),
+            (within_roi_stat, f"{file_path}/{file_name}_within_roi_scaled.nii.gz"),
+            (mixed_roi_stat, f"{file_path}/{file_name}_mixed_roi_scaled.nii.gz")
         ]
 
         for scale_stat in scale_stats:
-            scaled_brain = nib.Nifti1Image(scale_stat[0], np.eye(4))
-            scaled_brain.to_filename(f"{self.save_location}NIFTI_ROI/{subfolder}{scale_stat[1]}")
+            if scale_stat[0] is not None:
+                type(scale_stat[0]) # todo: was getting error from np ndarray being dtype object, change type conversion to whatever is output by this
+                scaled_brain = nib.Nifti1Image(np.float64(scale_stat[0]), affine)
+                scaled_brain.to_filename(scale_stat[1])
 
-    def group_roi_stats(self, atlas, global_scaled_stat, roi_scaled_stat, statistic_num, results):
+    @staticmethod
+    def group_roi_stats(atlas, global_scaled_stat, roi_scaled_stat, statistic_num, results):
         # Iterate through each voxel in the atlas
         atlas = atlas.astype(int)
 
         # Assign stat values for each ROI all at once
         unscaled_stat = results[statistic_num, atlas]
-        within_roi_stat = np.array(roi_scaled_stat)[atlas]
-        mixed_roi_stat = np.array(global_scaled_stat)[atlas]
-
         # Make ROI group 0 (No ROI) nan so it does not effect colourmap when viewing in fsleyes
         unscaled_stat[atlas == 0] = np.nan
-        within_roi_stat[atlas == 0] = np.nan
-        mixed_roi_stat[atlas == 0] = np.nan
+
+        if global_scaled_stat and roi_scaled_stat:
+            within_roi_stat = np.array(roi_scaled_stat)[atlas]
+            mixed_roi_stat = np.array(global_scaled_stat)[atlas]
+
+            # Make ROI group 0 (No ROI) nan so it does not effect colourmap when viewing in fsleyes
+            within_roi_stat[atlas == 0] = np.nan
+            mixed_roi_stat[atlas == 0] = np.nan
+        else:
+            within_roi_stat = None
+            mixed_roi_stat = None
 
         return unscaled_stat, within_roi_stat, mixed_roi_stat
 
@@ -1524,7 +1540,7 @@ def reformat_and_save_raw_data(roi_temp_store, labelArray, save_location, no_ext
 
 def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
-    table = [x.lower() for x in Utils.load_paramValues_file()][1:-1]
+    table, _ = [x.lower() for x in Utils.load_paramValues_file()][1:-1]
 
     for key in config.parameter_dict.keys():
         if key.lower() not in table:

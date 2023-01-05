@@ -6,7 +6,7 @@ def printResults():
     print('Select the results directory created by fRAT.')
     result_loc = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    config = Utils.load_config(result_loc, 'analysis_log.toml')
+    config = Utils.load_config(result_loc, 'roi_analysis')
 
     if config.averaging_type == 'Session averaged':
         subfolder = 'Session_averaged_results'

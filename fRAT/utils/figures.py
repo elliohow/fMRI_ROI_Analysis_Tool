@@ -23,7 +23,7 @@ class Figures:
     config = None
 
     @classmethod
-    def make_figures(cls, cfg):
+    def make_figures(cls, cfg, config_path, config_filename):
         cls.config = cfg
 
         combined_results_df, _ = Utils.read_combined_results(os.getcwd(), cls.config.averaging_type)
@@ -31,8 +31,8 @@ class Figures:
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
 
-        Utils.save_config('Figures', f"{Path(os.path.abspath(__file__)).parents[1]}/fRAT_config",
-                          config_name='figure_log',
+        Utils.save_config('Figures', config_path, config_filename,
+                          new_config_name='figure_log',
                           relevant_sections=['Parsing',
                                              'Plotting', 'General plot settings',
                                              'Violin plot',
@@ -59,12 +59,8 @@ class Figures:
             if cls.config.verbose:
                 print(f'\n--- Violin plot creation ---')
 
-            data_types = ['Session averaged', 'Participant averaged']
-
-            for data_type in data_types:
-                df, _ = Utils.read_combined_results(os.getcwd(), data_type)
-                Utils.check_and_make_dir("Figures/Violin_plots")
-                ViolinPlot.make(df, data_type)
+            Utils.check_and_make_dir("Figures/Violin_plots")
+            ViolinPlot.make(combined_results_df)
 
         if cls.config.make_one_region_fig:
             Barchart.setup(combined_results_df, pool)
@@ -75,51 +71,6 @@ class Figures:
         if pool:
             pool.close()
             pool.join()
-
-    @classmethod
-    def find_chosen_rois(cls, all_rois, plot_name, config_region_var):
-        if config_region_var == 'Runtime':  # If no ROI has been selected for this plot
-            chosen_rois = []
-            print("\n")
-
-            for roi_num, roi in enumerate(all_rois):
-                print("{roi_num}: {roi}".format(roi_num=roi_num, roi=roi))
-
-            while not chosen_rois:
-                print(f'\n--- {plot_name} creation ---')
-                roi_ans = input(
-                    "Type a comma-separated list of the ROIs (listed above) you want to produce a figure for, "
-                    "'e.g. 2, 15, 7, 23' or 'all' for all rois. \nAlternatively press enter to skip this step: ")
-
-                if roi_ans.lower() == "all":
-                    chosen_rois = list(range(0, len(all_rois)))
-
-                elif len(roi_ans) > 0:
-                    chosen_rois = [x.strip() for x in roi_ans.split(',')]  # Split by comma and whitespace
-
-                    try:
-                        chosen_rois = list(map(int, chosen_rois))  # Convert each list item to integers
-                    except ValueError:
-                        print('Comma-separated list contains non integers.\n')
-                        chosen_rois = []
-
-                else:  # Else statement for blank input, this skips creating this plot
-                    chosen_rois = []
-                    break
-
-        else:  # Else if an ROI selection has been made, convert it into the correct format
-            if isinstance(config_region_var, list) and isinstance(config_region_var[0], str) \
-                    and config_region_var[0].lower() == "all":
-                chosen_rois = list(range(0, len(all_rois)))
-            else:
-                chosen_rois = config_region_var
-
-                if isinstance(chosen_rois, int):
-                    chosen_rois = [chosen_rois]
-                else:
-                    chosen_rois = list(chosen_rois)
-
-        return chosen_rois
 
     @staticmethod
     def find_axis_limit(thisroi, figure, axis):
@@ -166,7 +117,7 @@ class Figures:
         combined_raw_df = pd.DataFrame()
 
         # Make a list of significant columns and remove any blank values
-        # TODO: remove references to histogram to make it more generalisable
+        # TODO remove references to histogram to make it more generalisable
 
         signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
                                             "File_name"]))
@@ -179,7 +130,7 @@ class Figures:
                 current_json = Utils.dict_to_dataframe(json.load(f))
 
             try:
-                current_json = current_json.loc[['Mean']]
+                current_json = current_json.loc[['Mean', 'Voxels']]
             except KeyError:  # Will raise a KeyError if passing in raw results
                 pass
 
@@ -202,15 +153,18 @@ class Figures:
                 continue
 
             if data_type == 'statistics':
-                current_json['subject'] = re.findall('sub-[0-9]*', json_file)
+                current_json['subject'] = re.findall('sub-[0-9]*', json_file)[0]
 
             combined_raw_df = combined_raw_df.append(current_json)
 
         # Convert it from wide format into long format
-        combined_raw_df = combined_raw_df.melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
-        combined_raw_df.dropna(inplace=True)  # Drop rows that have NA for voxel value
+        mean_data = combined_raw_df.iloc[0::2].melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
+        voxel_data = combined_raw_df.iloc[1::2].melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
 
-        return combined_raw_df
+        mean_data['voxel_amount'] = voxel_data['voxel_value']
+        mean_data.dropna(inplace=True)  # Drop rows that have NA for voxel value
+
+        return mean_data
 
 
 class BrainGrid(Figures):
@@ -304,13 +258,15 @@ class BrainGrid(Figures):
                 vmax = vmax_storage[0]
 
                 if cls.config.verbose:
-                    print(f'Maximum ROI value of: {round(vmax_storage[0])} seen for parameter combination: {vmax_storage[1]}. '
-                          f'Creating figures with this colourbar limit.')
+                    print(
+                        f'Maximum ROI value of: {round(vmax_storage[0])} seen for parameter combination: {vmax_storage[1]}. '
+                        f'Creating figures with this colourbar limit.')
 
         return indiv_brain_imgs
 
     @classmethod
-    def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params, statistic,
+    def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params,
+                   statistic,
                    vmax, vmax_storage, vmin, x_axis_size, y_axis_size, subfolder):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
@@ -344,14 +300,17 @@ class BrainGrid(Figures):
         if cls.config.brain_tight_layout:
             plt.tight_layout()
 
-        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.png", dpi=cls.config.plot_dpi, bbox_inches='tight')
-        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.svg", dpi=cls.config.plot_dpi, bbox_inches='tight')
+        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.png", dpi=cls.config.plot_dpi,
+                    bbox_inches='tight')
+        plt.savefig(f"Figures/Brain_grids/{statistic}/{base_ext_clean}.svg", dpi=cls.config.plot_dpi,
+                    bbox_inches='tight')
         plt.close()
 
         return indiv_brain_imgs
 
     @classmethod
-    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs, statistic, subfolder):
+    def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs,
+                        statistic, subfolder):
         # Save brain image using nilearn
         brain_img = f"{json}_{base_ext_clean}.png"
         indiv_brain_imgs.append(brain_img)
@@ -400,7 +359,8 @@ class BrainGrid(Figures):
             if critical_params[axis]['param'] == '':
                 continue
             else:
-                critical_params[axis]['values'] = plot_values[axis_titles.index(critical_params[axis]['param'])] # Sort axis values
+                critical_params[axis]['values'] = plot_values[
+                    axis_titles.index(critical_params[axis]['param'])]  # Sort axis values
 
         x_axis_size = len(critical_params['cols']['values'])
         y_axis_size = len(critical_params['rows']['values'])
@@ -467,7 +427,7 @@ class BrainGrid(Figures):
 
 class ViolinPlot(Figures):
     @classmethod
-    def make(cls, orig_df, data_type):
+    def make(cls, orig_df):
         df = copy.deepcopy(orig_df)
 
         df = df[(df['index'] != 'Overall') & (df['index'] != 'No ROI')]  # Remove No ROI and Overall rows
@@ -501,7 +461,8 @@ class ViolinPlot(Figures):
                   + pltn.ylim(0, None)
                   + pltn.ylab(cls.config.table_x_label)
                   + pltn.xlab("")
-                  + pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True, labeller="label_both")
+                  + pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True,
+                                    labeller="label_both")
                   + pltn.theme_538()  # Set theme
                   + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
                                panel_grid_major_x=pltn.themes.element_line(alpha=0),
@@ -515,22 +476,16 @@ class ViolinPlot(Figures):
             else:
                 figure += pltn.geom_point()
 
-        if data_type == 'Session averaged':
-            file_name_prefix = 'session_averaged_'
-
-        else:
-            file_name_prefix = 'participant_averaged_'
-
-        figure.save(f"Figures/Violin_plots/{file_name_prefix}violinplot.png", height=cls.config.plot_scale,
+        figure.save(f"Figures/Violin_plots/violinplot.png", height=cls.config.plot_scale,
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
-        figure.save(f"Figures/Violin_plots/{file_name_prefix}violinplot.svg", height=cls.config.plot_scale,
+        figure.save(f"Figures/Violin_plots/violinplot.svg", height=cls.config.plot_scale,
                     width=cls.config.plot_scale * 3,
                     verbose=False, limitsize=False)
 
         if cls.config.verbose:
-            print(f"Saved {data_type} violin plot!")
+            print(f"Saved violin plot!")
 
 
 class Barchart(Figures):
@@ -540,41 +495,44 @@ class Barchart(Figures):
             raise Exception('Parameter to plot along the x-axes of the barcharts has not been set.')
 
         Utils.check_and_make_dir("Figures/Barcharts")
+
         list_rois = list(df['index'].unique())
+        chosen_rois = Utils.find_chosen_rois(list_rois, func_name="One region bar chart",
+                                             config_region_var=cls.config.regional_fig_rois)
+        try:
+            chosen_rois
+        except NameError:
+            if cls.config.verbose:
+                print('Skipping barchart creation.')
+        else:
+            if cls.config.verbose:
+                print(f'\n--- Barchart creation ---')
 
-        chosen_rois = cls.find_chosen_rois(list_rois, plot_name="One region bar chart",
-                                           config_region_var=cls.config.regional_fig_rois)
+            ylim = 0
+            while True:
+                iterable = zip(itertools.repeat(cls.make), chosen_rois, itertools.repeat(df),
+                               itertools.repeat(ylim), itertools.repeat(cls.figure_save),
+                               itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
 
-        if cls.config.verbose:
-            print(f'\n--- Barchart creation ---')
+                if pool:
+                    ylim = pool.starmap(Utils.class_method_handler, iterable)
 
-        ylim = 0
-        while True:
-            iterable = zip(itertools.repeat(cls.make), chosen_rois, itertools.repeat(df),
-                           itertools.repeat(list_rois), itertools.repeat(ylim), itertools.repeat(cls.figure_save),
-                           itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
+                else:
+                    ylim = list(itertools.starmap(Utils.class_method_handler, iterable))
 
-            if pool:
-                ylim = pool.starmap(Utils.class_method_handler, iterable)
+                if any(ylim):
+                    ylim.sort(key=lambda x: x[1])
 
-            else:
-                ylim = list(itertools.starmap(Utils.class_method_handler, iterable))
+                    if cls.config.verbose:
+                        print(f'Maximum y limit of: {round(ylim[-1][1])} seen with ROI: {ylim[-1][2]}. '
+                              f'Creating figures with this y limit.\n')
 
-            if any(ylim):
-                ylim.sort(key=lambda x: x[1])
-
-                if cls.config.verbose:
-                    print(f'Maximum y limit of: {round(ylim[-1][1])} seen with ROI: {ylim[-1][2]}. '
-                          f'Creating figures with this y limit.\n')
-
-                ylim = ylim[-1][1]
-            else:
-                break
+                    ylim = ylim[-1][1]
+                else:
+                    break
 
     @staticmethod
-    def make(roi, df, list_rois, ylimit, save_function, find_ylim_function, config):
-        thisroi = list_rois[roi]
-
+    def make(thisroi, df, ylimit, save_function, find_ylim_function, config):
         current_df = df.loc[df['index'] == thisroi]
 
         current_df = current_df.sort_values([config.single_roi_fig_x_axis])
@@ -645,26 +603,34 @@ class Histogram(Figures):
     @classmethod
     def setup(cls, combined_df, pool):
         Utils.check_and_make_dir("Figures/Histograms")
-        list_rois = list(combined_df['index'].unique())
-        chosen_rois = cls.find_chosen_rois(list_rois, plot_name="Histogram",
-                                           config_region_var=cls.config.regional_fig_rois)
 
-        # Compile a dataframe containing raw values and parameter values for all ROIs and save as combined_raw_df
-        if chosen_rois:
+        list_rois = list(combined_df['index'].unique())
+        chosen_rois = Utils.find_chosen_rois(list_rois, func_name="Histogram",
+                                             config_region_var=cls.config.regional_fig_rois)
+
+        try:
+            chosen_rois
+        except NameError:
+            if cls.config.verbose:
+                print('Skipping histogram creation.')
+        else:
             if cls.config.verbose:
                 print(f'\n--- Histogram creation ---')
 
-            jsons = [f"{os.getcwd()}/Overall/Raw_results/{jsn}" for jsn in Utils.find_files("Overall/Raw_results", "json")]
+            # Compile a dataframe containing raw values and parameter values for all ROIs and save as combined_raw_df
+            jsons = [f"{os.getcwd()}/Overall/Raw_results/{jsn}" for jsn in
+                     Utils.find_files("Overall/Raw_results", "json")]
             combined_raw_df = cls.load_and_restructure_jsons(cls.config, jsons, combined_df, data_type='plotting')
 
             combined_raw_dfs = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(cls.get_mean_and_median_for_each_chosen_roi(roi, combined_raw_df, combined_df, list_rois))
+                combined_raw_dfs.append(
+                    cls.get_mean_and_median_for_each_chosen_roi(roi, combined_raw_df, combined_df))
 
             xlim = 0
             while True:
                 iterable = zip(itertools.repeat(cls.make), chosen_rois, combined_raw_dfs,
-                               itertools.repeat(list_rois), itertools.repeat(xlim), itertools.repeat(cls.figure_save),
+                               itertools.repeat(xlim), itertools.repeat(cls.figure_save),
                                itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
 
                 if pool:
@@ -689,9 +655,8 @@ class Histogram(Figures):
                     break
 
     @classmethod
-    def get_mean_and_median_for_each_chosen_roi(cls, roi, combined_raw_df, combined_df, list_rois):
+    def get_mean_and_median_for_each_chosen_roi(cls, thisroi, combined_raw_df, combined_df):
         # Set up the df for each chosen roi
-        thisroi = list_rois[roi]
 
         if thisroi == "No ROI":
             return pd.DataFrame()
@@ -731,14 +696,12 @@ class Histogram(Figures):
         return current_df
 
     @staticmethod
-    def make(roi, combined_raw_df, list_rois, xlimit, save_function, find_xlim_function, config):
+    def make(thisroi, combined_raw_df, xlimit, save_function, find_xlim_function, config):
         if combined_raw_df.empty:
             if config.verbose:
                 print('INFO: Histograms cannot be made for the No ROI category.')
             return
         else:
-            thisroi = list_rois[roi]
-
             figure = (
                     pltn.ggplot(combined_raw_df, pltn.aes(x="voxel_value"))
                     + pltn.theme_538()
@@ -800,7 +763,7 @@ class Histogram(Figures):
 
 
 class CompareOutputs(Figures):
-    current_df = None # TODO: TOMORROW see what this class could be used for
+    current_df = None  # TODO: TOMORROW see what this class could be used for
 
     @classmethod
     def run(cls, config):
@@ -821,21 +784,22 @@ class CompareOutputs(Figures):
 
                 rois = sorted({d['index'] for d in data})  # Using set returns only unique values
             # TODO: run a check to make sure same ROIs, check they have same critical parameters and same parameter space
-        dfm = dfs[0].merge(dfs[1], how='outer', on=['index', config.histogram_fig_y_facet, config.histogram_fig_x_facet])
+        dfm = dfs[0].merge(dfs[1], how='outer',
+                           on=['index', config.histogram_fig_y_facet, config.histogram_fig_x_facet])
 
         return dfm, labels
 
     @classmethod
     def Make_scatter(cls, df, labels, config):
         figure = (
-            pltn.ggplot(df, pltn.aes(x="Mean_x", y="Mean_y"))
-            + pltn.theme_538()
-            + pltn.geom_point()
-            + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
-                              drop=True, labeller="label_both")
-            + pltn.geom_smooth(method='lm')
-            + pltn.labs(x=labels[1], y=labels[0])  # TODO Check these labels are the right way round
-            + pltn.theme(
+                pltn.ggplot(df, pltn.aes(x="Mean_x", y="Mean_y"))
+                + pltn.theme_538()
+                + pltn.geom_point()
+                + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
+                                  drop=True, labeller="label_both")
+                + pltn.geom_smooth(method='lm')
+                + pltn.labs(x=labels[1], y=labels[0])  # TODO Check these labels are the right way round
+                + pltn.theme(
             panel_grid_minor_x=pltn.themes.element_line(alpha=0),
             panel_grid_major_x=pltn.themes.element_line(alpha=1),
             panel_grid_major_y=pltn.element_line(alpha=0),

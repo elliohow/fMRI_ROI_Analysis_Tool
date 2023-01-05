@@ -26,12 +26,10 @@ def create_index():
                             pass
 
                     with tbody():
-                        fig_types = [f for f in glob(f"Figures/*")]
+                        # Find all figure directories that contain png images
+                        fig_types = [f for f in glob(f"Figures/*") if glob(f"{f}/**/*.png", recursive=True)]
 
                         for fig in fig_types:
-                            if fig == 'Figures/figure_log.toml':
-                                continue
-
                             l = tr()
                             l.add(td(a(h4(str_format(os.path.split(fig)[1])), href=f'fRAT_report/{os.path.split(fig)[1]}.html')))
                             image = glob(f"{fig}/**/*.png", recursive=True)[0]

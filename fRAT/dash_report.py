@@ -36,8 +36,8 @@ def shutdown(num, info):
     server.close()
 
 
-def main():
-    df = df_setup()
+def main(config_file):
+    df = df_setup(config_file)
     dash_setup(df)
 
     WebServer().start()
@@ -47,18 +47,20 @@ def main():
     print('Use CTRL+C to close the server.')
 
 
-def df_setup():
+def df_setup(config_file):
     print(f'--- Creating interactive report on server localhost:{server_address[1]} ---')
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    config = Utils.load_config(folder, 'analysis_log.toml')
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/', config_file)
 
     if config.averaging_type == 'Session averaged':
         subfolder = 'Session_averaged_results'
+        print(f"Showing {subfolder.replace('_', ' ')}.")
 
     else:
         subfolder = 'Participant_averaged_results'
+        print(f"Showing {subfolder.replace('_', ' ')}.")
 
     df = pd.read_json(f"{folder}/Overall/Summarised_results/{subfolder}/combined_results.json")
 
@@ -135,10 +137,11 @@ def dash_setup(df):
                                                {'label': 'Mean', 'value': 'Mean'},
                                                {'label': 'Standard deviation', 'value': 'Std_dev'},
                                                {'label': 'Median', 'value': 'Median'},
-                                               {'label': 'Minimum', 'value': 'Min'},
-                                               {'label': 'Maximum', 'value': 'Max'},
-                                               {'label': 'Voxels', 'value': 'Voxels'},
-                                               {'label': 'Excluded voxels (percentage)', 'value': 'Excluded_Voxels'}
+                                               {'label': 'Minimum', 'value': 'Minimum'},
+                                               {'label': 'Maximum', 'value': 'Maximum'},
+                                               {'label': 'Total voxels', 'value': 'Total voxels'},
+                                               {'label': 'Average voxels per session', 'value': 'Average voxels per session'},
+                                               {'label': 'Excluded voxels (percentage)', 'value': 'Excluded voxels'}
                                            ],
                                            value='Mean',
                                            style={"width": "40%"},
@@ -180,8 +183,8 @@ def dash_setup(df):
         if dropdown_value == 'Mean':
             ConfInts = dff[fnmatch.filter(df.columns, 'Conf_Int*')[0]]
 
-        elif dropdown_value == 'Excluded_Voxels':
-            dff['Excluded_Voxels'] = dff['Excluded_Voxels'] / (dff['Excluded_Voxels'] + dff['Voxels']) * 100
+        elif dropdown_value == 'Excluded voxels':
+            dff['Excluded voxels'] = dff['Excluded voxels'] / (dff['Excluded voxels'] + dff['Total voxels']) * 100
             dropdown_label = 'Percentage of voxels excluded'
 
         intwidth = 35
@@ -202,7 +205,3 @@ def dash_setup(df):
                 'paper_bgcolor': colors['background']
             },
         }
-
-
-if __name__ == '__main__':
-    main()
