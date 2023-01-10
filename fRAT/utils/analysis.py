@@ -107,7 +107,7 @@ class Environment_Setup:
                   '\nIf only one folder is found in the statmap directory, this folder will be selected. '
                   '\nMake sure this folder contains the same kind of statistical map for each participant.'
                   '\nIn future consider filling in the statistical map folder field '
-                  'as this information can then be added into the analysis_log.toml file.\n')
+                  'as this information will then be added into the analysis_log.toml file for future reference.\n')
         elif config.verbose:
             print(f'Searching for statmaps in directory: statmaps/{config.stat_map_folder}/\n')
 
@@ -358,7 +358,9 @@ class Participant:
                                    'paint the next abstract masterpiece',
                                    'listen to Michigan by Sufjan Stevens',
                                    'get up and have a stretch',
-                                   'follow @elliohow on twitter']
+                                   'follow @elliohow on twitter',
+                                   'finally learn the Brodmann areas',
+                                   'read the Tidy Data paper by Hadley Wickham']
 
                         print(f'Participant {self.participant_name} missing FSL FAST files. '
                               f'Running FSL FAST (maybe {choice(phrases)}, this may take a while).')
@@ -1220,7 +1222,7 @@ class MatchedBrain:
 
     @classmethod
     def scale_and_save_atlas_images(cls, atlas_path, max_stat, results, statistic_num, file_path, file_name):
-        if max_stat:
+        if type(max_stat) is np.ndarray:
             roi_scaled_stat = [(y / x) * 100 for x, y in zip(max_stat, results[statistic_num, :])]
 
             # Find maximum statistic value (excluding No ROI and overall category)
@@ -1540,13 +1542,8 @@ def reformat_and_save_raw_data(roi_temp_store, labelArray, save_location, no_ext
 
 def verify_param_values():
     """Compare critical parameter choices to those in paramValues.csv. Exit with exception if discrepancy found."""
-    table, _ = [x.lower() for x in Utils.load_paramValues_file()][1:-1]
-
-    for key in config.parameter_dict.keys():
-        if key.lower() not in table:
-            raise Exception(f'Key "{key}" not found in {config.parameter_file}. Check the Critical Parameters option '
-                            f'in the Parsing menu (parameter_dict1 if not using the GUI) correctly match the '
-                            f'{config.parameter_file} headers.')
+    table, _ = Utils.load_paramValues_file()
+    Utils.find_column_locs(table)
 
 
 def construct_combined_results(directory, analysis_type='overall', subfolder=''):
