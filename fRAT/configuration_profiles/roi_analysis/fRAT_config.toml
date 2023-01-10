@@ -53,19 +53,19 @@ brain_map_p_thresh = 0.05                                                       
 
 ## T-tests
 run_t_tests = true                                                                # true or false. 
-IV_type = ['Between-subjects', 'Between-subjects']                                # Type of variable collected. Used to choose which t-test to use for pairwise comparisons.
+IV_type = ['Within-subjects', 'Within-subjects']                                  # Type of variable collected. Used to choose which t-test to use for pairwise comparisons.
 
 ## Linear mixed models
 run_linear_mixed_models = true                                                    # true or false. 
 categorical_variables = ['']                                                      # Select which variables (if any) are categorical. Used for the LMM.
 main_effects = true                                                               # true or false. Note: This option is independent from the other effect calculations.
-main_and_interaction_effects = true                                               # true or false. Note: This option is independent from the other effect calculations.
+main_and_interaction_effects = false                                              # true or false. Note: This option is independent from the other effect calculations.
 interaction_effects = false                                                       # true or false. Note: This option is independent from the other effect calculations.
 
 # Parsing
 parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of independent variables.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: This field can also be blank.
 parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
-make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
+make_folder_structure = false                                                     # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
 
 # Plotting
@@ -87,10 +87,10 @@ brain_fig_value_min = 0                                                         
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = 91                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 91                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'CHANGE TO DESIRED LABEL'                                # Label for columns.
-brain_table_row_labels = 'CHANGE TO DESIRED LABEL'                                # Label for rows.
-brain_table_cols = 'Multiband'                                                    # 
-brain_table_rows = 'Sense'                                                        # 
+brain_table_col_labels = 'MB'                                                     # Label for columns.
+brain_table_row_labels = 'SENSE'                                                  # Label for rows.
+brain_table_cols = 'MB'                                                           # 
+brain_table_rows = 'SENSE'                                                        # 
 
 ## Violin plot
 table_x_label = 'tSNR mean'                                                       # 
@@ -99,15 +99,15 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'DEFAULT'                                                            # 
-table_rows = 'DEFAULT'                                                            # 
+table_cols = 'MB'                                                                 # 
+table_rows = 'SENSE'                                                              # 
 
 ## Regional bar chart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'DEFAULT'                                                 # 
-single_roi_fig_colour = 'DEFAULT'                                                 # 
+single_roi_fig_x_axis = 'MB'                                                      # 
+single_roi_fig_colour = 'SENSE'                                                   # 
 
 ## Regional histogram
 histogram_binwidth = 2                                                            # 
@@ -117,7 +117,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # true or false.
 histogram_show_median = true                                                      # true or false.
 histogram_show_legend = true                                                      # true or false.
-histogram_fig_x_facet = 'DEFAULT'                                                 # 
-histogram_fig_y_facet = 'DEFAULT'                                                 # 
+histogram_fig_x_facet = 'MB'                                                      # 
+histogram_fig_y_facet = 'SENSE'                                                   # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

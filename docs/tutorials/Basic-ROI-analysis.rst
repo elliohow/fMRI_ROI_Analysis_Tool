@@ -29,6 +29,10 @@ be structured with functional files organised into folders named using the forma
 .. image:: ../images/input_folder_subjects.png
     :width: 300
 
+.. tip::
+    Anatomical volumes can also be placed in this folder, however they should be moved from the ``func``
+    folder into the ``anat`` folder when it is created.
+
 Next, enter the "Parsing" options menu found under the "Settings" panel in the GUI. The "critical parameters" setting
 indicates what are the independent variables of the experiment and will be used when labelling plots, whereas the
 "critical parameters abbreviation" setting indicates how these variables are represented in the filenames of the scans
@@ -41,9 +45,12 @@ required for the fRAT and will sort the files into the correct directory. After 
 page, click the :guilabel:`Setup parameters` button in the "Run" panel of the GUI. This will parse files names for critical
 parameters using the "critical parameters abbreviation" option set above, with the output being saved in
 ``paramValues.csv``. This file should be checked before proceeding to make sure the correct parameters have been applied
-to each file. Alternatively, when running without the GUI, pass the --make_table flag when running ``fRAT.py``, e.g.
-``fRAT.py --make_table``. After using the parsing GUI option, the necessary directories will be created with the files
-put into the folder ``func``:
+to each file. Another file, ``statisticsOptions.csv`` will by default also be created allowing you to set which post-hoc
+statistical tests to run. This file can be prevented from being created (for example, if the statistics step of the ROI
+analysis will not be used) by deselecting the "Automatically create statistics
+option file" option found in the ``Statistics`` menu. Alternatively, when running without the GUI, pass the
+--make_table flag when running ``fRAT.py``, e.g. ``fRAT.py --make_table``. After using the parsing GUI option, the
+necessary directories will be created with the files put into the folder ``func``:
 
 .. image:: ../images/input_folder_parsed.png
     :width: 300
@@ -72,6 +79,9 @@ also not be included in any ROIs.
     To skull strip the anatomical files, it is highly recommended that optiBET_ is used as it has consistently produced
     the best brain extraction accuracy.
 
+.. image:: ../images/input_folder_anat.png
+    :width: 300
+
 Voxel-wise tSNR map creation
 ----------------------------
 Before creating the tSNR maps, click the :guilabel:`Settings` button in the "Statistical maps" section of the GUI. The default
@@ -82,8 +92,9 @@ when creating tSNR maps, and if creating iSNR maps, it will be used to calculate
 After inspecting the settings, to create the tSNR maps return to the home screen and in the "Run" panel of the
 "Statistical maps" section, select "Temporal SNR" from the dropdown menu then click "Make maps". A file explorer will
 appear allowing you to navigate to the base folder where your subject folders are located. After selecting this base
-folder, the tSNR will be created for each participant. During creation of the maps, the folder ``func_cleaned``
-will be created, which contains functional volumes better suited to be used for the ROI analysis.
+folder, tSNR maps for each functional volume will be calculated and placed into the ``statmaps`` folder. During
+creation of the maps, the folder ``func_cleaned`` will be created, which contains functional volumes better suited to be
+used for the ROI analysis.
 
 .. image:: ../images/input_folder_statistics.png
     :width: 300

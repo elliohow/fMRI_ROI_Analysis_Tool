@@ -892,7 +892,8 @@ def check_stale_state():
         elif widget['Current'] == 'INCLUDE ALL VARIABLES':
             dynamic_widgets[counter]['Current'] = current_critical_params
 
-        elif not widget['Current'] == '' and widget['Current'] not in current_critical_params:
+        elif not widget['Current'] == '' and widget['Current'] not in current_critical_params \
+                and not widget['Recommended'] in ['FILL IV TYPE AS BETWEEN-SUBJECTS', 'INCLUDE ALL VARIABLES']:
             try:
                 dynamic_widgets[counter]['Current'] = current_critical_params[dynamic_widgets[counter]['DefaultNumber']]
             except IndexError:
@@ -1037,7 +1038,7 @@ def make_table():
     print('Select the base directory.')
     base_directory = Utils.file_browser(title='Select the base directory', chdir=False)
 
-    participant_dirs = find_participant_dirs(config)
+    participant_dirs = find_participant_dirs(base_directory, config)
 
     data = []
     for participant_dir in participant_dirs:
@@ -1050,7 +1051,8 @@ def make_table():
         brain_file_list = Utils.find_files(file_loc, "hdr", "nii.gz", "nii")
 
         if config.make_folder_structure and not brain_file_list:
-            raise FileNotFoundError(f'No files found in {participant_dir}. As make folder structure is set to true, '
+            raise FileNotFoundError(f'No files found in {participant_dir}.'
+                                    f'\nAs make folder structure is set to true, '
                                     f'files to be scanned should be placed into this root directory and not a '
                                     f'subdirectory.')
 
@@ -1060,7 +1062,7 @@ def make_table():
         for file in brain_file_list:
             # Try to find parameters to prefill table
             keys, brain_file_params = parse_params_from_file_name(file, config)
-            data.append([participant_dir, file, *brain_file_params, np.NaN, np.NaN])
+            data.append([os.path.split(participant_dir)[-1], file, *brain_file_params, np.NaN, np.NaN])
 
         if config.make_folder_structure:
             create_folder_structure(participant_dir, config)
@@ -1161,8 +1163,8 @@ def create_folder_structure(participant, config):
         Utils.move_file(file, participant, f'{participant}/{config.parsing_folder}', rename_copy=False)
 
 
-def find_participant_dirs(config):
-    participant_dirs = [direc for direc in glob("*") if re.search("sub-[0-9]+", direc)]
+def find_participant_dirs(base_directory, config):
+    participant_dirs = [direc for direc in glob(f"{base_directory}/*") if re.search("sub-[0-9]+", direc)]
 
     if len(participant_dirs) == 0:
         raise FileNotFoundError('Participant directories not found.\n'
@@ -1198,17 +1200,17 @@ def parse_params_from_file_name(json_file_name, cfg=config):
             param = re.search("{}[0-9][p|.][0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
             if param is not None:
                 param_nums.append(param[0][1] + "." + param[0][-1])
-                continue
 
             # If float search didn't work then integer search
-            param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
-            if param is not None:
-                param_nums.append(param[0][-1])  # Extract the number from the parameter
-
             else:
-                param_nums.append(str(param))  # Save None if parameter not found in file name
+                param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
+                if param is not None:
+                    param_nums.append(param[0][-1])  # Extract the number from the parameter
 
-        keys.append(key)
+                else:
+                    param_nums.append(str(param))  # Save None if parameter not found in file name
+
+            keys.append(key)
 
     return keys, param_nums
 
