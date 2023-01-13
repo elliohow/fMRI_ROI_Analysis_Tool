@@ -51,12 +51,12 @@ accessed with the command: `fRAT.py --help`. To learn the procedure of how to ru
 
 GUI images
 ----------
-.. image:: images/GUI.png
+.. image:: docs/images/GUI.png
   :width: 700
 
 HTML report images
 ------------------
-.. image:: images/HTML_report.png
+.. image:: docs/images/HTML_report.png
   :width: 900
 
 Versioning
