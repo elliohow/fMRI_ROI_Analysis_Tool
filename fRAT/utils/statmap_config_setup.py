@@ -93,6 +93,7 @@ Statistical_maps = {
     'Add Gaussian noise': {'type': 'subheading'},
 
     'create_noise_level_file': {'type': 'Button', 'Command': 'create_noise_file', 'Text': 'Create noiseValues.csv',
+                                'Pass self': False,
                                 'Description': 'Create a noiseValues.csv file to determine what the standard deviation'
                                                "of the Gaussian should be when adding noise to each participant's data "
                                                '(the distribution will have a mean of 0).'

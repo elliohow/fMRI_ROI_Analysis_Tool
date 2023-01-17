@@ -57,7 +57,7 @@ General = {
 
     'Installation testing': {'type': 'subheading'},
 
-    'run_tests': {'type': 'Button', 'Command': 'run_tests', 'Text': 'Run installation tests',
+    'run_tests': {'type': 'Button', 'Command': 'run_tests', 'Text': 'Run installation tests', 'Pass self': True,
                   'Description': 'true or false. Run tests to verify fRAT output of current installation matches that '
                                  'in the "example_data" folder.'},
 
@@ -373,8 +373,8 @@ Parsing = {
 Plotting = {
     'General plot settings': {'type': 'subheading'},
 
-    'plot_dpi': {'type': 'Entry', 'Recommended': 200, 'label': 'Figure DPI',
-                 'Description': 'Recommended value 600'},
+    'plot_dpi': {'type': 'Entry', 'Recommended': 450, 'label': 'Figure DPI',
+                 'Description': 'Recommended value 450'},
 
     'plot_font_size': {'type': 'Entry', 'Recommended': 40, 'label': 'Figure font size',
                        'Description': 'Recommended value 30'},

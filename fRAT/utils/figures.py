@@ -336,7 +336,7 @@ class BrainGrid(Figures):
                                   vmin=vmin, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
                                   cmap='inferno')
-        plot.savefig(png_path)
+        plot.savefig(png_path, dpi=cls.config.plot_dpi)
         plot.close()
 
         im = Image.open(png_path)
@@ -768,7 +768,7 @@ class Histogram(Figures):
 
 
 class CompareOutputs(Figures):
-    current_df = None  # TODO: TOMORROW see what this class could be used for
+    current_df = None  # TODO: See what this class could be used for
 
     @classmethod
     def run(cls, config):

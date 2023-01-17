@@ -10,18 +10,12 @@ except ImportError:
 
 try:
     import ttk
-
-    py3 = False
 except ImportError:
     import tkinter.ttk as ttk
 
-    py3 = True
-
 import ast
-import logging
 import sys
 import textwrap
-from pathlib import Path
 
 from PIL import ImageTk
 from operator import itemgetter
@@ -136,20 +130,17 @@ class GUI:
         self.statmap_save_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_save_button.place(relx=0.02, rely=0.08, height=42, width=105)
         self.statmap_save_button.configure(
-            command=lambda: Save_settings(['Statistical_maps'], 'maps/statmap_config.toml'))
-        self.statmap_save_button.configure(text='''Save settings''')
+            command=lambda: Save_settings(['Statistical_maps'], 'maps/statmap_config.toml'), text='''Save settings''')
         Tooltip.CreateToolTip(self.statmap_save_button, 'Save all statistical map settings')
 
         self.statmap_reset_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_reset_button.place(relx=0.5, rely=0.08, height=42, width=105)
-        self.statmap_reset_button.configure(command=lambda: Reset_settings(['Statistical_maps']))
-        self.statmap_reset_button.configure(text='''Reset settings''')
+        self.statmap_reset_button.configure(command=lambda: Reset_settings(['Statistical_maps']), text='''Reset settings''')
         Tooltip.CreateToolTip(self.statmap_reset_button, 'Reset statistical map settings')
 
         self.statmap_settings_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_settings_button.place(relx=0.17, rely=0.55, height=42, width=150)
-        self.statmap_settings_button.configure(command=lambda: self.change_frame('Statistical_maps'))
-        self.statmap_settings_button.configure(text='''Settings''')
+        self.statmap_settings_button.configure(command=lambda: self.change_frame('Statistical_maps'), text='''Settings''')
 
     def statmap_run_frame_create(self, window):
         self.statmap_run_frame = tk.LabelFrame(window)
@@ -389,7 +380,12 @@ class GUI:
 
     def button_create(self, name, info, row):
         func = eval(info['Command'])
-        self.__setattr__(name, ttk.Button(self.settings_frame, command=lambda: func()))
+
+        if info['Pass self']:
+            self.__setattr__(name, ttk.Button(self.settings_frame, command=lambda: func(self)))
+        else:
+            self.__setattr__(name, ttk.Button(self.settings_frame, command=lambda: func()))
+
         widget = getattr(self, name)
         widget.configure(text=info['Text'])
 
@@ -830,13 +826,15 @@ def button_handler(command, *args):
             sys.exit()
 
 
-def run_tests():
+def run_tests(GUI):
     print('----- Running tests -----')
+    # Hack to save all settings on general settings page, to be changed in the future when callbacks are implemented
+    GUI.change_frame('General')
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
     # Create tSNR maps and run ROI analysis
-    # statmap_calc('Temporal SNR', 'test_config.toml')
-    # fRAT('test_config.toml')
+    statmap_calc('Temporal SNR', 'test_config.toml')
+    fRAT('test_config.toml')
 
     # Run tests to check if output of fRAT matches the example data
     path_to_example_data = f'{Path(os.path.abspath(__file__)).parents[1]}/example_data'
@@ -850,14 +848,14 @@ def run_tests():
                                           General['verbose_errors']['Current'])
 
     # Delete files
-    # if General['delete_test_folder']['Current'] == 'Always' \
-    #         or (General['delete_test_folder']['Current'] == 'If completed without error'
-    #             and roi_output_test.status == 'No errors'
-    #             and voxelwise_map_test.status == 'No errors'):
-    #     shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
-    #     shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
-    #     shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
-    #     shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
+    if General['delete_test_folder']['Current'] == 'Always' \
+            or (General['delete_test_folder']['Current'] == 'If completed without error'
+                and roi_output_test.status == 'No errors'
+                and voxelwise_map_test.status == 'No errors'):
+        shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
+        shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
+        shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
+        shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
 
     if roi_output_test.status == voxelwise_map_test.status == 'No errors':
         print("\n--- End of installation testing, no errors found ---")
@@ -1026,10 +1024,8 @@ def Reset_settings(pages):
             continue
 
         for key in eval(page).keys():
-            if eval(page)[key]['type'] in ['subheading', 'Button']:
-                continue
-
-            eval(page)[key]['Current'] = eval(page)[key]['Recommended']
+            if eval(page)[key]['type'] not in ['subheading', 'Button']:
+                eval(page)[key]['Current'] = eval(page)[key]['Recommended']
 
     print('----- Reset fRAT settings to recommended values, save them to retain these settings -----')
 
