@@ -434,7 +434,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
-        self.stat_brain = f"{participant_folder}/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
         self.roi_temp_store = None
