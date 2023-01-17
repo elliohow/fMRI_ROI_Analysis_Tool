@@ -218,10 +218,10 @@ Statistics = {
     'automatically_create_statistics_options_file': {'type': 'CheckButton',
                                                      'Recommended': 'true',
                                                      'Description': 'true or false.\n'
-                                                     "Usually statisticsOptions.csv is automatically created when creating "
-                                                     "paramValues.csv. Deselect this option if you won't be running "
-                                                     "the statistics step. The create statisticsOptions.csv button "
-                                                     "above can also be used to manually create this file."},
+                                                                    "Usually statisticsOptions.csv is automatically created when creating "
+                                                                    "paramValues.csv. Deselect this option if you won't be running "
+                                                                    "the statistics step. The create statisticsOptions.csv button "
+                                                                    "above can also be used to manually create this file."},
 
     'statistics_subfolder_name': {'type': 'Entry',
                                   'Recommended': 'stats',
@@ -289,7 +289,6 @@ Statistics = {
                 'Description': 'Type of variable collected. Used to choose which t-test to use for pairwise '
                                'comparisons.'},
 
-
     # 'glm_statistic': {'type': 'OptionMenu',
     #                   'label': 'GLM statistic for overall effect',
     #                   'Recommended': 'Mean',
@@ -302,8 +301,8 @@ Statistics = {
     'Linear mixed models': {'type': 'subheading'},
 
     'run_linear_mixed_models': {'type': 'CheckButton', 'status': 'important',
-                     'Recommended': 'true',
-                     'Description': 'true or false.\n'},
+                                'Recommended': 'true',
+                                'Description': 'true or false.\n'},
 
     'categorical_variables': {'type': 'Dynamic', 'Recommended': [''], 'Options': 'Parsing["parameter_dict1"]',
                               'subtype': 'Checkbutton',
@@ -327,6 +326,16 @@ Statistics = {
                             'label': 'Compute interaction effects',
                             'Description': 'true or false.\n'
                                            'Note: This option is independent from the other effect calculations.'},
+
+    'R2 vs voxel count LMM': {'type': 'subheading'},
+
+    'max_below_thresh': {'type': 'Entry', 'Recommended': 0, 'label': 'Maximum percent of sessions below thresh',
+                             'Description': 'Recommended value 0. \n'
+                                            'For a given ROI, this value sets the maximum percent of sessions that can '
+                                            'be excluded (due to having insufficient voxel count) before the ROI is not '
+                                            'included in r2 vs voxel count statistics.'
+                                            '\nWith the default value of 100(%) an ROI will not be included in this '
+                                            'calculation if any sessions have been excluded.'},
 }
 
 '''Parsing settings'''

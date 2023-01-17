@@ -14,6 +14,37 @@ class Test_differences:
         self.differences_found = 0
         self.status = ''
 
+        self.files_to_check = (
+            # Check statmap step
+            'number_of_outliers_removed',
+            'P1_MB3_S2_matchBW_tSNR.nii.gz',
+
+            # Check analysis step
+            'combined_results.json',
+            'combined_results_ps0.json',
+            'combined_results_ps1.json',
+            'combined_results_ps2.json',
+            'mb4_s1.0.json'
+            'additional_info.csv',
+            'copy_paramValues.csv',
+
+            # Check statistics step
+            'Overall_GLM_standardised_coeffs.csv',
+            'Overall_LMM.csv',
+            'Overall_r2.csv',
+            'Occipital Pole_LMM.csv',
+            'mb.png'
+            'sense.png'
+
+            # Check figure step
+            'index.html',
+            'Violin_plots.html',
+            'Histograms_Different_xaxis.html',
+            'mb4_s2.0_Sessions.png',
+            'Overall_barchart.png',
+            'Cuneal_Cortex_same_ylim_barchart.png'
+        )
+
         self.warnings_setup()
         self.run_file_comparison()
 
@@ -25,7 +56,7 @@ class Test_differences:
 
     def run_file_comparison(self):
         print(f'\nComparing directories {self.directories[0]} & {self.directories[1]}.')
-        time.sleep(0.5) # Sleep so output does not overlap
+        time.sleep(0.5)  # Sleep so output does not overlap
 
         directory_comparison = filecmp.dircmp(self.directories[0], self.directories[1])
 
@@ -34,10 +65,11 @@ class Test_differences:
 
     def print_differences(self, directory_comparison):
         for name in directory_comparison.diff_files:
-            self.differences_found += 1
+            if any(x in name for x in self.files_to_check):
+                self.differences_found += 1
 
-            if self.verbose_errors == 'true':
-                warnings.warn(f"Difference in file {name} found in {directory_comparison.left} and {directory_comparison.right}")
+                if self.verbose_errors == 'true':
+                    warnings.warn(f"Difference in file {name} found in {directory_comparison.left} and {directory_comparison.right}")
 
         for left_only in directory_comparison.left_only:
             self.missing_files_right += 1

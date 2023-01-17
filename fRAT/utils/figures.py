@@ -266,8 +266,7 @@ class BrainGrid(Figures):
 
     @classmethod
     def make_table(cls, base_ext_clean, base_extension, cell_nums, indiv_brain_imgs, json_array, critical_params,
-                   statistic,
-                   vmax, vmax_storage, vmin, x_axis_size, y_axis_size, subfolder):
+                   statistic, vmax, vmax_storage, vmin, x_axis_size, y_axis_size, subfolder):
         for file_num, json in enumerate(json_array):
             brain_img, indiv_brain_imgs, dims = cls.save_brain_imgs(json, base_ext_clean, base_extension,
                                                                     vmax, vmax_storage, vmin, indiv_brain_imgs,

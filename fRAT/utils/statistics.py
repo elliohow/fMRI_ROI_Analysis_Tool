@@ -52,17 +52,16 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
 
         cls.create_images(df, subfolder, standardise_cbar)
 
-
     @classmethod
     def save_brain_imgs(cls, file_name, subfolder, vmax):
         # Save brain image using nilearn
         brain_img = f"{STATISTICS_PATH}/{subfolder}/images/{file_name}.png"
 
         plot = plotting.plot_stat_map(f"{STATISTICS_PATH}/{subfolder}/NIFTI_ROI/{file_name}.nii.gz",
-                                  draw_cross=False, annotate=False, colorbar=True,
-                                  vmax=vmax, symmetric_cbar=True, cbar_tick_format="%.2f",
-                                  display_mode='xz', cut_coords=(0, 18),
-                                  cmap='seismic')
+                                      draw_cross=False, annotate=False, colorbar=True,
+                                      vmax=vmax, symmetric_cbar=True, cbar_tick_format="%.2f",
+                                      display_mode='xz', cut_coords=(0, 18),
+                                      cmap='seismic')
         plot.savefig(brain_img)
         plot.close()
 
@@ -134,12 +133,12 @@ def clean_results(individual_roi_results, excluded_parameters, raw_data,
                   averaged_roi_results, combined_roi_results, voxel_cutoff):
     """For each ROI, remove each session that has a voxel count below the minimum voxel cutoff and make a log of which
     ROIs this applies to."""
-    below_thresh_store = {}
+    rois_below_max_r2_thresh = []
 
     Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
                          f"\nNOTE: Within-subjects t-tests are paired Student's t-tests, however between-subjects "
                          f"t-tests are Welch's t-tests with degrees of freedom calculated using Satterthwaite Approximation."
-                         f'Minimum voxel count set to {voxel_cutoff}.\n\n'
+                         f'\nMinimum voxel count set to {voxel_cutoff}.\n\n'
                          f'Sessions removed:')
 
     # Remove No ROI and overall data to be used with percentage change statistics
@@ -154,24 +153,29 @@ def clean_results(individual_roi_results, excluded_parameters, raw_data,
         for key in excluded_parameters:
             individual_roi_results[roi] = individual_roi_results[roi].loc[
                 (~individual_roi_results[roi][key].isin(excluded_parameters[key]))]
+
             raw_data[roi] = raw_data[roi].loc[(~raw_data[roi][key].isin(excluded_parameters[key]))]
+
             averaged_roi_results[roi] = averaged_roi_results[roi].loc[
                 (~averaged_roi_results[roi][key].isin(excluded_parameters[key]))]
 
         session_count = len(individual_roi_results[roi])
         below_thresh_number = np.count_nonzero(individual_roi_results[roi]['voxel_amount'] < voxel_cutoff)
 
-        individual_roi_results[roi] = individual_roi_results[roi][
-            individual_roi_results[roi]['voxel_amount'] > voxel_cutoff]
+        individual_roi_results[roi] = individual_roi_results[roi][individual_roi_results[roi]['voxel_amount'] > voxel_cutoff]
+
         averaged_roi_results[roi] = averaged_roi_results[roi][averaged_roi_results[roi]['voxel_amount'] > voxel_cutoff]
 
         if below_thresh_number:
-            below_thresh_store[roi] = below_thresh_number
             percent_removed = (below_thresh_number / session_count) * 100
+
+            if percent_removed > config.max_below_thresh:
+                rois_below_max_r2_thresh.append(roi)
+
             Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
                                  f'{roi}: {below_thresh_number}/{session_count} ({"{:.2f}".format(percent_removed)}%)')
 
-    return below_thresh_store, individual_roi_results, averaged_roi_results, raw_data, combined_roi_results
+    return rois_below_max_r2_thresh, individual_roi_results, averaged_roi_results, raw_data, combined_roi_results
 
 
 def extract_statistics_options_info():
@@ -274,10 +278,10 @@ def statistics(param_queries, critical_params):
     # Get list of rois before cleaning up the dataframe
     list_rois = list(combined_roi_results['index'].unique())
 
-    rois_below_thresh, individual_roi_results, averaged_roi_results, raw_data, combined_roi_results = \
-        clean_results(individual_roi_results, excluded_parameters, raw_data,
-                      averaged_roi_results, combined_roi_results,
-                      voxel_cutoff=config.minimum_voxels)
+    rois_below_max_r2_thresh, individual_roi_results, averaged_roi_results, raw_data, combined_roi_results \
+        = clean_results(individual_roi_results, excluded_parameters, raw_data,
+                        averaged_roi_results, combined_roi_results,
+                        voxel_cutoff=config.minimum_voxels)
 
     if '' not in param_queries:  # If no baseline parameter combination set, skip this
         calculate_percent_change_versus_baseline(param_queries, combined_roi_results, combined_roi_results_path)
@@ -286,7 +290,8 @@ def statistics(param_queries, critical_params):
         chosen_rois = Utils.find_chosen_rois(list_rois, func_name="Statistics",
                                              config_region_var=config.regional_stats_rois)
 
-        roi_statistics(critical_params, rois_below_thresh, individual_roi_results, averaged_roi_results,
+        roi_statistics(critical_params, rois_below_max_r2_thresh,
+                       individual_roi_results, averaged_roi_results,
                        chosen_rois, raw_data,
                        main_effect_parameters, simple_effect_parameters)
 
@@ -304,7 +309,8 @@ def load_data():
     return individual_roi_results, averaged_roi_results, raw_data, combined_results[0], combined_results[1]
 
 
-def roi_statistics(critical_params, rois_below_thresh, individual_roi_results_dict, averaged_roi_results,
+def roi_statistics(critical_params, rois_below_max_r2_thresh,
+                   individual_roi_results_dict, averaged_roi_results,
                    chosen_rois, raw_data, main_effect_parameters, simple_effect_parameters):
     glm_formula_types = []
 
@@ -345,11 +351,13 @@ def roi_statistics(critical_params, rois_below_thresh, individual_roi_results_di
                     converged, \
                     standardised_coeffs, \
                     unstandardised_coeffs, \
-                    pvalues = run_glm(individual_roi_results_dict[ROI], ROI=ROI, formula=formula, glm_formula_type=glm_formula_type)
+                    pvalues = run_glm(individual_roi_results_dict[ROI], ROI=ROI, formula=formula,
+                                      glm_formula_type=glm_formula_type)
 
                     if adj_marginal_r_square is not None \
                             and ROI not in ['Overall', 'No ROI'] \
-                            and ROI not in rois_below_thresh and converged:
+                            and ROI not in rois_below_max_r2_thresh \
+                            and converged:
                         adj_marginal_r_square_data.append(adj_marginal_r_square)
                         adj_conditional_r_square_data.append(adj_conditional_r_square)
                         voxel_data.append(individual_roi_results_dict[ROI].mean()['voxel_amount'])
@@ -360,7 +368,8 @@ def roi_statistics(critical_params, rois_below_thresh, individual_roi_results_di
 
                         if not standardised_coeffs.empty:
                             standardised_coeffs['ROI'] = ROI
-                            standardised_coeffs_df = pd.concat([standardised_coeffs_df, standardised_coeffs[['standardised coef', 'ROI']]])
+                            standardised_coeffs_df = pd.concat(
+                                [standardised_coeffs_df, standardised_coeffs[['standardised coef', 'ROI']]])
 
                         if not unstandardised_coeffs.empty:
                             unstandardised_coeffs = pd.DataFrame(unstandardised_coeffs, columns=['unstandardised coef'])
@@ -386,6 +395,10 @@ def roi_statistics(critical_params, rois_below_thresh, individual_roi_results_di
             for rsquare_type in r_square_dict:
                 compute_rsquare_regression(voxel_data, r_square_dict[rsquare_type], rsquare_type, glm_formula_type)
 
+            if config.verbose:
+                print("\n=============================================================================="
+                      "\nCreating standardised and unstandardised coefficient brain maps"
+                      "\n==============================================================================\n")
             Coefficient_map.to_braingrid(standardised_coeffs_df, "standardised_coeffs",
                                          standardise_cbar=True, subsubfolder=glm_formula_type)
             Coefficient_map.to_braingrid(unstandardised_coeffs_df, "unstandardised_coeffs",
@@ -408,8 +421,9 @@ def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_for
     Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
                          f'\n==============================================================================\n'
                          f'====================== {r_square_type.replace("_", " ")} results =======================\n'
-                         f'Calculating r2 vs voxel amount statistics for {glm_formula_type.replace("_", " ")}.\n'
-                         f'Note: ROIs with sessions excluded due to them being under the minimum voxel\ncount, or ROIs '
+                         f'Calculating r2 vs mean voxel amount statistics for {glm_formula_type.replace("_", " ")}.\n'
+                         f'Note: ROIs with more than {config.max_below_thresh}% of sessions excluded (due to them\n'
+                         f'being under the minimum voxel count), or ROIs '
                          f'where the model failed to converge, are excluded from this analysis.\n\n'
                          f'{result.summary()}\n\n\n'
                          f'Standardised coefficients:\n'
@@ -425,7 +439,7 @@ def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_for
             + pltn.theme_538()
             + pltn.geom_point()
             + pltn.geom_smooth(method='lm')
-            + pltn.labs(x='Voxel count', y='$r^2$')
+            + pltn.labs(x='Mean voxel count', y='$r^2$')
             + pltn.theme(
         panel_grid_minor_x=pltn.themes.element_line(alpha=0),
         panel_grid_major_x=pltn.themes.element_line(alpha=1),

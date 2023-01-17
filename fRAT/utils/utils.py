@@ -135,6 +135,8 @@ class Utils:
                 for line in additional_info:
                     f.write(line)
 
+                f.write('\n')
+
             f.write(f"config_file_used = '{config_filename}'\n")
             f.write('\n')
 
@@ -386,6 +388,7 @@ class Utils:
                     config.base_folder = f'{Path(os.path.abspath(__file__)).parents[2]}/example_data'
                     config.output_folder = 'test_ROI_report'
                     config.output_folder_name = 'test_maps'
+                    config.stat_map_folder = 'test_maps'
 
                 return config
 

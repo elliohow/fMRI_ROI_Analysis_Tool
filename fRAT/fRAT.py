@@ -55,6 +55,7 @@ def load_config(config_filename):
     config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
                                config_filename)
     config_check(config)
+
     return config, orig_path
 
 

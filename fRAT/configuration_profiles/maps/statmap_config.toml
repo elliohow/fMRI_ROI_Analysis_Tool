@@ -31,5 +31,5 @@ noise_volume_location = 'End'                                                   
 iSNR_std_use_only_nonzero_voxels = true                                           # true or false.
 
 ## Add Gaussian noise
-noise_multipliers = [1]                                                           # Provide a comma-separated list of multipliers for the standard deviation of the gaussian noise to plot e.g. '1, 5'. NOTE: a separate file will be produced for each multiplier
+noise_multipliers = 1                                                             # Provide a comma-separated list of multipliers for the standard deviation of the gaussian noise to plot e.g. '1, 5'. NOTE: a separate file will be produced for each multiplier
 
