@@ -419,11 +419,11 @@ Plotting = {
                                            'appear as the brighest colour on the colourbar.\n'
                                            'Recommended value: None. Note: will default to 100 for scaled maps.'},
 
-    'brain_x_coord': {'type': 'Entry', 'Recommended': 91,
+    'brain_x_coord': {'type': 'Entry', 'Recommended': -1,
                       'Description': 'Voxel location to slice the images at in the x axis. '
                                      'Recommended settings for both variables: 91 or 58'},
 
-    'brain_z_coord': {'type': 'Entry', 'Recommended': 91,
+    'brain_z_coord': {'type': 'Entry', 'Recommended': 19,
                       'Description': 'Voxel location to slice the images at in the z axis. '
                                      'Recommended settings for both variables: 91 or 58'},
 

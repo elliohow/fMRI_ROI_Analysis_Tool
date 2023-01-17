@@ -311,12 +311,14 @@ class BrainGrid(Figures):
     def save_brain_imgs(cls, json, base_ext_clean, base_extension, vmax, vmax_storage, vmin, indiv_brain_imgs,
                         statistic, subfolder):
         # Save brain image using nilearn
-        brain_img = f"{json}_{base_ext_clean}.png"
-        indiv_brain_imgs.append(brain_img)
+        png_path = f"{json}_{base_ext_clean}.png"
+        indiv_brain_imgs.append(png_path)
+
+        nifti_path = f"Overall/NIFTI_ROI/{subfolder}/{json}{base_extension}"
 
         if base_extension == f"_{statistic}.nii.gz" and base_ext_clean.find("_same_scale") == -1:
             # Calculate colour bar limit if not manually set
-            brain = nib.load(f"Overall/NIFTI_ROI/{subfolder}/{json}{base_extension}")
+            brain = nib.load(nifti_path)
             brain = brain.get_fdata()
 
             vmax = np.nanmax(brain)
@@ -325,18 +327,22 @@ class BrainGrid(Figures):
             # If this isn't changed later it is definitely due to efficiency not laziness.
             vmax_storage.append((np.nanmax(brain), json))  # Save vmax to find highest vmax later
 
-        plot = plotting.plot_anat(f"Overall/NIFTI_ROI/{subfolder}/{json}{base_extension}",
+        # Correct error caused by nan values by converting them to zeros
+        img = nib.load(nifti_path)
+        img = nib.Nifti1Image(np.nan_to_num(img.get_fdata()), img.affine, img.header)
+
+        plot = plotting.plot_anat(img,
                                   draw_cross=False, annotate=False, colorbar=True, display_mode='xz',
                                   vmin=vmin, vmax=vmax,
                                   cut_coords=(cls.config.brain_x_coord, cls.config.brain_z_coord),
                                   cmap='inferno')
-        plot.savefig(brain_img)
+        plot.savefig(png_path)
         plot.close()
 
-        im = Image.open(brain_img)
+        im = Image.open(png_path)
         width, height = im.size
 
-        return brain_img, indiv_brain_imgs, (width, height)
+        return png_path, indiv_brain_imgs, (width, height)
 
     @classmethod
     def table_setup(cls, df):
