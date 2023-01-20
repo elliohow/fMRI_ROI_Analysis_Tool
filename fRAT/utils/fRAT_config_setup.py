@@ -209,7 +209,7 @@ Analysis = {
 
 '''Statistics settings'''
 Statistics = {
-    'create_statistics_options_file': {'type': 'Button', 'Command': 'create_statistics_file',
+    'create_statistics_options_file': {'type': 'Button', 'Command': 'create_statistics_file', 'Pass self': 'false',
                                        'Text': 'Create statisticsOptions.csv',
                                        'Description': 'Create file in base folder to choose statistics options. Such as '
                                                       'which parameters to exclude from analysis and what main effect '

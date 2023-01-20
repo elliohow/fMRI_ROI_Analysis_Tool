@@ -103,7 +103,7 @@ class Environment_Setup:
         Utils.move_file('analysis_log.toml', cls.base_directory, cls.save_location)
 
         if config.stat_map_folder == '':
-            print('Statistical map to find in subject directories statmap folders not specified.'
+            print('Statistical map folder to use in subject\'s statmap folders not specified.'
                   '\nIf only one folder is found in the statmap directory, this folder will be selected. '
                   '\nMake sure this folder contains the same kind of statistical map for each participant.'
                   '\nIn future consider filling in the statistical map folder field '
@@ -182,11 +182,11 @@ class Participant:
             if len(statmap_folders) > 1:
                 raise FileExistsError(f"No statistical map folder specified, however multiple statistical map folders "
                                       f"found in {self.participant_name}'s statmap folder.")
-            elif len(statmap_folders) < 1:
+            elif len(statmap_folders) == 0:
                 raise FileNotFoundError(f"No statistical maps found in {self.participant_name}'s statmap folder.")
 
             else:
-                self.statmap_folder = statmap_folders[0]
+                self.statmap_folder = os.path.split(statmap_folders[0])[1]
 
                 if config.verbose:
                     print(f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
@@ -434,7 +434,7 @@ class Brain:
         self.grey_matter_segmentation = grey_matter_segmentation
         self.white_matter_segmentation = white_matter_segmentation
         self.no_ext_brain = Utils.strip_ext(self.brain.split('/')[-1])
-        self.stat_brain = f"/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
+        self.stat_brain = f"{participant_folder}/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
         self.roi_temp_store = None
