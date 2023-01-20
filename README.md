@@ -1,6 +1,4 @@
-<p class="center">
-  <img src="docs/images/fRAT.gif" width=500>
-</p>
+<img src="docs/images/fRAT.gif" width=500>
 
 # fRAT - fMRI ROI Analysis Tool
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/hexpm/l/plug?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
@@ -33,7 +31,6 @@ accessed with the command: `fRAT.py --help`. For a tutorial showing how to run a
 
 
 ## Images
-<p class="center">
 <img src="docs/images/ROI_example.png" 
   title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
 width=700>
@@ -41,7 +38,6 @@ width=700>
 <img src="docs/images/GUI.png" title="Example of the fRAT GUI" width=700>
 
 <img src="docs/images/HTML_report.png" title="Example of a HTML report output by fRAT" width=600>
-</p>
 
 ## Versioning
 We use `Semantic versioning <http://semver.org/>`_ for versioning. For the versions available, see the
