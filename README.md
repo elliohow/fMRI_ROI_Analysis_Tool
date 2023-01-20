@@ -1,5 +1,4 @@
-.. image:: images/fRAT.gif
-  :width: 500
+<img src="images/fRAT.gif" height=500>
 
 # fRAT - fMRI ROI Analysis Tool
 
@@ -10,13 +9,7 @@ converting voxelwise maps into ROI-wise maps.
 >
 > fRAT is written using **Python version 3.8.0** for **MacOS** and is based on Nipype.
 
-.. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
-  :target: http://makeapullrequest.com
-  :alt: PRs Welcome!
-
-.. image:: https://img.shields.io/hexpm/l/plug?style=flat-square
-  :target: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE
-  :alt: License information
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/hexpm/l/plug?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
 
 About
 -----
@@ -29,18 +22,17 @@ Documentation: https://fmri-roi-analysis-tool.readthedocs.io
 
 ## Testing installation of fRAT
 Before running fRAT, it is recommended that the fRAT and project dependency installation is tested.
-To test fRAT, download the files provided here: https://osf.io/pbm3d/. This ``example_data`` folder should be placed
+To test fRAT, download the files provided here: https://osf.io/pbm3d/. This `example_data` folder should be placed
 in the base folder, allowing the fRAT tests to find them.
 This folder also gives demonstrates the input necessary for the fRAT and the output produced by the fRAT.
 
-The ``fRAT.py`` or ``fRAT_GUI.py`` files are used to run the non-GUI or GUI versions of fRAT respectively.
+The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively.
 Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
 (for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
 plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
 statistical map creation is not currently possible. Help text for available flags can be
-accessed with the command: `fRAT.py --help`. A tutorial showing how to run an ROI analysis, can be found here:
-https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html.
+accessed with the command: `fRAT.py --help`. For a tutorial showing how to run an ROI analysis, [see here](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html).
 
 
 ## GUI images

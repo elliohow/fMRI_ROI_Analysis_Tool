@@ -150,7 +150,6 @@ def doc_setup(page=None):
         link(rel='stylesheet', href=f'{folder}bootstrap.css')
         script(type='text/javascript', src=f'{folder}script.js')
 
-
     return doc
 
 
@@ -159,6 +158,7 @@ def save_page(doc, page):
         folder = ""
     else:
         folder = "fRAT_report/"
+
     with open(f"{folder}{page}", 'w') as file:
         file.write(doc.render())
 
@@ -196,7 +196,7 @@ def main(orig_path):
     Utils.move_file('script.js', orig_path, 'fRAT_report/', copy=True, rename_copy=False)
 
     create_index()
-    fig_types = [f for f in glob(f"Figures/*")]
+    fig_types = [f for f in glob(f"Figures/*") if f != 'Figures/figure_log.toml']
 
     for fig in fig_types:
         create_figure_pages(fig)

@@ -20,6 +20,7 @@ General
 * Add PyPi support
 * Add support for custom statistical map functions
 * Add option to only keep essential files when running statistical map functions (such as '_tSNR')
+* To facilitate easier testing of new features during development, add ability to test only ROI analysis, only statistical map creation, or both.
 * Dash barchart code needs an overhaul as it isn't currently viable to easily add new features
     - Long names currently get cutoff
 * (Potential) Add ability to analyse more than fMRI volumes (such as anatomical volumes)
@@ -57,7 +58,3 @@ Figures
 Statistics
 ==========
 * Add ability to compare if linear mixed model coefficients significantly vary between regions
-
-Bug fixes
-=========
-* figure_log is currently given a page when creating html pages
