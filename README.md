@@ -1,17 +1,16 @@
-<img src="docs/images/fRAT.gif" width=512 class="center">
+<p>
+  <img src="docs/images/fRAT.gif" width=512 class="center">
+</p>
 
 # fRAT - fMRI ROI Analysis Tool
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/hexpm/l/plug?style=flat-square)](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE)
+
 fRAT is an open-source python-based analysis pipeline used to simplify the processing and analysis of fMRI data by
 converting voxelwise maps into ROI-wise maps.
 
 > This project is under active development.
 >
 > fRAT is written using **Python version 3.8.0** for **MacOS** and is based on Nipype.
-
-<img src="docs/images/ROI_example.png" 
-  title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
-width=700 class="center">
 
 Documentation: https://fmri-roi-analysis-tool.readthedocs.io
 
@@ -30,16 +29,21 @@ statistical map creation is not currently possible. Help text for available flag
 accessed with the command: `fRAT.py --help`. For a tutorial showing how to run an ROI analysis, [see here](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html).
 
 
-## GUI images
-<img src="docs/images/GUI.png" width=700 class="center">
+## Images
+<p>
+<img src="docs/images/ROI_example.png" 
+  title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
+width=700 class="center">
 
-## HTML report images
-<img src="docs/images/HTML_report.png" width=700 class="center">
+<img src="docs/images/GUI.png" title="Example of the fRAT GUI" width=700 class="center">
+
+<img src="docs/images/HTML_report.png" title="Example of a HTML report output by fRAT" width=600 class="center">
+</p>
 
 ## Versioning
 We use `Semantic versioning <http://semver.org/>`_ for versioning. For the versions available, see the
-`tag list <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tags>`_ for this project.
+(tag list)[https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tags] for this project.
 
 ## Licensing
 This project uses the Apache 2.0 license. For the text version of the license see
-`here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE>`_.
+[here](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE).
