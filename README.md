@@ -27,7 +27,8 @@ For shell scripting multiple analyses/plots, flags can be passed when running fR
 (for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
 plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
 statistical map creation is not currently possible. Help text for available flags can be
-accessed with the command: `fRAT.py --help`. For a tutorial showing how to run an ROI analysis, [see here](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html).
+accessed with the command: `fRAT.py --help`. For a tutorial showing how to run an ROI analysis, 
+[see here](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html).
 
 
 ## Images
@@ -40,7 +41,7 @@ width=700>
 <img src="docs/images/HTML_report.png" title="Example of a HTML report output by fRAT" width=600>
 
 ## Versioning
-We use `Semantic versioning <http://semver.org/>`_ for versioning. For the versions available, see the
+We use [Semantic versioning](http://semver.org/) for versioning. For the versions available, see the
 (tag list)[https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tags] for this project.
 
 ## Licensing

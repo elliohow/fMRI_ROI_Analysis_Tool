@@ -1679,7 +1679,7 @@ def gaussian_outlier_detection(roi_results, roi_temp_store, config):
 def noise_threshold_outlier_detection(roi_results, roi_temp_store):
     # Calculate noise threshold
     noise_threshold = np.true_divide(np.nansum(roi_temp_store[0, :]),
-                                     np.count_nonzero(roi_temp_store[0, :]))
+                                     np.count_nonzero(~np.isnan(roi_temp_store[0, :])))
 
     outlier_bool_array = roi_temp_store[1:, :] < noise_threshold
     roi_results = calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)

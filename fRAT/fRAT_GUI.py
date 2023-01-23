@@ -862,6 +862,7 @@ def run_tests(GUI):
     else:
         warnings.warn("\n--- End of installation testing, errors found ---")
 
+
 def check_stale_state():
     current_critical_params = Parsing['parameter_dict1']['Current'].split(', ')
 
