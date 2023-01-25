@@ -1,4 +1,5 @@
 import time
+import warnings
 
 import numpy as np
 import toml
@@ -182,7 +183,10 @@ class GUI:
 
                     current_setting = Utils.convert_toml_input_to_python_object(setting[1])
 
-                    eval(curr_page)[setting[0]]['Current'] = current_setting
+                    try:
+                        eval(curr_page)[setting[0]]['Current'] = current_setting
+                    except KeyError:
+                        warnings.warn(f'"{setting[0]}" not present in config setup file. Configuration file may be outdated.')
 
     def banner_draw(self, window):
         img = Image.open(f'{os.getcwd()}/fRAT.gif')
@@ -832,13 +836,17 @@ def run_tests(GUI):
     GUI.change_frame('General')
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
+    path_to_example_data = f'{Path(os.path.abspath(__file__)).parents[1]}/example_data'
+
+    if not os.path.exists(path_to_example_data):
+        raise FileNotFoundError(f'"example_data" folder not found.\n'
+                                f'Download it from https://osf.io/pbm3d/ and place it into the fRAT base directory.')
+
     # Create tSNR maps and run ROI analysis
     statmap_calc('Temporal SNR', 'test_config.toml')
     fRAT('test_config.toml')
 
     # Run tests to check if output of fRAT matches the example data
-    path_to_example_data = f'{Path(os.path.abspath(__file__)).parents[1]}/example_data'
-
     roi_output_test = Test_differences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
                                         f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
                                        General['verbose_errors']['Current'])
