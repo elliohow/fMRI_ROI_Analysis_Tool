@@ -793,8 +793,8 @@ class Brain:
 
             # Remove outliers from ROIs
             if config.noise_cutoff:
-                roi_results, roi_temp_store, self.noise_threshold = noise_threshold_outlier_detection(roi_results,
-                                                                                                      roi_temp_store)
+                roi_results, roi_temp_store, self.noise_threshold = self.noise_threshold_outlier_detection(roi_results,
+                                                                                                           roi_temp_store)
 
                 excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz"
 
@@ -837,7 +837,7 @@ class Brain:
 
         # Create binary mask using -binv
         binary_mask = fsl_functions(self, output_folder, self.no_ext_brain, 'maths.UnaryMaths',
-                                    final_excluded_voxels_volume, 'binary_mask_', 'binarise_excluded_voxel_map')
+                                    final_excluded_voxels_volume, 'binary_mask_', 'binarise_and_invert')
 
         # Fill holes in binary mask using -fillh
         binary_mask_filled = fsl_functions(self, output_folder, self.no_ext_brain, 'maths.UnaryMaths',
@@ -918,6 +918,26 @@ class Brain:
 
         return header, statmap_shape, excluded_vox_save_location, stage, file_location
 
+    def noise_threshold_outlier_detection(self, roi_results, roi_temp_store):
+        # Invert binary mask using -binv
+        binary_mask = fsl_functions(self, self.save_location, self.no_ext_brain, 'maths.UnaryMaths',
+                                    f'{self.save_location}/bet_{self.no_ext_brain}_mask.nii.gz',
+                                    'inverted_bet_mask', 'binarise_and_invert', 'Save to file list')
+
+        # Multiply mni_to_fMRI with binary_mask_filled
+        extra_cranial_voxels = fsl_functions(self, self.save_location, self.no_ext_brain, 'maths.BinaryMaths',
+                                             self.stat_brain, 'extra_cranial_voxels_', binary_mask, 'mul', 'Save to file list')
+
+        extra_cranial_vox_volume, _ = Utils.load_brain(extra_cranial_voxels)
+
+        # Calculate noise threshold
+        noise_threshold = np.nansum(extra_cranial_vox_volume) / np.count_nonzero(extra_cranial_vox_volume)
+
+        outlier_bool_array = roi_temp_store[1:, :] < noise_threshold
+        roi_results = calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
+        roi_temp_store = remove_outliers(outlier_bool_array, roi_temp_store)
+
+        return roi_results, roi_temp_store, noise_threshold
 
 class MatchedBrain:
     label_array = []
@@ -1020,7 +1040,7 @@ class MatchedBrain:
 
             # Remove outliers from ROIs
             if config.noise_cutoff:
-                excluded_voxels, self.ungrouped_raw_results, self.noise_threshold = noise_threshold_outlier_detection(
+                excluded_voxels, self.ungrouped_raw_results, self.noise_threshold = self.noise_threshold_outlier_detection(
                     self.excluded_voxels,
                     self.ungrouped_raw_results)
 
@@ -1323,6 +1343,7 @@ def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, w
 
 def fsl_functions(obj, save_location, no_ext_brain, func, input_volume, prefix, *argv):
     """Run an FSL function using NiPype."""
+    save_override = False
     current_mat = None
     current_brain, fslfunc, suffix = fsl_functions_setup(func, input_volume, no_ext_brain, prefix, save_location)
 
@@ -1346,8 +1367,14 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input_volume, prefix, 
             fslfunc.inputs.operation = 'bin'
             current_brain = fslfunc.inputs.out_file = f"{save_location}{prefix}{no_ext_brain}_fast_wmseg.nii.gz"
 
-        elif argv[0] == 'binarise_excluded_voxel_map':
+        elif argv[0] == 'binarise_and_invert':
             fslfunc.inputs.operation = 'binv'
+
+            try:
+                if argv[1] == 'Save to file list':
+                    save_override = True
+            except IndexError:
+                pass
 
         elif argv[0] == 'fill_holes':
             fslfunc.inputs.operation = 'fillh'
@@ -1359,6 +1386,8 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input_volume, prefix, 
         try:
             if argv[2] == 'Save output to self':
                 obj.mni_brain = current_brain
+            elif argv[2] == 'Save to file list':
+                save_override = True
         except IndexError:
             pass
 
@@ -1396,7 +1425,7 @@ def fsl_functions(obj, save_location, no_ext_brain, func, input_volume, prefix, 
 
     fslfunc.run()
 
-    if func not in ('maths.Threshold', 'maths.UnaryMaths', 'maths.BinaryMaths', 'FAST'):
+    if func not in ('maths.Threshold', 'maths.UnaryMaths', 'maths.BinaryMaths', 'FAST') or save_override:
         fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj, prefix, save_location, suffix)
 
     if func == 'FLIRT':
@@ -1441,6 +1470,7 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
                       f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
     else:
         obj.file_list.append(current_brain)
+
 
 
 def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):
@@ -1674,18 +1704,6 @@ def gaussian_outlier_detection(roi_results, roi_temp_store, config):
     roi_temp_store = remove_outliers(outlier_bool_array, roi_temp_store)
 
     return roi_results, roi_temp_store, lower_gaussian_threshold, upper_gaussian_threshold
-
-
-def noise_threshold_outlier_detection(roi_results, roi_temp_store):
-    # Calculate noise threshold
-    noise_threshold = np.true_divide(np.nansum(roi_temp_store[0, :]),
-                                     np.count_nonzero(~np.isnan(roi_temp_store[0, :])))
-
-    outlier_bool_array = roi_temp_store[1:, :] < noise_threshold
-    roi_results = calculate_number_of_outliers_per_roi(outlier_bool_array, roi_results)
-    roi_temp_store = remove_outliers(outlier_bool_array, roi_temp_store)
-
-    return roi_results, roi_temp_store, noise_threshold
 
 
 def outlier_detection_using_gaussian(data, contamination, config):

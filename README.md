@@ -42,7 +42,7 @@ width=700>
 
 ## Versioning
 We use [Semantic versioning](http://semver.org/) for versioning. For the versions available, see the
-(tag list)[https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tags] for this project.
+[tag list](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/tags) for this project.
 
 ## Licensing
 This project uses the Apache 2.0 license. For the text version of the license see
