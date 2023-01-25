@@ -171,19 +171,6 @@ Analysis = {
 
     'Outlier detection': {'type': 'subheading'},
 
-    'outlier_detection_method': {'type': 'OptionMenu', 'Recommended': 'individual',
-                                 'Options': ['individual', 'pooled'],
-                                 'save_as': 'string',
-                                 'Description': "Method to run outlier detection. Options: 'individual' or 'pooled'\n"
-                                                "If set to individual, outlier detection will take place for each subject "
-                                                "individual. If set to pooled, data will be pooled before running outlier "
-                                                "detection.\n"
-                                                "Note: if set to individual, NIFTI files will be created for each "
-                                                "subject, showing which files have been excluded using the outlier "
-                                                "detection methods selected. However this is not possible for pooled "
-                                                "outlier detection.\n"
-                                                "Recommended: individual."},
-
     'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
                      'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
                                     'ROI or that have been excluded from analysis. Voxels with values of 0 are '

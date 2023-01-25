@@ -787,39 +787,38 @@ class Brain:
         header, statmap_shape, save_location, stage, excluded_voxels_file_location = self.create_excluded_rois_volume(
             volumes)
 
-        if config.outlier_detection_method == 'individual':
-            if config.verbose:
-                print_outlier_removal_methods(config, method='individual', brain=self.no_ext_brain)
+        if config.verbose:
+            print_outlier_removal_methods(config, brain=self.no_ext_brain)
 
-            # Remove outliers from ROIs
-            if config.noise_cutoff:
-                roi_results, roi_temp_store, self.noise_threshold = self.noise_threshold_outlier_detection(roi_results,
-                                                                                                           roi_temp_store)
+        # Remove outliers from ROIs
+        if config.noise_cutoff:
+            roi_results, roi_temp_store, self.noise_threshold = self.noise_threshold_outlier_detection(roi_results,
+                                                                                                       roi_temp_store)
 
-                excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz"
+            excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_noiseThreshOutliers.nii.gz"
 
-                create_no_roi_volume(roi_temp_store,
-                                     excluded_voxels_file_location,
-                                     statmap_shape,
-                                     header)
+            create_no_roi_volume(roi_temp_store,
+                                 excluded_voxels_file_location,
+                                 statmap_shape,
+                                 header)
 
-                stage += 1
+            stage += 1
 
-            if config.gaussian_outlier_detection:
-                roi_results, roi_temp_store, self.lower_gaussian_threshold, self.upper_gaussian_threshold = gaussian_outlier_detection(
-                    roi_results,
-                    roi_temp_store,
-                    config
-                )
+        if config.gaussian_outlier_detection:
+            roi_results, roi_temp_store, self.lower_gaussian_threshold, self.upper_gaussian_threshold = gaussian_outlier_detection(
+                roi_results,
+                roi_temp_store,
+                config
+            )
 
-                excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_gaussianThreshOutliers.nii.gz"
+            excluded_voxels_file_location = f"{save_location}ExcludedVoxStage{stage}_{self.no_ext_brain}_gaussianThreshOutliers.nii.gz"
 
-                create_no_roi_volume(roi_temp_store,
-                                     excluded_voxels_file_location,
-                                     statmap_shape,
-                                     header)
+            create_no_roi_volume(roi_temp_store,
+                                 excluded_voxels_file_location,
+                                 statmap_shape,
+                                 header)
 
-                stage += 1
+            stage += 1
 
         roi_temp_store, roi_results = self.create_final_atlas_mapping(excluded_voxels_file_location,
                                                                       roi_results,
@@ -1033,23 +1032,6 @@ class MatchedBrain:
         self.ungrouped_raw_results = np.concatenate(self.ungrouped_raw_results, axis=1)
 
         self.create_array_to_calculate_excluded_voxels()
-
-        if config.outlier_detection_method == 'pooled':
-            if config.verbose:
-                print_outlier_removal_methods(config, method='pooled', parameters=self.parameters)
-
-            # Remove outliers from ROIs
-            if config.noise_cutoff:
-                excluded_voxels, self.ungrouped_raw_results, self.noise_threshold = self.noise_threshold_outlier_detection(
-                    self.excluded_voxels,
-                    self.ungrouped_raw_results)
-
-            if config.gaussian_outlier_detection:
-                self.ungrouped_summarised_results, self.ungrouped_raw_results, self.lower_gaussian_threshold, self.upper_gaussian_threshold = gaussian_outlier_detection(
-                    self.excluded_voxels,
-                    self.ungrouped_raw_results,
-                    config
-                )
 
         Utils.check_and_make_dir(f"{self.save_location}/Summarised_results/")
         self.calculate_and_save_session_averaged_results()
@@ -1302,7 +1284,7 @@ def create_no_roi_volume(volume, save_location, statmap_shape, header):
     nib.save(brain, save_location)
 
 
-def print_outlier_removal_methods(config, method, parameters=None, brain=None):
+def print_outlier_removal_methods(config, parameter_combination):
     string = []
     if config.noise_cutoff:
         string.append('noise cutoff')
@@ -1310,12 +1292,7 @@ def print_outlier_removal_methods(config, method, parameters=None, brain=None):
         string.append('gaussian outlier detection')
 
     if string:
-        if method == 'pooled':
-            print(f'Running {method} outlier removal using {" & ".join(string)} '
-                  f'for parameter combination: {parameters}')
-        elif method == 'individual':
-            print(f'Running {method} outlier removal using {" & ".join(string)} '
-                  f'for parameter combination: {brain}')
+        print(f'Running outlier removal using {" & ".join(string)} for parameter combination: {parameter_combination}')
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, wmseg=None):
