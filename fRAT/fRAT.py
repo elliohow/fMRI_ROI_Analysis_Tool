@@ -129,28 +129,11 @@ def analysis(config, config_path, config_filename):
 
     matched_brains = run_pooled_analysis(brain_list, matched_brains, config, pool)
 
-    if config.outlier_detection_method == 'pooled':
-        brain_list = assign_pooled_thresholds_to_brains(brain_list, matched_brains)
-
     calculate_cost_function_and_displacement_values(participant_list, brain_list, config, pool)
     atlas_scale(matched_brains, config, pool)
 
     if config.multicore_processing:
         Utils.join_processing_pool(pool, restart=False)
-
-
-def assign_pooled_thresholds_to_brains(brain_list, matched_brains):
-    for parameter_comb in matched_brains:
-        for brain in brain_list:
-            try:
-                if brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
-                    brain.noise_threshold = parameter_comb.noise_threshold
-                    brain.lower_gaussian_threshold = parameter_comb.lower_gaussian_threshold
-                    brain.upper_gaussian_threshold = parameter_comb.upper_gaussian_threshold
-            except KeyError:
-                pass
-
-    return brain_list
 
 
 def run_pooled_analysis(brain_list, matched_brains, config, pool):

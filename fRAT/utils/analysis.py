@@ -788,7 +788,7 @@ class Brain:
             volumes)
 
         if config.verbose:
-            print_outlier_removal_methods(config, brain=self.no_ext_brain)
+            print_outlier_removal_methods(config, self.no_ext_brain)
 
         # Remove outliers from ROIs
         if config.noise_cutoff:
@@ -955,9 +955,6 @@ class MatchedBrain:
         self.participant_averaged_results = []
 
         self.excluded_voxels = None
-        self.noise_threshold = None
-        self.lower_gaussian_threshold = None
-        self.upper_gaussian_threshold = None
         self.conf_int = Environment_Setup.conf_level_list[int(config.conf_level_number)]
 
         # Instance variables to be accessed by participant averaged function
@@ -1044,6 +1041,7 @@ class MatchedBrain:
         return self
 
     def create_array_to_calculate_excluded_voxels(self):
+        # TODO is this still necessary?
         self.excluded_voxels = copy.deepcopy(self.ungrouped_summarised_results)
 
         for result in self.excluded_voxels:
@@ -1284,7 +1282,7 @@ def create_no_roi_volume(volume, save_location, statmap_shape, header):
     nib.save(brain, save_location)
 
 
-def print_outlier_removal_methods(config, parameter_combination):
+def print_outlier_removal_methods(config, brain):
     string = []
     if config.noise_cutoff:
         string.append('noise cutoff')
@@ -1292,7 +1290,7 @@ def print_outlier_removal_methods(config, parameter_combination):
         string.append('gaussian outlier detection')
 
     if string:
-        print(f'Running outlier removal using {" & ".join(string)} for parameter combination: {parameter_combination}')
+        print(f'Running outlier removal using {" & ".join(string)} for volume: {brain}')
 
 
 def run_flirt_cost_function(fslfunc, ref, init, out_file, matrix_file, config, wmseg=None):
@@ -1584,22 +1582,32 @@ def save_averaged_results_file(directory, json_file_list):
         else:
             parameter_dict[param].append(jsn)
 
+    overall_averaged_dataframe = pd.DataFrame()
     for parameter, jsns in parameter_dict.items():
-        combined_dataframe = pd.DataFrame()
+        session_averaged_dataframe = pd.DataFrame()
 
         for jsn in jsns:
             with open(f'{directory}/{jsn}', "r") as results:
                 results = pd.DataFrame(json.load(results))
                 row_order = results.index
 
-            combined_dataframe = pd.concat((combined_dataframe, results))
+            session_averaged_dataframe = pd.concat((session_averaged_dataframe, results))
 
-        grouped_by_stat = combined_dataframe.groupby(combined_dataframe.index)
+        # Get the summarised results across all json files for each parameter combination
+        grouped_by_stat = session_averaged_dataframe.groupby(session_averaged_dataframe.index)
         averaged_dataframe = grouped_by_stat.mean().reindex(row_order)
+
+        overall_averaged_dataframe = pd.concat((overall_averaged_dataframe, averaged_dataframe))
 
         with open(f"{directory}/Averaged_results/{parameter}.json", 'w') as file:
             json.dump(averaged_dataframe.to_dict(), file, indent=2)
 
+    # Repeat the above to create the overall summarised results
+    grouped_by_stat = overall_averaged_dataframe.groupby(overall_averaged_dataframe.index)
+    averaged_dataframe = grouped_by_stat.mean().reindex(row_order)
+
+    with open(f"{directory}/Averaged_results/overall.json", 'w') as file:
+        json.dump(averaged_dataframe.to_dict(), file, indent=2)
 
 def save_combined_results_file(directory, json_file_list):
     session_dict = split_jsons_by_session(json_file_list)

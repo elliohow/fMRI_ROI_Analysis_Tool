@@ -115,6 +115,7 @@ Statistical_maps = {
 
     'noise_multipliers': {'type': 'Entry', 'Recommended': 1, 'save_as': 'list', 'label': 'Noise multiplier(s)',
                           'Description': "Provide a comma-separated list of multipliers for the standard deviation of "
-                                         "the gaussian noise to plot e.g. '1, 5'."
-                                         "\nNOTE: a separate file will be produced for each multiplier"}
+                                         "the gaussian noise to plot e.g. '1, 5'. A separate file will be produced for each multiplier."
+                                         "\nNOTE: Noise has a gaussian distribution, with a mean of 0 and a "
+                                         "standard deviation of the noise level of each participant * multiplier."}
 }
