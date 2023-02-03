@@ -119,11 +119,11 @@ class Figures:
         # Make a list of significant columns and remove any blank values
         # TODO remove references to histogram to make it more generalisable
 
-        signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
-                                            "File_name"]))
-
         if data_type == 'statistics':
-            signif_columns.append('subject')
+            signif_columns = list(filter(None, [*config.parameter_dict1, "File_name", 'subject']))
+        else:
+            signif_columns = list(filter(None, [config.histogram_fig_x_facet, config.histogram_fig_y_facet,
+                                                "File_name"]))
 
         for json_file in jsons:
             with open(json_file, 'r') as f:

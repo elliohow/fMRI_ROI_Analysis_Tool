@@ -2,7 +2,9 @@ import copy
 import itertools
 import os
 import random
+import re
 import shutil
+import warnings
 from glob import glob
 from pathlib import Path
 
@@ -55,14 +57,12 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
     @classmethod
     def save_brain_imgs(cls, file_name, subfolder, vmax):
         # Save brain image using nilearn
-        brain_img = f"{STATISTICS_PATH}/{subfolder}/images/{file_name}.png"
-
         plot = plotting.plot_stat_map(f"{STATISTICS_PATH}/{subfolder}/NIFTI_ROI/{file_name}.nii.gz",
                                       draw_cross=False, annotate=False, colorbar=True,
                                       vmax=vmax, symmetric_cbar=True, cbar_tick_format="%.2f",
                                       display_mode='xz', cut_coords=(0, 18),
                                       cmap='seismic')
-        plot.savefig(brain_img)
+        plot.savefig(f"{STATISTICS_PATH}/{subfolder}/images/{file_name}.png")
         plot.close()
 
     @classmethod
@@ -75,8 +75,22 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
 
         for variable in df.index.unique():
             curr_df = df.loc[variable]
+
+            try:
+                data = [curr_df.iloc[:, 0].values]
+                columns = curr_df['ROI'].values
+            except pd.core.indexing.IndexingError:
+                data = [curr_df.values[0]]
+                columns = [curr_df[1]]
+
             reorganised_df = pd.concat([pd.DataFrame(columns=cls.label_array),
-                                        pd.DataFrame(data=[curr_df.iloc[:, 0].values], columns=curr_df['ROI'].values)])
+                                        pd.DataFrame(data=data,
+                                                     columns=columns)])
+
+            if variable[0:2] == 'C(':
+                # Reformat filename if variable is categorical as it would be in the wrong format, e.g. C(MB)[T.On]
+                variable = re.sub('\(|\)|\[|\]', '', variable)
+                variable = re.sub('(T\.)', '_', variable)[1:]
 
             cls.scale_and_save_atlas_images(cls.atlas_path, None, reorganised_df.to_numpy(),
                                             0, f"{STATISTICS_PATH}/{subfolder}/NIFTI_ROI", variable)
@@ -182,7 +196,9 @@ def extract_statistics_options_info():
     statistics_options_table = pd.read_csv(f"{os.getcwd()}/../statisticsOptions.csv", header=None)
     statistics_options_table = np.split(statistics_options_table,
                                         statistics_options_table[statistics_options_table.isnull().all(1)].index)
-    statistics_options_table = [df.dropna(how='all') for df in statistics_options_table]
+
+    # Drop any blank rows
+    statistics_options_table = [df.dropna(how='all') for df in statistics_options_table if not df.dropna(how='all').empty]
 
     main_effect_parameters = {}
     simple_effect_parameters = {}
@@ -221,17 +237,22 @@ def find_baseline_parameters():
         raise ValueError('Multiple parameter combinations have been selected as the baseline to use for statistics.\n'
                          'Only one row should be selected, the other brain volumes with the same parameter combination '
                          'will also be used for the baseline.')
-    else:
-        try:
-            baseline_param_query = " & ".join(" == ".join((str(k), str(v))) for k, v in baseline_params[0].items())
-            non_baseline_params_query = " | ".join(" != ".join((str(k), str(v))) for k, v in baseline_params[0].items())
-        except IndexError:
-            Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
-                                 f'\nNo baseline set in parameter values file. Skipping calculation of percent change '
-                                 f'versus baseline.\n')
 
-        table.columns = columns
-        return [baseline_param_query, non_baseline_params_query], table.columns[list(critical_column_locs)]
+    elif len(set([str(x) for x in baseline_params])) == 0:
+        Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
+                             f'\nNo baseline set in parameter values file. Skipping calculation of percent change '
+                             f'versus baseline.\n')
+
+    else:
+        for param, value in baseline_params[0].items():
+            if param in config.categorical_variables:
+                baseline_params[0][param] = f'"{value}"'
+
+        baseline_param_query = " & ".join(" == ".join((str(k), str(v))) for k, v in baseline_params[0].items())
+        non_baseline_params_query = " | ".join(" != ".join((str(k), str(v))) for k, v in baseline_params[0].items())
+
+    table.columns = columns
+    return [baseline_param_query, non_baseline_params_query], table.columns[list(critical_column_locs)]
 
 
 def structure_data(config, participant_paths):
@@ -287,6 +308,11 @@ def statistics(param_queries, critical_params):
         calculate_percent_change_versus_baseline(param_queries, combined_roi_results, combined_roi_results_path)
 
     if config.run_t_tests or config.run_linear_mixed_models:
+        if not [parameter for parameter in [*main_effect_parameters.values(), *simple_effect_parameters.values()] if parameter] \
+                and config.run_t_tests:
+            warnings.warn('No main or simple effects chosen in statisticsOptions.csv.'
+                          '\nUpdate this file to run t-tests.')
+
         chosen_rois = Utils.find_chosen_rois(list_rois, func_name="Statistics",
                                              config_region_var=config.regional_stats_rois)
 
@@ -488,6 +514,8 @@ def calculate_percent_change_versus_baseline(param_queries, combined_results, co
 
 
 def run_t_tests(dataset, critical_params, raw_data, main_effect_parameters, simple_effect_parameters, ROI):
+    Utils.check_and_make_dir(f"{STATISTICS_PATH}/Overall")
+
     number_of_simple_effect_params = len(
         [parameter for parameter in simple_effect_parameters if simple_effect_parameters[parameter]])
     number_of_main_effect_params = len(
@@ -498,6 +526,7 @@ def run_t_tests(dataset, critical_params, raw_data, main_effect_parameters, simp
 
     if number_of_simple_effect_params > 1:
         calculate_simple_effects(ROI, critical_params, dataset, simple_effect_parameters)
+
     elif number_of_simple_effect_params == 1:
         Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
                              f"\nOnly one variable setup for simple effect t-tests. Skipping calculation.\n")
@@ -551,10 +580,9 @@ def calculate_main_effects(ROI, critical_params, dataset, main_effect_parameters
 
 
 def calculate_simple_effects(ROI, critical_params, dataset, simple_effect_parameters):
-    Utils.check_and_make_dir(f"{STATISTICS_PATH}/Overall")
-
     t_test_results = []
-    for counter, param in enumerate(critical_params):
+
+    for counter, param in enumerate(simple_effect_parameters):
         if not simple_effect_parameters[param] or len(simple_effect_parameters[param]) == 1:
             continue
 
@@ -672,7 +700,7 @@ def balance_main_effect_data(critical_params, data_subsets, param, raw_data, t_t
     other_params = {other_param.lower(): config.IV_type[counter] for counter, other_param in enumerate(critical_params)
                     if other_param != param}
     within_subject_params = [other_param for other_param in other_params if
-                             other_params[other_param] == 'Between-subjects']
+                             other_params[other_param] == 'Within-subjects']
 
     for other_param in other_params.keys():
         if set(data_subsets[0][other_param]) != set(data_subsets[1][other_param]):
@@ -697,8 +725,7 @@ def balance_main_effect_data(critical_params, data_subsets, param, raw_data, t_t
                                            data_subsets[1]['subject'].drop_duplicates(),
                                            how='outer', indicator=True)
         participants_to_remove = participants_in_each_df.loc[(participants_in_each_df['_merge'] == 'left_only')
-                                                             | (participants_in_each_df['_merge'] == 'right_only')][
-            'subject']
+                                                             | (participants_in_each_df['_merge'] == 'right_only')]['subject']
 
         data_subsets[0] = data_subsets[0][~data_subsets[0]['subject'].isin(participants_to_remove)]
         data_subsets[1] = data_subsets[1][~data_subsets[1]['subject'].isin(participants_to_remove)]
@@ -860,6 +887,9 @@ def calculate_glm_standardised_coeffs(current_df, folder, formula, glm_formula_t
         # Least squares regression
         zscored_model = smf.ols(formula=formula, data=zscored_df)
     else:
+        categorical_columns = current_df[[x.lower() for x in config.categorical_variables]]
+        zscored_df = pd.concat([categorical_columns, zscored_df], axis=1)
+
         # Linear mixed model
         zscored_model = smf.mixedlm(formula=formula, data=zscored_df, groups=current_df["subject"])
 
@@ -903,9 +933,10 @@ def construct_glm_formula(critical_params, glm_formula_type):
 
 
 def save_dfs(bootstrap_df, columns, combined_results, combined_results_path):
+    Utils.check_and_make_dir(f"{STATISTICS_PATH}/Overall")
+
     bootstrap_df = bootstrap_df.sort_values('Parameter_combination')
 
-    Utils.check_and_make_dir(f"{STATISTICS_PATH}/Overall")
     bootstrap_df.to_json(f"{STATISTICS_PATH}/Overall/parameter_percentage_change_vs_baseline.json",
                          orient='records', indent=2)
 

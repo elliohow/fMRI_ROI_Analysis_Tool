@@ -59,3 +59,4 @@ Figures
 Statistics
 ==========
 * Add ability to compare if linear mixed model coefficients significantly vary between regions
+* Add figures and testing for linear mixed model assumptions (linearity, normality and homogeneity)

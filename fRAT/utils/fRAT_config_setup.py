@@ -253,8 +253,8 @@ Statistics = {
                             'save_as': 'list',
                             'Description': 'Select which variables to include in statistical analysis.\nUsed to '
                                            'determine which variables to use as fixed effects in linear mixed models '
-                                           'and which variables to take to average across when running main effect '
-                                           't-tests.'},
+                                           'and which variables to take into account when balancing data for the main '
+                                           'effect t test data.'},
 
     'brain_map_p_thresh': {'type': 'Entry', 'Recommended': 0.05,
                            'label': 'Coefficient map p-threshold',

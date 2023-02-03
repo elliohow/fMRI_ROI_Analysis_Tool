@@ -1196,7 +1196,7 @@ def parse_params_from_file_name(json_file_name, cfg=config):
         if parameter == '':
             continue
 
-        elif parameter in cfg.binary_params:
+        elif key in cfg.binary_params:
             param = re.search("{}".format(parameter), json_file_name, flags=re.IGNORECASE)
 
             if param is not None:
@@ -1219,7 +1219,7 @@ def parse_params_from_file_name(json_file_name, cfg=config):
                 else:
                     param_nums.append(str(param))  # Save None if parameter not found in file name
 
-            keys.append(key)
+        keys.append(key)
 
     return keys, param_nums
 
