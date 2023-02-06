@@ -23,6 +23,7 @@ General
 * To facilitate easier testing of new features during development, add ability to test only ROI analysis, only statistical map creation, or both.
 * Dash barchart code needs an overhaul as it isn't currently viable to easily add new features
     - Long names currently get cutoff
+* Give user ability to find fRAT version
 * (Potential) Add ability to analyse more than fMRI volumes (such as anatomical volumes)
 * (Potential) Add easy way load analysis results data so jupyter notebook can be used to explore the data with graphs/statistics
 

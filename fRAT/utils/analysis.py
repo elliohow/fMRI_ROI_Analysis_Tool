@@ -921,7 +921,7 @@ class Brain:
         # Invert binary mask using -binv
         binary_mask = fsl_functions(self, self.save_location, self.no_ext_brain, 'maths.UnaryMaths',
                                     f'{self.save_location}/bet_{self.no_ext_brain}_mask.nii.gz',
-                                    'inverted_bet_mask', 'binarise_and_invert', 'Save to file list')
+                                    'inverted_bet_mask_', 'binarise_and_invert', 'Save to file list')
 
         # Multiply mni_to_fMRI with binary_mask_filled
         extra_cranial_voxels = fsl_functions(self, self.save_location, self.no_ext_brain, 'maths.BinaryMaths',
@@ -1445,7 +1445,6 @@ def fsl_function_file_handle(current_brain, current_mat, func, no_ext_brain, obj
                       f"{save_location}motion_correction_files/{file.replace(suffix, '')}")
     else:
         obj.file_list.append(current_brain)
-
 
 
 def fsl_functions_setup(func, input, no_ext_brain, prefix, save_location):

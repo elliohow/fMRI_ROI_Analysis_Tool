@@ -33,6 +33,10 @@ Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 Using fRAT
 ----------
+Installation instructions for fRAT can be found `here <https://fmri-roi-analysis-tool.readthedocs.io/en/latest/installation.html>`_.
+Before running fRAT, it is also recommended that the fRAT and project dependency installation is tested. Information on how
+to do this can also be found on the installation instructions page.
+
 The ``fRAT.py`` or ``fRAT_GUI.py`` files are used to run the non-GUI or GUI versions of fRAT respectively.
 Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
@@ -43,11 +47,14 @@ accessed with the command: `fRAT.py --help`. To learn the procedure of how to ru
 :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 .. note::
-    Before running fRAT, it is recommended that the fRAT and project dependency installation is tested.
-    To test fRAT, download the files provided here: https://osf.io/pbm3d/ This ``example_data`` folder should be placed
-    in the base folder, allowing the fRAT tests to find them.
-    This folder also gives demonstrates the input necessary for the fRAT and the output produced by the fRAT.
+    If using a virtual environment, the virtual environment must be activated whenever running fRAT. For example, if using
+    conda, activate the virtual environment with::
 
+    $ conda activate fRAT
+
+    If using the built in venv package, instead use::
+
+    $ source fRAT/bin/activate
 
 GUI images
 ----------
