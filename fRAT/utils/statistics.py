@@ -887,8 +887,9 @@ def calculate_glm_standardised_coeffs(current_df, folder, formula, glm_formula_t
         # Least squares regression
         zscored_model = smf.ols(formula=formula, data=zscored_df)
     else:
-        categorical_columns = current_df[[x.lower() for x in config.categorical_variables]]
-        zscored_df = pd.concat([categorical_columns, zscored_df], axis=1)
+        if config.categorical_variables != ['']:
+            categorical_columns = current_df[[x.lower() for x in config.categorical_variables]]
+            zscored_df = pd.concat([categorical_columns, zscored_df], axis=1)
 
         # Linear mixed model
         zscored_model = smf.mixedlm(formula=formula, data=zscored_df, groups=current_df["subject"])
