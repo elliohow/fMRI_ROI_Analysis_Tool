@@ -98,8 +98,8 @@ To check that fRAT and its dependencies are working correctly, first download th
 <https://osf.io/pbm3d/>`_, extract them, and place them in the ``fMRI_ROI_Analysis_Tool`` folder.
 Next, click the :guilabel:`General` button in the ``fRAT`` section
 of the GUI and then click the :guilabel:`Run installation tests` button. This will first create a voxel-wise tSNR map for each subject in the
-``example_data`` folder, and will the run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
-After the analysis has completed, the tSNR maps and output from the ROI analysis will be compared to those already
+``example_data`` folder, and will then run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
+After the analysis has completed, the output from the ROI analysis will be compared to those already
 present in the ``example_data`` folder and will warn if any files are missing or different. The ``example_data`` folder
 also gives demonstrates the input necessary for the fRAT and the output produced by the fRAT.
 

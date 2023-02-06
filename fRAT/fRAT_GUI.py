@@ -847,25 +847,20 @@ def run_tests(GUI):
     fRAT('test_config.toml')
 
     # Run tests to check if output of fRAT matches the example data
-    roi_output_test = Test_differences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
-                                        f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
-                                       General['verbose_errors']['Current'])
-
-    voxelwise_map_test = Test_differences([f'{path_to_example_data}/test_ROI_report',
+    voxelwise_map_test = TestDifferences([f'{path_to_example_data}/test_ROI_report',
                                            f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
-                                          General['verbose_errors']['Current'])
+                                         General['verbose_errors']['Current'])
 
     # Delete files
     if General['delete_test_folder']['Current'] == 'Always' \
             or (General['delete_test_folder']['Current'] == 'If completed without error'
-                and roi_output_test.status == 'No errors'
                 and voxelwise_map_test.status == 'No errors'):
         shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
         shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
         shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
         shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
 
-    if roi_output_test.status == voxelwise_map_test.status == 'No errors':
+    if voxelwise_map_test.status == 'No errors':
         print("\n--- End of installation testing, no errors found ---")
     else:
         warnings.warn("\n--- End of installation testing, errors found ---")

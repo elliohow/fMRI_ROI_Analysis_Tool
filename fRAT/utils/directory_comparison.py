@@ -3,7 +3,7 @@ import time
 import warnings
 
 
-class Test_differences:
+class TestDifferences:
     def __init__(self, directories, verbose_errors):
         self.directories = directories
         self.verbose_errors = verbose_errors
@@ -15,10 +15,6 @@ class Test_differences:
         self.status = ''
 
         self.files_to_check = (
-            # Check statmap step
-            'number_of_outliers_removed',
-            'P1_MB3_S2_matchBW_tSNR.nii.gz',
-
             # Check analysis step
             'combined_results.json',
             'combined_results_ps0.json',

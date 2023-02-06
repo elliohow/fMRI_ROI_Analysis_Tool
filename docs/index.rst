@@ -47,12 +47,13 @@ accessed with the command: `fRAT.py --help`. To learn the procedure of how to ru
 :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 .. note::
-    If using a virtual environment, the virtual environment must be activated whenever running fRAT. For example, if using
-    conda, activate the virtual environment with::
+    If using a virtual environment, the virtual environment must be activated whenever running fRAT.
+
+    For example, if using ``conda``, activate the virtual environment with::
 
     $ conda activate fRAT
 
-    If using the built in venv package, instead use::
+    If using the built in ``venv`` package, instead use::
 
     $ source fRAT/bin/activate
 
