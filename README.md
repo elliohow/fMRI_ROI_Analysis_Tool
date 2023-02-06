@@ -10,26 +10,18 @@ converting voxelwise maps into ROI-wise maps.
 >
 > fRAT is written using **Python version 3.8.0** for **MacOS** and is based on Nipype.
 
-Documentation: https://fmri-roi-analysis-tool.readthedocs.io
+[Documentation](https://fmri-roi-analysis-tool.readthedocs.io)
+[Installation instructions](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/installation.html)
+[ROI analysis tutorial](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html)
 
-## Testing installation of fRAT
-Before running fRAT, it is recommended that the fRAT and project dependency installation is tested.
-To test fRAT, download the files provided here: https://osf.io/pbm3d/. This `example_data` folder should be uncompressed 
-and placed in the base folder, allowing the fRAT tests to find them. This folder also gives demonstrates the input 
-necessary for the fRAT and the output produced by the fRAT. Once in the correct folder, navigating to the `General` menu  
-under the `fRAT` section of the GUI will allow you to click `Run installation tests`. This will run the statistical map 
-creation as well as all steps of the ROI analysis to validate that the files newly created match those in the `example_data`
-folder.
-
+## Running fRAT
 The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively.
 Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
 For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
 (for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
 plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
 statistical map creation is not currently possible. Help text for available flags can be
-accessed with the command: `fRAT.py --help`. For a tutorial showing how to run an ROI analysis, 
-[see here](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html).
-
+accessed with the command: `fRAT.py --help`.
 
 ## Images
 <img src="docs/images/ROI_example.png" 
