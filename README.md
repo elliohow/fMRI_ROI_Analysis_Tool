@@ -11,7 +11,9 @@ converting voxelwise maps into ROI-wise maps.
 > fRAT is written using **Python version 3.8.0** for **MacOS** and is based on Nipype.
 
 [Documentation](https://fmri-roi-analysis-tool.readthedocs.io)
+
 [Installation instructions](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/installation.html)
+
 [ROI analysis tutorial](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html)
 
 ## Running fRAT
