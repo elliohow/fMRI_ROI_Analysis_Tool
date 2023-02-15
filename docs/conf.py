@@ -21,6 +21,18 @@ project = 'fRAT'
 copyright = '2022, Elliot Howley'
 author = 'Elliot Howley'
 
+frat_version = "1.0.0"
+python_version = "3.10"
+
+variables_to_export = [
+    "frat_version",
+    "python_version",
+]
+frozen_locals = dict(locals())
+rst_epilog = '\n'.join(map(lambda x: f".. |{x}| replace:: {frozen_locals[x]}", variables_to_export))
+del frozen_locals
+
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
