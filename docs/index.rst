@@ -6,7 +6,7 @@
 =============================
 fRAT - fMRI ROI Analysis Tool
 =============================
-fRAT is an open-source python-based analysis pipeline used to simplify the processing and analysis of fMRI data by
+fRAT is an open-source python-based GUI application used to simplify the processing and analysis of fMRI data by
 converting voxelwise maps into ROI-wise maps.
 
 .. note::
@@ -35,14 +35,7 @@ Installation instructions for fRAT can be found `here <https://fmri-roi-analysis
 Before running fRAT, it is also recommended that the fRAT and project dependency installation is tested. Information on how
 to do this can also be found on the installation instructions page.
 
-The ``fRAT.py`` or ``fRAT_GUI.py`` files are used to run the non-GUI or GUI versions of fRAT respectively.
-Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
-For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
-(for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
-plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
-statistical map creation is not currently possible. Help text for available flags can be
-accessed with the command: `fRAT.py --help`. To learn the procedure of how to run an ROI analysis, follow this
-:doc:`tutorial </tutorials/Basic-ROI-analysis>`.
+To learn how to run an ROI analysis, follow this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 .. note::
     If using a virtual environment, the virtual environment must be activated whenever running fRAT.

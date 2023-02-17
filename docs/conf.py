@@ -27,7 +27,7 @@ fsl_version = "6.0.6.2"
 
 variables_to_export = [
     "frat_version",
-    "python_version"
+    "python_version",
     "fsl_version",
 ]
 frozen_locals = dict(locals())

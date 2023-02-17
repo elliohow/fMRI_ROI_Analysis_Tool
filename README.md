@@ -18,15 +18,6 @@ Documentation:
 
 [ROI analysis tutorial](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/tutorials/Basic-ROI-analysis.html)
 
-## Running fRAT
-The `fRAT.py` or `fRAT_GUI.py` files are used to run the non-GUI or GUI versions of fRAT respectively.
-Configuration settings can be changed in the GUI, alternatively they can be changed directly in the config.toml files.
-For shell scripting multiple analyses/plots, flags can be passed when running fRAT.py to specify the fMRI file locations
-(for scriping multiple analyses), or the location of the JSON files outputted by the fRAT (for scripting
-plotting/statistics), e.g. `fRAT.py --brain_loc BRAIN_LOC --json_loc JSON_LOC`, however using flags to script
-statistical map creation is not currently possible. Help text for available flags can be
-accessed with the command: `fRAT.py --help`.
-
 ## Images
 <img src="docs/images/ROI_example.png" 
   title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
