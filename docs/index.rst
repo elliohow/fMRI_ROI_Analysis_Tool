@@ -9,12 +9,8 @@ fRAT - fMRI ROI Analysis Tool
 fRAT is an open-source python-based analysis pipeline used to simplify the processing and analysis of fMRI data by
 converting voxelwise maps into ROI-wise maps.
 
-|python_version|
-
 .. note::
-    This project is under active development.
-
-    fRAT is written using |python_version| **Python version 3.8.0 |python_version|** for **MacOS** and is based on Nipype.
+    fRAT is written using Python version |python_version| for **MacOS** and tested with FSL |fsl_version|.
 
 .. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
   :target: http://makeapullrequest.com

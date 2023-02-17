@@ -23,10 +23,12 @@ author = 'Elliot Howley'
 
 frat_version = "1.0.0"
 python_version = "3.10"
+fsl_version = "6.0.6.2"
 
 variables_to_export = [
     "frat_version",
-    "python_version",
+    "python_version"
+    "fsl_version",
 ]
 frozen_locals = dict(locals())
 rst_epilog = '\n'.join(map(lambda x: f".. |{x}| replace:: {frozen_locals[x]}", variables_to_export))

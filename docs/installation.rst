@@ -7,84 +7,44 @@ Installation
     :depth: 2
 
 .. note::
-    Make sure Python is downloaded and is the same as the tested version (found on the :doc:`home page <index>`) or
-    higher.
+    Make sure Python version |python_version| is used for installation.
 
-**1. Navigate to where you wish to install fRAT, and then run the following command in the terminal**::
+**1. Install pipx. This will create an isolated environment for the fRAT application and will allow you to run it from
+anywhere**::
 
-    $ git clone https://github.com/elliohow/fMRI_ROI_Analysis_Tool.git
+    brew install pipx
+    pipx ensurepath
 
-**2. Once the directory has been cloned, enter the newly created folder**::
+**2. Use pipx to install fRAT**::
 
-    $ cd fMRI_ROI_Analysis_Tool
-
-
-.. note::
-    Installing the dependencies within a virtual environment keeps dependencies required by different projects separate,
-    preventing a number of dependency issues. You can install all the dependencies required by the fRAT within a *virtual
-    environment* using the `venv` module built-in to python, `conda`, or any other virtual environment package installed on
-    your system.
-
-**3. Create a virtual environment called venv**:
-
-`conda` version::
-
-    $ conda create --name venv python==3.8.0
-
-`venv` version::
-
-    $ python3 -m venv venv
+    pipx install frat-brain --python /Library/Frameworks/Python.framework/Versions/3.10/bin/python3.10
 
 .. note::
-    Python version can also be specified when using `venv`::
+    If you get a file not found error using the above, the link to the Python executable is not correct for your system.
 
-        $ python3.8 -m venv venv
+    First, start a python session using the version of Python you want to use to install fRAT::
 
-**4. Activate the virtual environment**:
+        python3.10
 
-`conda` version::
+    And then print the path to the Python executable using::
 
-    $ conda activate fRAT
+        import sys
+        print(sys.executable)
 
-`venv` version::
+    This path should then be used inplace of the one above.
 
-    $ source fRAT/bin/activate
+**3. fRAT can now be ran from the terminal from anywhere by using**::
 
-.. note::
-    The virtual environment will need to be activated whenever running fRAT.
+    fRAT
 
-The ``requirements.txt`` file in the base folder lists the dependencies necessary for fRAT.
+fRAT can also be upgraded using::
 
-**5. Install all required dependencies from ``requirements.txt`` in the activated virtual environment**::
-
-    $ pip3 install -r requirements.txt
-
-.. warning::
-    Dependencies will be installed globally instead of in the virtual environment if the virtual environment has not
-    been activated before running this step. As installation of dependencies globally may cause dependency conflicts,
-    it is suggested that a virtual environment is used.
-
-You should see now ``(fRAT)`` at the start of your prompt.
-
-**6. Change directory into the ``fRAT`` folder and open the GUI**::
-
-    $ cd fRAT
-    $ python3 fRAT_GUI.py
-
-`venv` notes
-~~~~~~~~~~~~~~~~~~~~~
-* ``venv`` by default uses the currently installed version of Python to set up the virtual environment, however some other virtual environment packages (such as ``virtualenv`` and ``conda``) do not have this limitation.
-* To deactive the ``venv`` environment you can use ``deactivate``.
-
-`conda` notes
-~~~~~~~~~~~~~~~~
-* To check currently installed conda environments can use ``conda env list``.
-* To revert back to another environment you can use ``conda deactivate``. This should set your prompt back to ``(base)``.
+    pipx upgrade frat-brain
 
 External Dependencies
 =====================
 The FSL_ neuroimaging software tool is a core component of fRAT and is not able to be downloaded through Python’s
-Package Index (PyPI), therefore FSL_ (version 6.0.2 or above)  should be downloaded and setup separately using FSL's
+Package Index (PyPI), therefore FSL_ (version |fsl_version| or above)  should be downloaded and setup separately using FSL's
 `installation instructions <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`_.
 
 While optiBET_ is not required for fRAT (`link <https://montilab.psych.ucla.edu/fmri-wiki/optibet/>`_), it is highly
@@ -94,15 +54,20 @@ extraction performance when using optiBET.
 
 Checking installation
 =====================
-To check that fRAT and its dependencies are working correctly, first download the example files `here
-<https://osf.io/pbm3d/>`_, extract them, and place them in the ``fMRI_ROI_Analysis_Tool`` folder.
-Next, click the :guilabel:`General` button in the ``fRAT`` section
-of the GUI and then click the :guilabel:`Run installation tests` button. This will first create a voxel-wise tSNR map for each subject in the
-``example_data`` folder, and will then run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
-After the analysis has completed, the output from the ROI analysis will be compared to those already
-present in the ``example_data`` folder and will warn if any files are missing or different. The ``example_data`` folder
-also gives demonstrates the input necessary for the fRAT and the output produced by the fRAT.
+**1. Create the directory to save the example data folder**::
 
-.. note::
-    When running fRAT, you will be notified if there is an update available for Nipype; it is recommended that you update
-    this library if possible.
+    mkdir ~/Documents/fRAT
+
+This allows fRAT to find the example data. This folder will also be used to save configuration profiles in the future.
+
+**2. Download the example dataset from** `here <https://osf.io/pbm3d/>`_
+
+**3. Extract the chosen folder and place it in the newly created fRAT folder.**
+To check that fRAT and its dependencies are working correctly,
+
+**4. Click the** :guilabel:`General` **button in the** ``fRAT`` **section of the GUI and then click the** :guilabel:`Run installation tests`
+**button.**
+This will first create a voxel-wise tSNR map for each subject in the ``example_data`` folder, before using these maps to
+run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
+After the analysis has completed, the output from the ROI analysis will be compared to those already
+present in the ``example_data`` folder and will warn if any files are missing.
