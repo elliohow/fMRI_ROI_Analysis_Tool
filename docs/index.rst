@@ -6,11 +6,6 @@
 =============================
 fRAT - fMRI ROI Analysis Tool
 =============================
-fRAT is an open-source python-based GUI application used to simplify the processing and analysis of fMRI data by
-converting voxelwise maps into ROI-wise maps.
-
-.. note::
-    fRAT is written using Python version |python_version| for **MacOS** and tested with FSL |fsl_version|.
 
 .. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
   :target: http://makeapullrequest.com
@@ -20,14 +15,18 @@ converting voxelwise maps into ROI-wise maps.
   :target: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE
   :alt: License information
 
-About
------
+fRAT is an open-source python-based GUI application used to simplify the processing and analysis of fMRI data by
+converting voxelwise maps into ROI-wise maps.
+
+Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
+
+.. note::
+    fRAT is written using Python version |python_version| for **MacOS** and tested with FSL |fsl_version|.
+
 .. figure:: images/ROI_example.png
 
     A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region.
     Data is displayed in MNI152 standard space and combines data from multiple subjects.
-
-Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 Using fRAT
 ----------
@@ -36,17 +35,6 @@ Before running fRAT, it is also recommended that the fRAT and project dependency
 to do this can also be found on the installation instructions page.
 
 To learn how to run an ROI analysis, follow this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
-
-.. note::
-    If using a virtual environment, the virtual environment must be activated whenever running fRAT.
-
-    For example, if using ``conda``, activate the virtual environment with::
-
-    $ conda activate fRAT
-
-    If using the built in ``venv`` package, instead use::
-
-    $ source fRAT/bin/activate
 
 GUI images
 ----------

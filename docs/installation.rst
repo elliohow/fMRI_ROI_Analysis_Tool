@@ -9,7 +9,9 @@ Installation
 .. note::
     Make sure Python version |python_version| is used for installation.
 
-**1. Install pipx. This will create an isolated environment for the fRAT application and will allow you to run it from
+    Installation as well as opening fRAT for the first time may take a while.
+
+**1. Install pipx. This creates an isolated environment for the fRAT application and will allow you to run it from
 anywhere**::
 
     brew install pipx
@@ -22,7 +24,7 @@ anywhere**::
 .. note::
     If you get a file not found error using the above, the link to the Python executable is not correct for your system.
 
-    First, start a python session using the version of Python you want to use to install fRAT::
+    First, use the terminal to start a python session with Python version you want to use to install fRAT::
 
         python3.10
 
@@ -54,20 +56,30 @@ extraction performance when using optiBET.
 
 Checking installation
 =====================
+.. note::
+    Two example datasets are provided for use with fRAT. The full example dataset is much larger than the example dataset,
+    as the example subject data folder only contains subject data and not the result of an ROI analysis. The example subject
+    data can be used to test fRAT runs correctly, however using the test framework built into fRAT, the full example dataset
+    can be used to determine whether fRAT is producing the required outputs.
+
 **1. Create the directory to save the example data folder**::
 
     mkdir ~/Documents/fRAT
 
 This allows fRAT to find the example data. This folder will also be used to save configuration profiles in the future.
 
-**2. Download the example dataset from** `here <https://osf.io/pbm3d/>`_
+**2. Download the example dataset from** `here <https://osf.io/pbm3d/>`_.
+
+If you want to run the full comparison, download the "full_example_data", otherwise download the "subject_example_data".
 
 **3. Extract the chosen folder and place it in the newly created fRAT folder.**
-To check that fRAT and its dependencies are working correctly,
+
+To check that fRAT and its dependencies are working correctly.
 
 **4. Click the** :guilabel:`General` **button in the** ``fRAT`` **section of the GUI and then click the** :guilabel:`Run installation tests`
 **button.**
+
 This will first create a voxel-wise tSNR map for each subject in the ``example_data`` folder, before using these maps to
 run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
-After the analysis has completed, the output from the ROI analysis will be compared to those already
-present in the ``example_data`` folder and will warn if any files are missing.
+After the analysis has completed, if the full comparison option has been selected, the output will be compared to those
+already present in the ``example_data`` folder and will warn if any files are missing.
