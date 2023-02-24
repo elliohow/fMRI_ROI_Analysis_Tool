@@ -1,7 +1,3 @@
-import time
-import warnings
-
-import numpy as np
 import toml
 
 try:
@@ -21,17 +17,19 @@ import textwrap
 from PIL import ImageTk
 from operator import itemgetter
 
-import dash_report
-from fRAT import fRAT
-from printResults import printResults
-from statmap import main as statmap_calc
-from utils import *
-from utils.directory_comparison import *
-from utils.fRAT_config_setup import *
-from utils.statmap_config_setup import *
+from fRAT.nogui import fRAT
+from fRAT._version import __version__
+
+from fRAT.utils import *
+from fRAT.utils.directory_comparison import *
+from fRAT.utils.fRAT_config_setup import *
+from fRAT.utils.statmap_config_setup import *
+
+from fRAT.utils import dash_report
+from fRAT.utils.printResults import printResults
+from fRAT.utils.statmap import main as statmap_calc
 
 w = None
-VERSION = "0.15.0"
 WIDGET_Y_PADDING = 9
 WIDGET_X_PADDING = 10
 
@@ -39,6 +37,11 @@ WIDGET_X_PADDING = 10
 def start_gui():
     '''Starting point when module is the main routine.'''
     global val, w, root, top
+
+    Utils.checkversion(__version__)
+
+    print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------')
+
     root = tk.Tk()
     top = GUI(root)
 
@@ -167,7 +170,7 @@ class GUI:
 
     @staticmethod
     def load_initial_values(toml_file):
-        with open(f"configuration_profiles/{toml_file}", 'r') as f:
+        with open(f"{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/{toml_file}", 'r') as f:
             for line in f.readlines():
                 if line[:2] == '##':  # Subheadings
                     continue
@@ -189,7 +192,7 @@ class GUI:
                         warnings.warn(f'"{setting[0]}" not present in config setup file. Configuration file may be outdated.')
 
     def banner_draw(self, window):
-        img = Image.open(f'{os.getcwd()}/fRAT.gif')
+        img = Image.open(f'{Path(os.path.abspath(__file__)).parents[0]}/images/fRAT.gif')
 
         zoom = 0.8
         pixels_x, pixels_y = tuple([int(zoom * x) for x in img.size])
@@ -808,7 +811,7 @@ def button_handler(command, *args):
             fRAT(ConfigurationFiles.analysis_config)
 
         elif command == 'Print_results':
-            printResults()
+            printResults(ConfigurationFiles.analysis_config)
 
         elif command == "Make paramValues.csv":
             Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
@@ -819,7 +822,7 @@ def button_handler(command, *args):
 
         elif command == "Make maps":
             Save_settings(['Statistical_maps'], f'maps/{ConfigurationFiles.statmap_config}')
-            statmap_calc(args[0], ConfigurationFiles.statmap_config)
+            statmap_calc(args[0], __version__, ConfigurationFiles.statmap_config)
 
     except Exception as err:
         if err.args[0] == 'No folder selected.':
@@ -836,34 +839,67 @@ def run_tests(GUI):
     GUI.change_frame('General')
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
-    path_to_example_data = f'{Path(os.path.abspath(__file__)).parents[1]}/example_data'
-
-    if not os.path.exists(path_to_example_data):
-        raise FileNotFoundError(f'"example_data" folder not found.\n'
-                                f'Download it from https://osf.io/pbm3d/ and place it into the fRAT base directory.')
+    path_to_example_data = find_example_dataset()
 
     # Create tSNR maps and run ROI analysis
-    statmap_calc('Temporal SNR', 'test_config.toml')
-    fRAT('test_config.toml')
+    statmap_calc('Temporal SNR', __version__, 'test_config.toml', path_to_example_data)
+    fRAT('test_config.toml', path_to_example_data)
 
     # Run tests to check if output of fRAT matches the example data
-    voxelwise_map_test = TestDifferences([f'{path_to_example_data}/test_ROI_report',
-                                           f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
-                                         General['verbose_errors']['Current'])
+    if General['full_comparison']['Current'] == 'true':
+        roi_output_test = TestDifferences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
+                                            f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
+                                           General['verbose_errors']['Current'])
 
-    # Delete files
-    if General['delete_test_folder']['Current'] == 'Always' \
-            or (General['delete_test_folder']['Current'] == 'If completed without error'
-                and voxelwise_map_test.status == 'No errors'):
-        shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
-        shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
-        shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
-        shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
+        voxelwise_map_test = TestDifferences([f'{path_to_example_data}/test_ROI_report',
+                                              f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
+                                             General['verbose_errors']['Current'])
 
-    if voxelwise_map_test.status == 'No errors':
-        print("\n--- End of installation testing, no errors found ---")
+        # Delete files
+        if General['delete_test_folder']['Current'] == 'Always' \
+                or (General['delete_test_folder']['Current'] == 'If completed without error'
+                    and voxelwise_map_test.status == 'No errors'
+                    and roi_output_test.status == 'No errors'):
+            shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
+            shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
+            shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
+            shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
+
+        if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
+            print("\n--- End of installation testing, no errors found ---")
+        else:
+            warnings.warn("\n--- End of installation testing, errors found ---")
     else:
-        warnings.warn("\n--- End of installation testing, errors found ---")
+        print("\n--- End of installation testing ---")
+
+
+def find_example_dataset():
+    output_data_folders = glob(os.path.expanduser('~/Documents/fRAT/*example_data*/*HarvardOxford-Cortical_ROI_report*'))
+    subject_data_folders = glob(os.path.expanduser('~/Documents/fRAT/*subject_example_data*'))
+
+    if not os.path.exists(os.path.expanduser('~/Documents/fRAT/')):
+        raise FileNotFoundError(f'fRAT folder not present in documents directory.\n'
+                                'Run mkdir ~/Documents/fRAT in the terminal, then download the example dataset from '
+                                'https://osf.io/pbm3d/, extract it and place it into this folder.')
+
+    if not subject_data_folders:
+        raise FileNotFoundError(f'No "subject_example_data" folder in fRAT directory.\n'
+                                f'Download it from https://osf.io/pbm3d/ and place it into the fRAT directory '
+                                f'("~/Documents/fRAT/").')
+
+    if len(output_data_folders) > 1:
+        raise FileExistsError('More than one HarvardOxford-Cortical_ROI_report folder found in example data folder. '
+                              'Only keep the version that matches your fRAT version.')
+
+    if len(subject_data_folders) > 1:
+        raise FileExistsError('More than one subject example dataset folder found in fRAT directory. '
+                              'Only keep the version that matches your fRAT version.')
+
+    elif General['full_comparison']['Current'] == 'true' and not output_data_folders:
+        raise FileNotFoundError('Full comparison selected, but HarvardOxford-Cortical_ROI_report is not present in '
+                                '"subject_example_data" folder. Download it from https://osf.io/pbm3d/.')
+
+    return subject_data_folders[0]
 
 
 def check_stale_state():
@@ -937,7 +973,7 @@ def Print_atlas_ROIs(selection):
 def Save_settings(page_list, file):
     with open(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/{file}', 'w') as f:
         f.write(f"# Version Info\n")
-        f.write(f"version = '{VERSION}'\n")
+        f.write(f"version = '{__version__}'\n")
         f.write("\n")
 
         for page in page_list:
@@ -1220,5 +1256,4 @@ def parse_params_from_file_name(json_file_name, cfg=config):
 
 
 if __name__ == '__main__':
-    print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------')
     start_gui()

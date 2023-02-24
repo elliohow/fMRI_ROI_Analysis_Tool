@@ -386,7 +386,7 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
                             and converged:
                         adj_marginal_r_square_data.append(adj_marginal_r_square)
                         adj_conditional_r_square_data.append(adj_conditional_r_square)
-                        voxel_data.append(individual_roi_results_dict[ROI].mean()['voxel_amount'])
+                        voxel_data.append(individual_roi_results_dict[ROI].mean(numeric_only=True)['voxel_amount'])
 
                         # Save list of coefficients to make brain images
                         unstandardised_coeffs = unstandardised_coeffs.loc[pvalues <= config.brain_map_p_thresh]
@@ -545,8 +545,8 @@ def calculate_main_effects(ROI, critical_params, dataset, main_effect_parameters
                                                                     t_test_type)
 
             if not current_result:
-                data1 = data1.groupby('subject').mean()['voxel_value'].sort_index()
-                data2 = data2.groupby('subject').mean()['voxel_value'].sort_index()
+                data1 = data1.groupby('subject').mean(numeric_only=True)['voxel_value'].sort_index()
+                data2 = data2.groupby('subject').mean(numeric_only=True)['voxel_value'].sort_index()
 
             if not current_result and t_test_type == 'Within-subjects':
                 current_result = list(ttest_rel(a=data1, b=data2))

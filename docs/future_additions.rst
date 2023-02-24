@@ -55,6 +55,7 @@ Figures
 * Improve customisation options of figures (for example, currently barcharts look too big if fewer parameters selected)
 * Add option to add number of voxels to histogram plots
 * Give one IV barcharts colour
+* Implement mixed-roi scaled brain figures
 * (Potential) Interactive plots
 
 Statistics

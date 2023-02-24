@@ -1,5 +1,5 @@
 # Version Info
-version = '0.15.0'
+version = '1.0.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
@@ -62,7 +62,7 @@ main_and_interaction_effects = false                                            
 interaction_effects = false                                                       # true or false. Note: This option is independent from the other effect calculations.
 
 ## R2 vs voxel count LMM
-max_below_thresh = 100                                                            # Recommended value 0.  For a given ROI, this value sets the maximum percent of sessions that can be excluded (due to having insufficient voxel count) before the ROI is not included in r2 vs voxel count statistics. With the default value of 100(%) an ROI will not be included in this calculation if any sessions have been excluded.
+max_below_thresh = 0                                                            # Recommended value 0.  For a given ROI, this value sets the maximum percent of sessions that can be excluded (due to having insufficient voxel count) before the ROI is not included in r2 vs voxel count statistics. With the default value of 100(%) an ROI will not be included in this calculation if any sessions have been excluded.
 
 # Parsing
 parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of independent variables.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: This field can also be blank.

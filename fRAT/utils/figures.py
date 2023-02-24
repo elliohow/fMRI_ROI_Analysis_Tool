@@ -155,7 +155,7 @@ class Figures:
             if data_type == 'statistics':
                 current_json['subject'] = re.findall('sub-[0-9]*', json_file)[0]
 
-            combined_raw_df = combined_raw_df.append(current_json)
+            combined_raw_df = pd.concat([combined_raw_df, current_json])
 
         # Convert it from wide format into long format
         mean_data = combined_raw_df.iloc[0::2].melt(id_vars=signif_columns, var_name='ROI', value_name='voxel_value')
@@ -188,9 +188,11 @@ class BrainGrid(Figures):
 
             Utils.check_and_make_dir(f"{os.getcwd()}/Figures/Brain_grids/{statistic}")
 
-            brain_plot_exts = [f"_{statistic}.nii.gz",
-                               f"_{statistic}_within_roi_scaled.nii.gz",
-                               f"_{statistic}_mixed_roi_scaled.nii.gz"]
+            brain_plot_exts = [
+                f"_{statistic}.nii.gz",
+                f"_{statistic}_within_roi_scaled.nii.gz",
+                # f"_{statistic}_mixed_roi_scaled.nii.gz"
+                               ]
 
             for base_extension in brain_plot_exts:
                 indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic, subfolder)

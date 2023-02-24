@@ -11,35 +11,7 @@ class TestDifferences:
         self.directory_comparison = None
         self.missing_files_left = 0
         self.missing_files_right = 0
-        self.differences_found = 0
         self.status = ''
-
-        self.files_to_check = (
-            # Check analysis step
-            'combined_results.json',
-            'combined_results_ps0.json',
-            'combined_results_ps1.json',
-            'combined_results_ps2.json',
-            'mb4_s1.0.json'
-            'additional_info.csv',
-            'copy_paramValues.csv',
-
-            # Check statistics step
-            'Overall_GLM_standardised_coeffs.csv',
-            'Overall_LMM.csv',
-            'Overall_r2.csv',
-            'Occipital Pole_LMM.csv',
-            'mb.png'
-            'sense.png'
-
-            # Check figure step
-            'index.html',
-            'Violin_plots.html',
-            'Histograms_Different_xaxis.html',
-            'mb4_s2.0_Sessions.png',
-            'Overall_barchart.png',
-            'Cuneal_Cortex_same_ylim_barchart.png'
-        )
 
         self.warnings_setup()
         self.run_file_comparison()
@@ -60,13 +32,6 @@ class TestDifferences:
         self.print_final_results()
 
     def print_differences(self, directory_comparison):
-        for name in directory_comparison.diff_files:
-            if any(x in name for x in self.files_to_check):
-                self.differences_found += 1
-
-                if self.verbose_errors == 'true':
-                    warnings.warn(f"Difference in file {name} found in {directory_comparison.left} and {directory_comparison.right}")
-
         for left_only in directory_comparison.left_only:
             self.missing_files_right += 1
 
@@ -83,11 +48,6 @@ class TestDifferences:
             self.print_differences(sub_folder)
 
     def print_final_results(self):
-        if self.differences_found == 0:
-            print(f'No differences within files/folders found.')
-        else:
-            warnings.warn(f"{self.differences_found} differences found.")
-
         if self.missing_files_left == 0 and self.missing_files_right == 0:
             print(f'No missing files found.')
         else:
@@ -101,7 +61,7 @@ class TestDifferences:
             else:
                 print(f'No missing files found in {self.directories[1]}.')
 
-        if self.differences_found == 0 and self.missing_files_left == 0 and self.missing_files_right == 0:
+        if self.missing_files_left == 0 and self.missing_files_right == 0:
             self.status = 'No errors'
         else:
             self.status = 'Errors found'

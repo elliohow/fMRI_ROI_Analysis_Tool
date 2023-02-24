@@ -1,9 +1,11 @@
-from pathlib import Path
-from nipype.interfaces.fsl import ImageStats, TemporalFilter, maths
+import itertools
+
+import numpy as np
+from nipype.interfaces import fsl
 import logging
 import time
 
-from utils import *
+from .utils import *
 
 config = None
 config_path = ''
@@ -41,7 +43,8 @@ def file_setup(func):
             Utils.check_and_make_dir(f"{participant}/statmaps")
             Utils.check_and_make_dir(f"{participant}/{output_folder}", delete_old=True)
             Utils.save_config(f"{participant}/{output_folder}", config_path, config_filename,
-                              additional_info=[f"statistical_map_created = '{func}'\n"], new_config_name='statmap_config')
+                              additional_info=[f"statistical_map_created = '{func}'\n"],
+                              new_config_name='statmap_config')
         else:
             Utils.check_and_make_dir(f"{participant}/{file_location}/{output_folder}", delete_old=True)
 
@@ -64,22 +67,22 @@ def save_brain(data, ext, no_ext_file, output_folder, header=None):
 
 
 def temporalSNR_calc(file, no_ext_file, output_folder):
-    maths.MeanImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
+    fsl.maths.MeanImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
-    maths.StdImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz').run()  # Standard dev over time
+    fsl.maths.StdImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz').run()  # Standard dev over time
 
     # tMean / tStd
-    maths.BinaryMaths(operation='div', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
+    fsl.maths.BinaryMaths(operation='div', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
                       operand_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz',
                       out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
 
     # Threshold volume so any tSNR values above 1000 are set to 0
-    maths.Threshold(in_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz', thresh=1000.0, direction='above',
+    fsl.maths.Threshold(in_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz', thresh=1000.0, direction='above',
                     out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
 
 
 def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant_dir):
-    maths.MeanImage(in_file=func_file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
+    fsl.maths.MeanImage(in_file=func_file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
     if config.iSNR_std_use_only_nonzero_voxels:
         std_string = '-S'
@@ -87,7 +90,7 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant
         std_string = '-s'
 
     if config.noise_volume:
-        std = ImageStats(in_file=noise_file, op_string=std_string,
+        std = fsl.ImageStats(in_file=noise_file, op_string=std_string,
                          terminal_output='allatonce').run()  # Std dev of entire volume
         noise_value = std.outputs.get()['out_stat']
 
@@ -99,7 +102,7 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant
         noise_value = float(noise_value_csv[noise_value_csv['Participant'] == participant_name]['Background noise'])
 
     # tMean / Std
-    maths.BinaryMaths(operation='div',
+    fsl.maths.BinaryMaths(operation='div',
                       in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
                       operand_value=noise_value,
                       out_file=f'{output_folder}/{no_ext_file}_iSNR.nii.gz').run()
@@ -109,7 +112,7 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant
 
 
 def magnitude_correction(file_name):
-    maths.BinaryMaths(in_file=file_name, operation='mul', operand_value=0.7, out_file=file_name).run()
+    fsl.maths.BinaryMaths(in_file=file_name, operation='mul', operand_value=0.7, out_file=file_name).run()
 
 
 def separate_noise_from_func(file, no_ext_file, output_folder, participant):
@@ -143,13 +146,13 @@ def save_to_cleaned_folder(data, header, no_ext_file, participant, method):
 def highpass_filtering(file_path, output_folder, no_ext_file):
     sigma_in_volumes = calculate_sigma_in_volumes(file_path)
 
-    maths.MeanImage(in_file=f'{file_path}', out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()
+    fsl.maths.MeanImage(in_file=f'{file_path}', out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()
 
-    TemporalFilter(in_file=f'{file_path}',
+    fsl.TemporalFilter(in_file=f'{file_path}',
                    out_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
                    highpass_sigma=sigma_in_volumes).run()
 
-    maths.BinaryMaths(operation='add', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
+    fsl.maths.BinaryMaths(operation='add', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
                       operand_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
                       out_file=f'{output_folder}/{no_ext_file}_filtered_restoredmean.nii.gz').run()
 
@@ -210,8 +213,8 @@ def remove_motion_outliers(file, no_ext_file, output_folder, participant):
     outlier_values = f'{output_folder}/{no_ext_file}_metrics.txt'
 
     fsl.MotionOutliers(in_file=file, out_file=outlier_file,
-                       out_metric_plot=outlier_plot,
-                       out_metric_values=outlier_values).run()
+                   out_metric_plot=outlier_plot,
+                   out_metric_values=outlier_values).run()
 
     with open(f'{output_folder}/{no_ext_file}_outliers.txt') as f:
         lines = f.readlines()
@@ -335,7 +338,8 @@ def run_utility(file, participant_dir, output_folder, func, cfg):
 
     if func == 'Add Gaussian noise':
         noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
-        participant_noise_level = float(noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise over time'])
+        participant_noise_level = float(
+            noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise over time'])
         add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level)
 
 
@@ -358,18 +362,18 @@ def add_noise_to_file(file, no_ext_file, participant_dir, output_folder, partici
                    output_folder=f"{participant_dir}/{output_folder}", header=header)
 
 
-def main(func, config_file):
+def main(func, version, config_file, path=None):
     global config, config_path, config_filename
 
     start_time = time.time()
-    Utils.checkversion()
+    Utils.checkversion(version)
 
     # Set global variables
-    config_path = f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/maps/'
+    config_path = f'{Path(os.path.abspath(__file__)).parents[1]}/configuration_profiles/maps/'
     config_filename = config_file
 
     # Load config file
-    config = Utils.load_config(config_path, config_file)
+    config = Utils.load_config(config_path, config_file, path=path)
 
     if config.verbose:
         print('\n--------------------------------\n'

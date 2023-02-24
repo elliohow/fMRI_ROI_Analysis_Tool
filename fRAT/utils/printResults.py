@@ -1,12 +1,15 @@
-from utils import *
+import json
+
+from .utils import *
 
 
-def printResults():
+def printResults(config_name):
     print('--- Printing results ---')
     print('Select the results directory created by fRAT.')
     result_loc = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    config = Utils.load_config(result_loc, 'roi_analysis')
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[1]}/configuration_profiles/roi_analysis',
+                               config_name)
 
     if config.averaging_type == 'Session averaged':
         subfolder = 'Session_averaged_results'

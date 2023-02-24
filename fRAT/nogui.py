@@ -6,15 +6,16 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
-from utils import *
+from fRAT.utils import *
+from fRAT._version import __version__
 
 
-def fRAT(config_filename):
+def fRAT(config_filename, path):
     start_time = time.perf_counter()
-    Utils.checkversion()
+    Utils.checkversion(__version__)
 
     config_path = f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis/'
-    config, orig_path = load_config(config_filename)
+    config, orig_path = load_config(config_filename, path=path)
     config = argparser(config)
 
     # CompareOutputs.run(config)  # TODO THIS IS TEST CODE
@@ -48,12 +49,12 @@ def fRAT(config_filename):
         print(f"--- Completed in {elapsed_min} minutes {elapsed_sec} seconds ---\n\n")
 
 
-def load_config(config_filename):
+def load_config(config_filename, path=None):
     orig_path = Path(os.path.abspath(__file__)).parents[0]
 
     # Reload config file incase GUI has changed it
     config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
-                               config_filename)
+                               config_filename, path=path)
     config_check(config)
 
     return config, orig_path
@@ -64,7 +65,7 @@ def argparser(config):
     args = Utils.argparser()
 
     if args.make_table == 'true':
-        from fRAT_GUI import make_table
+        from __main__ import make_table
         make_table()
         sys.exit()
     else:
@@ -89,7 +90,7 @@ def plotting(config, config_path, config_filename, orig_path):
     Figures.make_figures(config, config_path, config_filename)
 
     # Create html report
-    html_report.main(str(orig_path))
+    create_html_report(str(orig_path))
     if config.verbose:
         print('Created html report.')
 

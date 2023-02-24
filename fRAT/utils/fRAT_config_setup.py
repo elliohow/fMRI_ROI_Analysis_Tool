@@ -58,17 +58,20 @@ General = {
     'Installation testing': {'type': 'subheading'},
 
     'run_tests': {'type': 'Button', 'Command': 'run_tests', 'Text': 'Run installation tests', 'Pass self': True,
-                  'Description': 'true or false. Run tests to verify fRAT output of current installation matches that '
-                                 'in the "example_data" folder.'},
+                  'Description': 'Requires example data set. The link can be found on the fRAT website.'},
+
+    'full_comparison': {'type': 'CheckButton', 'Recommended': 'false',
+                        'Description': 'Check no files are missing after running analysis.\nNOTE: Requires the full '
+                                       'example dataset to run the full comparison.'},
 
     'delete_test_folder': {'type': 'OptionMenu',
-                           'Recommended': 'Always',
+                           'Recommended': 'If completed without error',
                            'Options': ['Always', 'If completed without error', 'Never'],
                            'save_as': 'string',
                            'Description': 'Option to choose whether the folder generated while running tests is '
-                                          'deleted upon completion.'},
+                                          'deleted upon completion. This only applies when running the full comparison.'},
 
-    'verbose_errors': {'type': 'CheckButton', 'Recommended': 'false',
+    'verbose_errors': {'type': 'CheckButton', 'Recommended': 'true',
                        'Description': 'true or false. '
                                       'Print all missing files and differences found during testing to the terminal.'}
 }
@@ -360,8 +363,8 @@ Parsing = {
 Plotting = {
     'General plot settings': {'type': 'subheading'},
 
-    'plot_dpi': {'type': 'Entry', 'Recommended': 450, 'label': 'Figure DPI',
-                 'Description': 'Recommended value 450'},
+    'plot_dpi': {'type': 'Entry', 'Recommended': 600, 'label': 'Figure DPI',
+                 'Description': 'Recommended value 600'},
 
     'plot_font_size': {'type': 'Entry', 'Recommended': 40, 'label': 'Figure font size',
                        'Description': 'Recommended value 30'},

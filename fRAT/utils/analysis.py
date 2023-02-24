@@ -994,30 +994,33 @@ class MatchedBrain:
         ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
 
         matched_brains = dict()
-        for index, row in table.iterrows():
+        for row in table.itertuples(index=False):
             if ignore_column_loc and str(row[ignore_column_loc]).strip().lower() in (
                     'yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
                 continue
 
-            elif tuple(row[critical_column_locs]) not in matched_brains.keys():
-                matched_brains[tuple(row[critical_column_locs])] = dict()
+            else:
+                values = tuple(map(row.__getitem__, critical_column_locs))
+
+            if values not in matched_brains.keys():
+                matched_brains[values] = dict()
 
             participant, brain_file = cls.find_brain_object(row, participant_list)
 
-            if participant in matched_brains[tuple(row[critical_column_locs])]:
-                matched_brains[tuple(row[critical_column_locs])][participant].append(brain_file)
+            if participant in matched_brains[values]:
+                matched_brains[values][participant].append(brain_file)
             else:
-                matched_brains[tuple(row[critical_column_locs])][participant] = [brain_file]
+                matched_brains[values][participant] = [brain_file]
 
         return matched_brains
 
     @staticmethod
     def find_brain_object(row, participant_list):
         participant = next(participant for participant in participant_list
-                           if participant.participant_name == row['participant'])
+                           if participant.participant_name == row[0])
 
         brain = next(brain for brain in participant.brains
-                     if brain.no_ext_brain == row['file name'])
+                     if brain.no_ext_brain == row[1])
 
         return participant.participant_name, brain.no_ext_brain
 
@@ -1241,7 +1244,8 @@ class MatchedBrain:
         scale_stats = [
             (unscaled_stat, f"{file_path}/{file_name}.nii.gz"),
             (within_roi_stat, f"{file_path}/{file_name}_within_roi_scaled.nii.gz"),
-            (mixed_roi_stat, f"{file_path}/{file_name}_mixed_roi_scaled.nii.gz")
+            # TODO reimplement mixed_roi_stat
+            # (mixed_roi_stat, f"{file_path}/{file_name}_mixed_roi_scaled.nii.gz")
         ]
 
         for scale_stat in scale_stats:
@@ -1640,7 +1644,7 @@ def save_combined_results_file(directory, json_file_list):
                 combined_dataframe = current_dataframe
 
             else:
-                combined_dataframe = combined_dataframe.append(current_dataframe, sort=True)
+                combined_dataframe = pd.concat([combined_dataframe, current_dataframe], sort=True)
 
         if session == 0:
             session_suffix = ''

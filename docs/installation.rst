@@ -7,35 +7,25 @@ Installation
     :depth: 2
 
 .. note::
-    Make sure Python version |python_version| is used for installation.
+    Make sure Python version |python_version| is used for installation. Download links can be found here:
+    https://www.python.org/downloads/
 
     Installation as well as opening fRAT for the first time may take a while.
 
-**1. Install pipx. This creates an isolated environment for the fRAT application and will allow you to run it from
+**1. Install brew**::
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+**2. Install pipx. This creates an isolated environment for the fRAT application and will allow you to run it from
 anywhere**::
 
     brew install pipx
     pipx ensurepath
 
-**2. Use pipx to install fRAT**::
+**3. Use pipx to install fRAT**::
 
-    pipx install frat-brain --python /Library/Frameworks/Python.framework/Versions/3.10/bin/python3.10
+    pipx install frat-brain --python $(which python3.10)
 
-.. note::
-    If you get a file not found error using the above, the link to the Python executable is not correct for your system.
-
-    First, use the terminal to start a python session with Python version you want to use to install fRAT::
-
-        python3.10
-
-    And then print the path to the Python executable using::
-
-        import sys
-        print(sys.executable)
-
-    This path should then be used inplace of the one above.
-
-**3. fRAT can now be ran from the terminal from anywhere by using**::
+**4. fRAT can now be ran from the terminal from anywhere by using**::
 
     fRAT
 
@@ -56,12 +46,6 @@ extraction performance when using optiBET.
 
 Checking installation
 =====================
-.. note::
-    Two example datasets are provided for use with fRAT. The full example dataset is much larger than the example dataset,
-    as the example subject data folder only contains subject data and not the result of an ROI analysis. The example subject
-    data can be used to test fRAT runs correctly, however using the test framework built into fRAT, the full example dataset
-    can be used to determine whether fRAT is producing the required outputs.
-
 **1. Create the directory to save the example data folder**::
 
     mkdir ~/Documents/fRAT
@@ -70,11 +54,16 @@ This allows fRAT to find the example data. This folder will also be used to save
 
 **2. Download the example dataset from** `here <https://osf.io/pbm3d/>`_.
 
-If you want to run the full comparison, download the "full_example_data", otherwise download the "subject_example_data".
+The "subject_example_data" folder contains subject data and the tSNR maps calculated by fRAT, whereas the
+"HarvardOxford-Cortical_ROI_report" folder contains the output of fRAT's ROI analysis.
+If you only want to test fRAT runs correctly and do not want to check for missing files after testing the
+installation, download only the "subject_example_data". If you wish to check for missing files after running the ROI
+analysis, download both the "subject_example_data" and the "HarvardOxford-Cortical_ROI_report",
 
 **3. Extract the chosen folder and place it in the newly created fRAT folder.**
 
-To check that fRAT and its dependencies are working correctly.
+If running the full comparison, also place the "HarvardOxford-Cortical_ROI_report" in the "subject_example_data" folder.
+
 
 **4. Click the** :guilabel:`General` **button in the** ``fRAT`` **section of the GUI and then click the** :guilabel:`Run installation tests`
 **button.**

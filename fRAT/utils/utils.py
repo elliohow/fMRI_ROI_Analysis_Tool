@@ -14,7 +14,7 @@ import nibabel as nib
 import pandas as pd
 import toml
 
-from utils.fRAT_config_setup import *
+from fRAT.utils.fRAT_config_setup import *
 
 config = None
 
@@ -60,6 +60,10 @@ class Utils:
 
         for category in arg_categories:
             for arg in eval(category):
+                if eval(category)[arg]['type'] == 'Button':
+                    # Skip button as they don't need help text
+                    continue
+
                 try:
                     help_text = eval(category)[arg]["Description"].replace("%", "%%")
                 except KeyError:
@@ -260,12 +264,12 @@ class Utils:
         if not baseline_column_loc:
             raise NameError(f'No baseline column found in {config.parameter_file}.')
 
-        critical_column_locs = set()
+        critical_column_locs = []
         for key in config.parameter_dict:
             column_loc = next((counter for counter, column in enumerate(table.columns) if key.lower() == column), False)
 
             if column_loc:
-                critical_column_locs.add(column_loc)
+                critical_column_locs.append(column_loc)
             else:
                 raise Exception(f'Key "{key}" not found in {config.parameter_file}. Check the Critical Parameters '
                                 f'option in the Parsing menu (parameter_dict1 if not using the GUI) correctly match '
@@ -336,7 +340,7 @@ class Utils:
         return pool
 
     @classmethod
-    def load_config(cls, config_path, filename, save=True):
+    def load_config(cls, config_path, filename, save=True, path=None):
         with open(f'{config_path}/{filename}', 'r') as tomlfile:
             try:
                 parse = tomlfile.readlines()
@@ -384,8 +388,8 @@ class Utils:
 
                 if filename == 'test_config.toml':
                     # Set test config settings so files are retrieved from and outputted to the correct place
-                    config.brain_file_loc = f'{Path(os.path.abspath(__file__)).parents[2]}/example_data'
-                    config.base_folder = f'{Path(os.path.abspath(__file__)).parents[2]}/example_data'
+                    config.brain_file_loc = path
+                    config.base_folder = path
                     config.output_folder = 'test_ROI_report'
                     config.output_folder_name = 'test_maps'
                     config.stat_map_folder = 'test_maps'
@@ -434,30 +438,30 @@ class Utils:
     @staticmethod
     def find_participant_dirs(directory):
         # Searches for folders that start with e.g. sub-01
-        participant_path = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+$", direc)]
-        participant_names = [participant.split('/')[-1] for participant in participant_path]
+        participant_paths = [direc for direc in glob(f"{directory}/*") if re.search("sub-[0-9]+$", direc)]
+        participant_names = [participant.split('/')[-1] for participant in participant_paths]
 
-        if len(participant_path) == 0:
+        if len(participant_paths) == 0:
             raise FileNotFoundError('Participant directories not found.\n'
                                     'Make sure participant directories are labelled e.g. sub-01 and the selected '
                                     'directory contains all participant directories.')
         elif config.verbose:
-            print(f'Found {len(participant_path)} participant folders.')
+            print(f'Found {len(participant_paths)} participant folders.')
 
-        return participant_path, participant_names
+        return participant_paths, participant_names
 
     @staticmethod
-    def checkversion():
+    def checkversion(frat_version):
         # Check Python version:
         expect_major = 3
-        expect_minor = 8
+        expect_minor = 10
         expect_rev = 0
 
-        print(f"\nfRAT is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}")
-        if sys.version_info[:3] < (expect_major, expect_minor, expect_rev):
+        print(f"\nfRAT {frat_version} is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}.\n")
+        if sys.version_info[:3] != (expect_major, expect_minor, expect_rev):
             current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
-            print(f"INFO: Python version {current_version} is untested. Consider upgrading to version "
-                  f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running the fRAT.")
+            print(f"INFO: Python version {current_version} is untested. Consider changing to version "
+                  f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running fRAT.")
 
     @staticmethod
     def chdir_to_output_directory(current_step, config):
@@ -465,7 +469,7 @@ class Utils:
             return  # Will already be in the correct directory
 
         elif config.run_analysis:
-            from utils.analysis import Environment_Setup
+            from .analysis import Environment_Setup
             json_directory = f'{os.getcwd()}/{Environment_Setup.save_location}'
 
             os.chdir(json_directory)

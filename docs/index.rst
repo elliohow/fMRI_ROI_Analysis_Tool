@@ -9,11 +9,19 @@ fRAT - fMRI ROI Analysis Tool
 
 .. image:: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
   :target: http://makeapullrequest.com
-  :alt: PRs Welcome!
+  :alt: PRs welcome!
 
 .. image:: https://img.shields.io/hexpm/l/plug?style=flat-square
   :target: https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE
-  :alt: License information
+  :alt: License
+
+.. image:: https://img.shields.io/github/v/release/elliohow/fmri_roi_analysis_tool?style=flat-square
+    :target: https://github.com/elliohow/fmri_roi_analysis_tool/releases/latest
+    :alt: Github release (latest by date)
+
+.. image:: https://img.shields.io/github/issues/elliohow/fmri_roi_analysis_tool?style=flat-square
+    :target: https://github.com/elliohow/fmri_roi_analysis_tool/issues
+    :alt: Github issues
 
 fRAT is an open-source python-based GUI application used to simplify the processing and analysis of fMRI data by
 converting voxelwise maps into ROI-wise maps.

@@ -13,7 +13,7 @@ from dash_table.Format import Format, Scheme
 from flask import Flask
 from gevent.pywsgi import WSGIServer
 
-from utils import *
+from .utils import *
 
 server_address = ("localhost", 8050)
 server = None
@@ -52,7 +52,7 @@ def df_setup(config_file):
     print('Select the results directory created by fRAT.')
     folder = Utils.file_browser(title='Select the directory output by the fRAT')
 
-    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/', config_file)
+    config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[1]}/configuration_profiles/', config_file)
 
     if config.averaging_type == 'Session averaged':
         subfolder = 'Session_averaged_results'
