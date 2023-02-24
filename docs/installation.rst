@@ -13,6 +13,7 @@ Installation
     Installation as well as opening fRAT for the first time may take a while.
 
 **1. Install brew**::
+
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 **2. Install pipx. This creates an isolated environment for the fRAT application and will allow you to run it from
