@@ -13,13 +13,15 @@ authors:
     corresponding: true
   - name: Susan Francis
     orcid: 0000-0003-0903-7507
-    affiliation: 1
+    affiliation: 2
   - name: Denis Schluppeck
     orcid: 0000-0002-0634-7713
     affiliation: 1
 affiliations:
- - name: University of Nottingham, UK
+ - name: School of Psychology, University of Nottingham, Nottingham, United Kingdom
    index: 1
+ - name: Sir Peter Mansfield Imaging Centre, University of Nottingham, Nottingham, United Kingdom
+   index: 2
 date: 24 February 2023
 bibliography: paper.bib
 ---
@@ -31,7 +33,7 @@ analyses of fMRI metrics.
 
 # Statement of need
 
-`fRAT` is an open-source, python-based analysis application, used to simplify the processing and analysis of fMRI data by converting voxelwise maps into ROI-wise maps (\autoref{fig:brain_images}). The graphical user interface of `fRAT` is designed to provide a user-friendly way to run and customise the settings of `fRAT` (\autoref{fig:GUI}). `fRAT` relies heavily on the python library `Nipype` to access the analysis tools provided by `FSL` [@jenkinsonFSL2012]. [Documentation](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/) is available to provide information on installation and usage of `fRAT`.
+`fRAT` is an open source, python-based analysis application, used to simplify the processing and analysis of fMRI data by converting voxelwise maps into ROI-wise maps (\autoref{fig:brain_images}). The graphical user interface of `fRAT` is designed to provide a user-friendly way to run and customise the settings of `fRAT` (\autoref{fig:GUI}). `fRAT` relies heavily on the python library `Nipype` to access the analysis tools provided by `FSL` [@jenkinsonFSL2012]. [Documentation](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/) is available to provide information on installation and usage of `fRAT`.
 
 The ROI analysis requires anatomical, functional and voxelwise statistical maps in order to run (\autoref{fig:Pipeline}). One pre-requisite is that anatomical volumes should be skull stripped (using FSL's BET [@smithFastRobustAutomated2002], or preferably, using optiBET [@lutkenhoffOptimizedBrainExtraction2014]). Additionally, the voxelwise maps of data quality metrics (e.g. tSNR) can be computed with `fRAT` itself. As tSNR provides a rough estimate of activation detection power in fMRI studies [@murphyHowLongScan2007; @welvaertDefinitionSignalToNoiseRatio2013], calculating this metric for multiple ROIs may be particularly useful for planning studies aimed at specific brain regions. However, as `fRAT` is designed to be used flexibly, any other voxelwise statistical map can be used as an input to the ROI analysis. `fRAT` can also be used to summarize data quality for each region across participants, and is therefore also useful for larger, multi-participant datasets. `fRAT` also includes statistics and visualisation options that allow for quantitative comparisons of the effect of different fMRI sequences or hardware on data quality. This may make it particularly useful for comparisons across datasets obtained at different imaging sites.
 
