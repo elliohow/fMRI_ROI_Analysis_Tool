@@ -63,6 +63,7 @@ Licensing
 ---------
 This project uses the Apache 2.0 license. For the text version of the license see
 `here <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE>`_.
+Prior to version 1.0.0, this project used an MIT license.
 
 .. toctree::
     :caption: Contents
