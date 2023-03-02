@@ -48,6 +48,23 @@ to do this can also be found on the installation instructions page.
 
 To learn how to run an ROI analysis, follow this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
+Reporting bugs
+--------------
+To report a bug, please go to `fRAT's Issues <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues/new>`_.
+
+For other questions, issues or discussion please go to `fRAT's Discussions <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/discussions>`_.
+
+Contributing with development
+-----------------------------
+
+The `Fork & Pull Request Workflow <https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`_ is used for contributing. Below is a summary of the necessary steps for this workflow:
+
+1. Fork this repository.
+2. Clone the repository at your machine.
+3. Add your changes in a branch named after the feature (`lower-case-with-hyphens`).
+4. Make a pull request to `fRAT`, targeting the `master` branch.
+
+
 GUI images
 ----------
 .. image:: images/GUI.png
