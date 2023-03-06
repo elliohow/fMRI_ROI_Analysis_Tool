@@ -175,9 +175,11 @@ Analysis = {
     'Outlier detection': {'type': 'subheading'},
 
     'noise_cutoff': {'type': 'CheckButton', 'Recommended': 'true',
-                     'Description': 'true or false. Calculate a noise cutoff based on voxels not assigned an '
-                                    'ROI or that have been excluded from analysis. Voxels with values of 0 are '
-                                    'not included when calculating the noise cutoff, Recommended: true.'},
+                     'Description': 'true or false. Calculate a minimum cutoff value to be included in an ROI,'
+                                    'based on voxels not assigned an ROI or that have been excluded from analysis. '
+                                    'Voxels with values of 0 are not included when calculating the noise cutoff. \n'
+                                    'Useful for statistical maps where extracranial voxels are likely to have much '
+                                    'lower values than those inside the brain such as tSNR maps. Recommended: true.'},
 
     'gaussian_outlier_detection': {'type': 'CheckButton', 'Recommended': 'true',
                                    'label': 'Gaussian outlier (GauO) detection',
@@ -334,10 +336,12 @@ Parsing = {
                         'status': 'important',
                         'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
                         'Description': 'Comma-separated list of independent variables. '
-                                       '\n As these critical parameters will also be used when labelling the rows and '
+                                       '\nAs these critical parameters will also be used when labelling the rows and '
                                        'columns of both the violin plots and histograms, they should be written as '
                                        'you want them to appear in these figures.'
-                                       '\nNote: This field can also be blank.'},
+                                       '\nNote: Leave blank if you do not want to compare between different conditions, '
+                                       'for example, if you wish to see the overall tSNR for each region across the '
+                                       'entire dataset.'},
 
     'parameter_dict2': {'type': 'Entry',
                         'status': 'important',

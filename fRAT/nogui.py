@@ -10,7 +10,7 @@ from fRAT.utils import *
 from fRAT._version import __version__
 
 
-def fRAT(config_filename, path):
+def fRAT(config_filename, path=None):
     start_time = time.perf_counter()
     Utils.checkversion(__version__)
 

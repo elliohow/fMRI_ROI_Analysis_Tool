@@ -905,9 +905,6 @@ def find_example_dataset():
 def check_stale_state():
     current_critical_params = Parsing['parameter_dict1']['Current'].split(', ')
 
-    if current_critical_params == ['']:
-        raise Exception('No critical parameters set in Parsing options.')
-
     dynamic_widgets = itemgetter('table_cols', 'table_rows',
                                  'brain_table_cols', 'brain_table_rows',
                                  'single_roi_fig_colour', 'single_roi_fig_x_axis',
@@ -1116,7 +1113,9 @@ def make_table():
     df.to_csv(f'{base_directory}/paramValues.csv', index=False)
 
     print(f"\nparamValues.csv saved in {base_directory}."
-          f"\n\nMake sure values in paramValues.csv are correct before continuing analysis."
+          f"\n\nMake sure values in paramValues.csv are correct before continuing analysis. Also make sure anatomy "
+          f"scans were not present when setting up parameters, or these lines will need to be removed from "
+          f"paramValues.csv."
           f"\nIf the csv file contains unexpected parameters, update the parsing options in the GUI and rerun setup "
           f"parameters, or manually update them.")
 

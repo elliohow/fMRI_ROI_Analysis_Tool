@@ -991,7 +991,13 @@ class MatchedBrain:
     @classmethod
     def find_shared_params(cls, participant_list):
         table, _ = Utils.load_paramValues_file()
-        ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
+
+        if len(table.columns) == 4:
+            # Length will be equal to 4 if no parameters have been given
+            ignore_column_loc = 2
+            critical_column_locs = None
+        else:
+            ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
 
         matched_brains = dict()
         for row in table.itertuples(index=False):
@@ -999,8 +1005,11 @@ class MatchedBrain:
                     'yes', 'y', 'true'):  # If column is set to ignore then do not include it in analysis
                 continue
 
-            else:
+            elif critical_column_locs:
                 values = tuple(map(row.__getitem__, critical_column_locs))
+
+            else:
+                values = tuple(['results'])
 
             if values not in matched_brains.keys():
                 matched_brains[values] = dict()
@@ -1016,11 +1025,19 @@ class MatchedBrain:
 
     @staticmethod
     def find_brain_object(row, participant_list):
-        participant = next(participant for participant in participant_list
-                           if participant.participant_name == row[0])
+        participant = next((participant for participant in participant_list if participant.participant_name == row[0]), None)
 
-        brain = next(brain for brain in participant.brains
-                     if brain.no_ext_brain == row[1])
+        if not participant:
+            raise FileNotFoundError(f'Subject {row[0]} exists in {config.parameter_file} but no longer '
+                                    f'exists in input folder "{config.input_folder_name}".\nRemove these rows from the '
+                                    f'{config.parameter_file} file, or re-add them into the input folder.')
+
+        brain = next((brain for brain in participant.brains if brain.no_ext_brain == row[1]), None)
+
+        if not brain:
+            raise FileNotFoundError(f'{row[1]} for subject {row[0]} exists in {config.parameter_file} but no longer '
+                                    f'exists in input folder "{config.input_folder_name}".\nRemove these rows from the '
+                                    f'{config.parameter_file} file, or re-add them into the input folder.')
 
         return participant.participant_name, brain.no_ext_brain
 

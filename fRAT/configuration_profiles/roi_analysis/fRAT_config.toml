@@ -1,5 +1,5 @@
 # Version Info
-version = '1.0.1'
+version = '1.1.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
@@ -35,8 +35,8 @@ conf_level_number = '95%, 1.96'                                                 
 binary_params = ['']                                                              # Add parameters here which will either be on or off.
 
 ## Outlier detection
-noise_cutoff = true                                                               # true or false. Calculate a noise cutoff based on voxels not assigned an ROI or that have been excluded from analysis. Voxels with values of 0 are not included when calculating the noise cutoff, Recommended: true.
-gaussian_outlier_detection = true                                                 # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
+noise_cutoff = false                                                              # true or false. Calculate a minimum cutoff value to be included in an ROI,based on voxels not assigned an ROI or that have been excluded from analysis. Voxels with values of 0 are not included when calculating the noise cutoff.  Useful for statistical maps where extracranial voxels are likely to have much lower values than those inside the brain such as tSNR maps. Recommended: true.
+gaussian_outlier_detection = false                                                # true or false. Fit a gaussian to the data to determine outliers using Elliptic Envelope. Recommended: true.
 gaussian_outlier_contamination = 0.1                                              # Percent of expected outliers in dataset Recommended: 0.1
 gaussian_outlier_location = 'below gaussian'                                      # Data to remove (if gaussian outlier detection is true). For example: if set to below gaussian, data below the gaussian will be removed. Recommended: below gaussian. Options: ['below gaussian', 'above gaussian', 'both'].
 
@@ -66,7 +66,7 @@ interaction_effects = false                                                     
 max_below_thresh = 0                                                              # Recommended value 0.  For a given ROI, this value sets the maximum percent of sessions that can be excluded (due to having insufficient voxel count) before the ROI is not included in r2 vs voxel count statistics. With the default value of 100(%) an ROI will not be included in this calculation if any sessions have been excluded.
 
 # Parsing
-parameter_dict1 = ['']                                                            # Comma-separated list of independent variables.   As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: This field can also be blank.
+parameter_dict1 = ['']                                                            # Comma-separated list of independent variables.  As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
 parameter_dict2 = ['']                                                            # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
 make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
@@ -90,10 +90,10 @@ brain_fig_value_min = 0                                                         
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = -1                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 19                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'CHANGE TO DESIRED LABEL'                                # Label for columns.
-brain_table_row_labels = 'CHANGE TO DESIRED LABEL'                                # Label for rows.
-brain_table_cols = 'DEFAULT'                                                      # 
-brain_table_rows = 'DEFAULT'                                                      # 
+brain_table_col_labels = ''                                                       # Label for columns.
+brain_table_row_labels = ''                                                       # Label for rows.
+brain_table_cols = ''                                                             # 
+brain_table_rows = ''                                                             # 
 
 ## Violin plot
 table_x_label = 'tSNR mean'                                                       # 
@@ -102,15 +102,15 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'DEFAULT'                                                            # 
-table_rows = 'DEFAULT'                                                            # 
+table_cols = ''                                                                   # 
+table_rows = ''                                                                   # 
 
 ## Regional bar chart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'DEFAULT'                                                 # 
-single_roi_fig_colour = 'DEFAULT'                                                 # 
+single_roi_fig_x_axis = ''                                                        # 
+single_roi_fig_colour = ''                                                        # 
 
 ## Regional histogram
 histogram_binwidth = 2                                                            # 
@@ -120,7 +120,7 @@ histogram_stat_line_size = 1.5                                                  
 histogram_show_mean = true                                                        # true or false.
 histogram_show_median = true                                                      # true or false.
 histogram_show_legend = true                                                      # true or false.
-histogram_fig_x_facet = 'DEFAULT'                                                 # 
-histogram_fig_y_facet = 'DEFAULT'                                                 # 
+histogram_fig_x_facet = ''                                                        # 
+histogram_fig_y_facet = ''                                                        # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 
