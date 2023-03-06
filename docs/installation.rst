@@ -21,28 +21,28 @@ anywhere.
 On MacOS
 --------
 
-**First install brew**::
+First install brew::
 
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-**Then use brew to install pipx**::
+Then use brew to install pipx::
 
     brew install pipx
     pipx ensurepath
 
-**pipx can then be upgraded with**::
+pipx can then be upgraded with::
 
     brew update && brew upgrade pipx
 
 On Linux
 --------
 
-**Install pipx using pip**::
+Install pipx using pip::
 
     python3 -m pip install --user pipx
     python3 -m pipx ensurepath
 
-**pipx can then be upgraded with**::
+pipx can then be upgraded with::
 
     python3 -m pip install --user -U pipx
 
@@ -52,11 +52,11 @@ Install fRAT using pipx
 
     pipx install frat-brain --python $(which python3.10)
 
-**fRAT can now be ran from the terminal from anywhere by using**::
+fRAT can now be ran from the terminal from anywhere by using::
 
     fRAT
 
-**fRAT can also be upgraded using**::
+fRAT can also be upgraded using::
 
     pipx upgrade frat-brain
 
