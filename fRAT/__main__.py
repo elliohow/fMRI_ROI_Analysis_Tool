@@ -1115,17 +1115,19 @@ def make_table():
 
     df.to_csv(f'{base_directory}/paramValues.csv', index=False)
 
-    print(f"\nparamValues.csv saved in {base_directory}.\n\nInput parameter values in paramValues.csv to continue "
-          f"analysis."
-          f"\nIf the csv file contains unexpected parameters, update the parsing options in the GUI or parameter_dict2 "
-          f"in fRAT_config.toml.")
+    print(f"\nparamValues.csv saved in {base_directory}."
+          f"\n\nMake sure values in paramValues.csv are correct before continuing analysis."
+          f"\nIf the csv file contains unexpected parameters, update the parsing options in the GUI and rerun setup "
+          f"parameters, or manually update them.")
 
     if config.make_folder_structure:
         print(f"\nSet up folder structure and moved fMRI volumes into {config.parsing_folder} directory.")
 
-    if config.automatically_create_statistics_options_file:
+    if config.automatically_create_statistics_options_file and config.parameter_dict1 != ['']:
         create_statistics_file(directory=base_directory)
 
+    elif config.automatically_create_statistics_options_file and config.parameter_dict1 == ['']:
+        print(f"\nstatisticsOptions.csv not saved, no independent variables given in parsing menu.")
 
 def create_statistics_file(directory=''):
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
