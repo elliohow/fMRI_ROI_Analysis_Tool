@@ -54,6 +54,7 @@ Figures
 * Add option to add number of voxels to histogram plots
 * Give one IV barcharts colour
 * Implement mixed-roi scaled brain figures
+* Add option to underlay MNI template under each brain grid image
 * (Potential) Interactive plots
 
 Statistics

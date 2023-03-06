@@ -12,25 +12,51 @@ Installation
 
     Installation as well as opening fRAT for the first time may take a while.
 
-**1. Install brew**::
+Install pipx
+============
+
+This creates an isolated environment for the fRAT application and will allow you to run it from
+anywhere.
+
+On MacOS
+--------
+
+**First install brew**::
 
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-**2. Install pipx. This creates an isolated environment for the fRAT application and will allow you to run it from
-anywhere**::
+**Then use brew to install pipx**::
 
     brew install pipx
     pipx ensurepath
 
-**3. Use pipx to install fRAT**::
+**pipx can then be upgraded with**::
+
+    brew update && brew upgrade pipx
+
+On Linux
+--------
+
+**Install pipx using pip**::
+
+    python3 -m pip install --user pipx
+    python3 -m pipx ensurepath
+
+**pipx can then be upgraded with**::
+
+    python3 -m pip install --user -U pipx
+
+Install fRAT using pipx
+=======================
+::
 
     pipx install frat-brain --python $(which python3.10)
 
-**4. fRAT can now be ran from the terminal from anywhere by using**::
+**fRAT can now be ran from the terminal from anywhere by using**::
 
     fRAT
 
-fRAT can also be upgraded using::
+**fRAT can also be upgraded using**::
 
     pipx upgrade frat-brain
 
