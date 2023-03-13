@@ -1,14 +1,6 @@
 import toml
-
-try:
-    import Tkinter as tk
-except ImportError:
-    import tkinter as tk
-
-try:
-    import ttk
-except ImportError:
-    import tkinter.ttk as ttk
+import tkinter as tk
+import tkinter.ttk as ttk
 
 import ast
 import sys
