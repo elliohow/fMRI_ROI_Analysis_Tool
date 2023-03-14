@@ -31,6 +31,7 @@ GUI
 * Separate fRAT into 3 components (main analysis, creation of statmaps such as tSNR, general fMRI tools)
 * Ability to make saveable analysis profiles to quickly swap between settings
     - Need to also add ability to keep toml files up to date if any new options have been added/removed
+* Increase linux compatibility
 
 Analysis
 ========

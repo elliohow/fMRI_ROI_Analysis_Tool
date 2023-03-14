@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "frat-brain"
-version = "1.1.0"
+version = "1.1.1a1"
 description = "Application for ROI fMRI data analysis."
 authors = ["Elliot Howley <elliohow@hotmail.com>"]
 readme = "README.md"
@@ -12,7 +12,7 @@ packages = [{include = "fRAT"}]
 fRAT = 'fRAT.__main__:start_gui'
 
 [tool.poetry.dependencies]
-python = "3.10"
+python = "~3.10"
 altgraph = "0.17.2"
 bootstrapped = "0.0.2"
 brotli = "1.0.9"

@@ -192,8 +192,13 @@ def prepare_statmap_files(file, no_ext_file, output_folder, participant):
         outliers.extend(outlier_timepoints)
 
     if config.motion_correction:
-        fsl.MCFLIRT(in_file=file, out_file=f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz').run()
-        file = f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz'
+        output = f'{output_folder}/{no_ext_file}_motion_corrected.nii.gz'
+
+        fsl.MCFLIRT(in_file=file, out_file=output).run()
+        file = output
+
+        data, header = Utils.load_brain(file)
+        file = save_to_cleaned_folder(data, header, no_ext_file, participant, 'Motion corrected data')
 
     if config.spatial_smoothing:
         fsl.SUSAN(in_file=file, fwhm=config.smoothing_fwhm, brightness_threshold=config.smoothing_brightness_threshold,
@@ -213,8 +218,8 @@ def remove_motion_outliers(file, no_ext_file, output_folder, participant):
     outlier_values = f'{output_folder}/{no_ext_file}_metrics.txt'
 
     fsl.MotionOutliers(in_file=file, out_file=outlier_file,
-                   out_metric_plot=outlier_plot,
-                   out_metric_values=outlier_values).run()
+                       out_metric_plot=outlier_plot,
+                       out_metric_values=outlier_values).run()
 
     with open(f'{output_folder}/{no_ext_file}_outliers.txt') as f:
         lines = f.readlines()
