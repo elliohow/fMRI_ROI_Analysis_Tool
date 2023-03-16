@@ -831,20 +831,20 @@ def run_tests(GUI):
     GUI.change_frame('General')
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
-    path_to_example_data = find_example_dataset()
+    path_to_example_data_input, path_to_example_data_output = find_example_dataset()
 
     # Create tSNR maps and run ROI analysis
-    statmap_calc('Temporal SNR', __version__, 'test_config.toml', path_to_example_data)
-    fRAT('test_config.toml', path_to_example_data)
+    statmap_calc('Temporal SNR', __version__, 'test_config.toml', path_to_example_data_input)
+    fRAT('test_config.toml', path_to_example_data_input)
 
     # Run tests to check if output of fRAT matches the example data
     if General['full_comparison']['Current'] == 'true':
-        roi_output_test = TestDifferences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
-                                            f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
+        roi_output_test = TestDifferences([f'{path_to_example_data_input}/sub-02/statmaps/test_maps',
+                                            f'{path_to_example_data_input}/sub-02/statmaps/temporalSNR_report'],
                                            General['verbose_errors']['Current'])
 
-        voxelwise_map_test = TestDifferences([f'{path_to_example_data}/test_ROI_report',
-                                              f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
+        voxelwise_map_test = TestDifferences([f'{path_to_example_data_input}/test_ROI_report',
+                                              f'{path_to_example_data_input}/{path_to_example_data_output}'],
                                              General['verbose_errors']['Current'])
 
         # Delete files
@@ -852,10 +852,10 @@ def run_tests(GUI):
                 or (General['delete_test_folder']['Current'] == 'If completed without error'
                     and voxelwise_map_test.status == 'No errors'
                     and roi_output_test.status == 'No errors'):
-            shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
-            shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
-            shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
-            shutil.rmtree(f'{path_to_example_data}/sub-03/statmaps/test_maps')
+            shutil.rmtree(f'{path_to_example_data_input}/test_ROI_report')
+            shutil.rmtree(f'{path_to_example_data_input}/sub-01/statmaps/test_maps')
+            shutil.rmtree(f'{path_to_example_data_input}/sub-02/statmaps/test_maps')
+            shutil.rmtree(f'{path_to_example_data_input}/sub-03/statmaps/test_maps')
 
         if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
             print("\n--- End of installation testing, no errors found ---")
@@ -891,7 +891,7 @@ def find_example_dataset():
         raise FileNotFoundError('Full comparison selected, but HarvardOxford-Cortical_ROI_report is not present in '
                                 '"subject_example_data" folder. Download it from https://osf.io/pbm3d/.')
 
-    return subject_data_folders[0]
+    return subject_data_folders[0], output_data_folders[0]
 
 
 def check_stale_state():
