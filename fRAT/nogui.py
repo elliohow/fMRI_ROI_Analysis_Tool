@@ -124,10 +124,6 @@ def analysis(config, config_path, config_filename):
         elif config.file_cleanup == 'delete' and not participant.all_files_ignored:
             shutil.rmtree(f"{participant.save_location}/motion_correction_files")
 
-    if config.multicore_processing:
-        Utils.join_processing_pool(pool, restart=False)
-        pool = Utils.start_processing_pool(restart=True)
-
     matched_brains = run_pooled_analysis(brain_list, matched_brains, config, pool)
 
     calculate_cost_function_and_displacement_values(participant_list, brain_list, config, pool)
@@ -153,7 +149,10 @@ def run_pooled_analysis(brain_list, matched_brains, config, pool):
                 pass
 
     # Save each raw and overall results for each parameter combination
-    iterable = zip(matched_brains, itertools.repeat("compile_results"), itertools.repeat(config))
+    iterable = zip(matched_brains,
+                   itertools.repeat("compile_results"),
+                   itertools.repeat(os.getcwd()),
+                   itertools.repeat(config))
 
     if config.multicore_processing:
         matched_brains = pool.starmap(Utils.instance_method_handler, iterable)

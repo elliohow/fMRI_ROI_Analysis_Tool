@@ -1,5 +1,5 @@
 # Version Info
-version = '1.1.0'
+version = '1.1.1'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.

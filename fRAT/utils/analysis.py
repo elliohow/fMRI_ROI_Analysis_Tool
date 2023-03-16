@@ -135,6 +135,7 @@ class Environment_Setup:
 
         try:
             os.chdir(cls.base_directory)
+
         except FileNotFoundError:
             raise FileNotFoundError('Chosen base directory of subjects is not a valid directory path.')
 
@@ -974,7 +975,11 @@ class MatchedBrain:
 
         cls.label_array = Environment_Setup.label_array
         cls.save_location = f"{Environment_Setup.save_location}Overall/"
+
         Utils.check_and_make_dir(cls.save_location)
+        Utils.check_and_make_dir(f"{cls.save_location}/Summarised_results/")
+        Utils.check_and_make_dir(f"{cls.save_location}/Summarised_results/Session_averaged_results")
+        Utils.check_and_make_dir(f"{cls.save_location}/Summarised_results/Participant_averaged_results")
 
         matched_brain_list = set()
         for param_combination in matched_brains:
@@ -1041,16 +1046,17 @@ class MatchedBrain:
 
         return participant.participant_name, brain.no_ext_brain
 
-    def compile_results(self, config):
+    def compile_results(self, path, config):
         if config.verbose:
             print(f'Combining results for parameter combination: {self.parameters}')
+
+        self.save_location = f"{path}/{self.save_location}"
 
         # Combine raw results
         self.ungrouped_raw_results = np.concatenate(self.ungrouped_raw_results, axis=1)
 
         self.create_array_to_calculate_excluded_voxels()
 
-        Utils.check_and_make_dir(f"{self.save_location}/Summarised_results/")
         self.calculate_and_save_session_averaged_results()
         self.calculate_and_save_participant_averaged_results()
 
@@ -1071,9 +1077,6 @@ class MatchedBrain:
         self.excluded_voxels = np.sum(self.excluded_voxels, axis=0)
 
     def calculate_and_save_participant_averaged_results(self):
-        path = f"{self.save_location}/Summarised_results/Participant_averaged_results"
-        Utils.check_and_make_dir(path)
-
         for participant in self.participant_grouped_summarised_results:
             for session in self.participant_grouped_summarised_results[participant]:
                 for row in session:
@@ -1122,7 +1125,7 @@ class MatchedBrain:
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
-        with open(f"{path}/{self.parameters}.json", 'w') as file:
+        with open(f"{self.save_location}/Summarised_results/Participant_averaged_results/{self.parameters}.json", 'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
 
         self.participant_averaged_results = results_df.to_numpy()
@@ -1130,9 +1133,6 @@ class MatchedBrain:
         return results_df
 
     def calculate_and_save_session_averaged_results(self):
-        path = f"{self.save_location}/Summarised_results/Session_averaged_results"
-        Utils.check_and_make_dir(path)
-
         nan_data = copy.deepcopy(self.ungrouped_summarised_results)
 
         for session in nan_data:
@@ -1172,7 +1172,7 @@ class MatchedBrain:
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
-        with open(f"{path}/{self.parameters}.json", 'w') as file:
+        with open(f"{self.save_location}/Summarised_results/Session_averaged_results/{self.parameters}.json", 'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
 
         self.session_averaged_results = results_df.to_numpy()
@@ -1628,6 +1628,7 @@ def save_averaged_results_file(directory, json_file_list):
 
     with open(f"{directory}/Averaged_results/overall.json", 'w') as file:
         json.dump(averaged_dataframe.to_dict(), file, indent=2)
+
 
 def save_combined_results_file(directory, json_file_list):
     session_dict = split_jsons_by_session(json_file_list)

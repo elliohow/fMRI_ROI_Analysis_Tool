@@ -34,10 +34,20 @@ pipx can then be upgraded with::
 
     brew update && brew upgrade pipx
 
-On Linux
---------
+On Linux and WSL2
+-----------------
 
-Install pipx using pip::
+Install python 3.10::
+
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update
+    sudo apt-get install python3.10
+
+Install necessary packages::
+
+    sudo apt install python3-pip python3-venv python3.10-distutils python3.10-tk
+
+Install pipx::
 
     python3 -m pip install --user pipx
     python3 -m pipx ensurepath
@@ -45,6 +55,14 @@ Install pipx using pip::
 pipx can then be upgraded with::
 
     python3 -m pip install --user -U pipx
+
+.. note::
+    For WSL2 users, if the example data files are downloaded to windows before being copied over to linux, redundant
+    "zone identifier" files may have been created in the example data folders and you may not have write access to this
+    folder. To change this::
+
+        sudo find /home/<WSLUserName>/Documents/fRAT/ -exec chmod a+rwx {} ";"
+        find /home/<WSLUserName>/Documents/fRAT/ -type f -name "*:Zone.Identifier" -exec rm -rf {} +
 
 Install fRAT using pipx
 =======================

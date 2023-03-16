@@ -62,3 +62,7 @@ Statistics
 ==========
 * Add ability to compare if linear mixed model coefficients significantly vary between regions
 * Add figures and testing for linear mixed model assumptions (linearity, normality and homogeneity)
+
+Statmaps
+========
+* Handle the func_cleaned folder more elegantly, currently its replaced each time statmaps are created

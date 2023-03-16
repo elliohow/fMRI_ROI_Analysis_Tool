@@ -9,9 +9,9 @@
 [![Documentation](https://img.shields.io/readthedocs/fmri-roi-analysis-tool)](https://fmri-roi-analysis-tool.readthedocs.io/en/latest/)
 
 fRAT is an open-source python-based GUI application used to simplify the processing and analysis of fMRI data by
-converting voxelwise maps into ROI-wise maps.
+converting voxelwise maps into ROI-wise maps. An installation of FSL is required in order to use fRAT.
 
-> fRAT is written using **Python** for **MacOS**.
+> fRAT is written using **Python** for **MacOS, Linux and WSL2**.
 
 Documentation:
 

@@ -455,13 +455,12 @@ class Utils:
         # Check Python version:
         expect_major = 3
         expect_minor = 10
-        expect_rev = 0
 
-        print(f"\nfRAT {frat_version} is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.{str(expect_rev)}.\n")
-        if sys.version_info[:3] != (expect_major, expect_minor, expect_rev):
+        print(f"\nfRAT {frat_version} is developed and tested with Python {str(expect_major)}.{str(expect_minor)}.\n")
+        if sys.version_info[:2] != (expect_major, expect_minor):
             current_version = f"{str(sys.version_info[0])}.{str(sys.version_info[1])}.{str(sys.version_info[2])}"
             print(f"INFO: Python version {current_version} is untested. Consider changing to version "
-                  f"{str(expect_major)}.{str(expect_minor)}.{str(expect_rev)} if there are errors running fRAT.")
+                  f"{str(expect_major)}.{str(expect_minor)} if there are errors running fRAT.")
 
     @staticmethod
     def chdir_to_output_directory(current_step, config):
