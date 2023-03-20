@@ -1,3 +1,4 @@
+import platform
 import toml
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -90,20 +91,33 @@ class GUI:
             self.create_statmap_frame(window)
 
     def change_page_specific_settings(self, window):
+        if platform.system() == 'Darwin':
+            statistics_width = "530"
+            home_width = "512"
+            statmap_width = "500"
+            general_width = "480"
+            parsing_width = "450"
+        else:
+            statistics_width = "550"
+            home_width = "530"
+            statmap_width = "520"
+            general_width = "500"
+            parsing_width = "480"
+
         if self.page == 'Home':
-            window.geometry("512x860")
+            window.geometry(f"{home_width}x860")
         elif self.page == 'General':
-            window.geometry("480x860")
+            window.geometry(f"{general_width}x860")
         elif self.page == 'Analysis':
-            window.geometry("480x860")
+            window.geometry(f"{general_width}x860")
         elif self.page == 'Parsing':
-            window.geometry("450x280")
+            window.geometry(f"{parsing_width}x280")
         elif self.page == 'Plotting':
-            window.geometry("512x860")
+            window.geometry(f"{home_width}x860")
         elif self.page == 'Statistics':
-            window.geometry("530x860")
+            window.geometry(f"{statistics_width}x860")
         elif self.page == 'Statistical_maps':
-            window.geometry("500x860")
+            window.geometry(f"{statmap_width}x860")
 
     def create_statmap_frame(self, window):
         self.statmap_frame = tk.LabelFrame(window)
@@ -887,11 +901,18 @@ def find_example_dataset():
         raise FileExistsError('More than one subject example dataset folder found in fRAT directory. '
                               'Only keep the version that matches your fRAT version.')
 
-    elif General['full_comparison']['Current'] == 'true' and not output_data_folders:
+    if General['full_comparison']['Current'] == 'true' and not output_data_folders:
         raise FileNotFoundError('Full comparison selected, but HarvardOxford-Cortical_ROI_report is not present in '
                                 '"subject_example_data" folder. Download it from https://osf.io/pbm3d/.')
 
-    return subject_data_folders[0], output_data_folders[0]
+    subject_data_folder = subject_data_folders[0]
+
+    try:
+        output_data_folder = output_data_folders[0]
+    except IndexError:
+        output_data_folder = None
+
+    return subject_data_folder, output_data_folder
 
 
 def check_stale_state():
