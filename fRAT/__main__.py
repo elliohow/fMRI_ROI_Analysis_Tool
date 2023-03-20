@@ -858,7 +858,7 @@ def run_tests(GUI):
                                            General['verbose_errors']['Current'])
 
         voxelwise_map_test = TestDifferences([f'{path_to_example_data_input}/test_ROI_report',
-                                              f'{path_to_example_data_input}/{path_to_example_data_output}'],
+                                              f'{path_to_example_data_output}'],
                                              General['verbose_errors']['Current'])
 
         # Delete files
@@ -870,6 +870,11 @@ def run_tests(GUI):
             shutil.rmtree(f'{path_to_example_data_input}/sub-01/statmaps/test_maps')
             shutil.rmtree(f'{path_to_example_data_input}/sub-02/statmaps/test_maps')
             shutil.rmtree(f'{path_to_example_data_input}/sub-03/statmaps/test_maps')
+
+            print('Deleted test folders.')
+
+        else:
+            print('Retaining test folders.')
 
         if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
             print("\n--- End of installation testing, no errors found ---")
