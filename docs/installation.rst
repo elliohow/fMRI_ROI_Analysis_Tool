@@ -37,17 +37,21 @@ pipx can then be upgraded with::
 On Linux and WSL2
 -----------------
 
+You will need python 3.10 on your path. One way to do this is by using the method described below, however this can
+also be achieved by using `miniconda <https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_ or
+`mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_.
+
 Install python 3.10::
 
     sudo add-apt-repository ppa:deadsnakes/ppa
     sudo apt-get update
     sudo apt-get install python3.10
 
-Install necessary packages::
+Install necessary python packages::
 
     sudo apt install python3-pip python3-venv python3.10-distutils python3.10-tk
 
-Install pipx::
+Install pipx using pip::
 
     python3 -m pip install --user pipx
     python3 -m pipx ensurepath
