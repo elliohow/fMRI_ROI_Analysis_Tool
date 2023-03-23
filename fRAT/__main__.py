@@ -31,6 +31,8 @@ def start_gui():
     '''Starting point when module is the main routine.'''
     global val, w, root, top
 
+    path_check()
+
     Utils.checkversion(__version__)
 
     print('----------------------------\n----- Running fRAT_GUI -----\n----------------------------')
@@ -1272,6 +1274,18 @@ def parse_params_from_file_name(json_file_name, cfg=config):
         keys.append(key)
 
     return keys, param_nums
+
+
+def path_check():
+    try:
+        os.environ['FSLDIR']
+    except KeyError:
+        raise IsADirectoryError("$FSLDIR not in path")
+
+    if os.path.isdir(f"{os.environ['FSLDIR']}/bin"):
+        print(f"\nFSL directory found in {os.environ['FSLDIR']}.")
+    else:
+        raise IsADirectoryError(f"bin folder not found in {os.environ['FSLDIR']}")
 
 
 if __name__ == '__main__':
