@@ -44,12 +44,12 @@ also be achieved by using `miniconda <https://docs.conda.io/projects/conda/en/la
 Install python 3.10::
 
     sudo add-apt-repository ppa:deadsnakes/ppa
-    sudo apt-get update
-    sudo apt-get install python3.10
+    sudo apt update
+    sudo apt install python3.10
 
-Install necessary python packages::
+Install necessary packages::
 
-    sudo apt install python3-pip python3-venv python3.10-distutils python3.10-tk
+    sudo apt install bc python3-pip python3-venv python3.10-distutils python3.10-tk
 
 Install pipx using pip::
 
