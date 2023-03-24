@@ -421,6 +421,8 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
             for rsquare_type in r_square_dict:
                 compute_rsquare_regression(voxel_data, r_square_dict[rsquare_type], rsquare_type, glm_formula_type)
 
+
+
             if config.verbose:
                 print("\n=============================================================================="
                       "\nCreating standardised and unstandardised coefficient brain maps"
@@ -440,6 +442,12 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
 
 
 def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_formula_type):
+    if len(voxel_data) == 1:
+        if config.verbose:
+            print('\nOnly one ROI passed to rsquare regression function, not able to calculate result.')
+
+        return
+
     # GLM
     voxel_data = sm.add_constant(voxel_data)
     voxel_df = pd.DataFrame(columns=['Intercept', 'Voxels'], data=voxel_data)

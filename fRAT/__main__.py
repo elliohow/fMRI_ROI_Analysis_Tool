@@ -875,10 +875,10 @@ def run_tests(GUI):
         shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
         shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
 
-        print('Deleted test folders.')
+        print('\nDeleted test folders.')
 
     else:
-        print('Retaining test folders.')
+        print('\nRetaining test folders.')
 
     if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
         print("\n--- End of installation testing, no errors found ---")
