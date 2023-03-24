@@ -93,8 +93,8 @@ recommended that this software tool be used for brain extraction
 due to the necessity of accurate skull stripping for the fRAT to function optimally and the consistently better brain
 extraction performance when using optiBET.
 
-Checking installation
-=====================
+Checking installation with a test analysis
+============================================
 **1. Create the directory to save the example data folder**::
 
     mkdir ~/Documents/fRAT
@@ -103,21 +103,16 @@ This allows fRAT to find the example data. This folder will also be used to save
 
 **2. Download the example dataset from** `here <https://osf.io/pbm3d/>`_.
 
-The "subject_example_data" folder contains subject data and the tSNR maps calculated by fRAT, whereas the
-"HarvardOxford-Cortical_ROI_report" folder contains the output of fRAT's ROI analysis.
-If you only want to test fRAT runs correctly and do not want to check for missing files after testing the
-installation, download only the "subject_example_data". If you wish to check for missing files after running the ROI
-analysis, download both the "subject_example_data" and the "HarvardOxford-Cortical_ROI_report",
+**3. Extract the folder and place it in the newly created fRAT folder.**
 
-**3. Extract the chosen folder and place it in the newly created fRAT folder.**
+**4. Click the** :guilabel:`General` **button in the** ``fRAT`` **section of the GUI and then click the**
+:guilabel:`Run installation tests` **button.**
 
-If running the full comparison, also place the "HarvardOxford-Cortical_ROI_report" in the "subject_example_data" folder.
+The sample analysis will take roughly 15 minutes on a machine with atleast 4 cores. ``fRAT`` will output progress to the
+terminal. After the analysis has completed, the output will be compared to those already present in the ``example_data``
+folder and will warn if any files are missing. If you want to check the output of the sample analysis, set the
+"delete_test_folder" option to "Never".
 
-
-**4. Click the** :guilabel:`General` **button in the** ``fRAT`` **section of the GUI and then click the** :guilabel:`Run installation tests`
-**button.**
-
-This will first create a voxel-wise tSNR map for each subject in the ``example_data`` folder, before using these maps to
-run an ROI analysis using these maps. ``fRAT`` will output progress to the terminal.
-After the analysis has completed, if the full comparison option has been selected, the output will be compared to those
-already present in the ``example_data`` folder and will warn if any files are missing.
+.. note::
+    During the sample analysis, warnings may occur. This is expected and does not indicate that fRAT is not running
+    correctly.

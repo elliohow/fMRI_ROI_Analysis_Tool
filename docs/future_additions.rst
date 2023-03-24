@@ -14,14 +14,13 @@ General
 * Test fRAT with empty parameters for cases where a single metric is set to be reported and not a comparison between multiple parameters
   - May need to find references to config.parameter_dict/cfg.parameter_dict to see how it is handled when blank
 * Summarise data across an ROI (time series analysis)
-* Add Pyinstaller support
-* Add PyPi support
 * Add support for custom statistical map functions
 * Add option to only keep essential files when running statistical map functions (such as '_tSNR')
 * To facilitate easier testing of new features during development, add ability to test only ROI analysis, only statistical map creation, or both.
 * Dash barchart code needs an overhaul as it isn't currently viable to easily add new features
     - Long names currently get cutoff
 * Give user ability to find fRAT version
+* Print log of terminal output. This will allow the user to track where fRAT terminated in the case of a crash
 * (Potential) Add ability to analyse more than fMRI volumes (such as anatomical volumes)
 * (Potential) Add easy way load analysis results data so jupyter notebook can be used to explore the data with graphs/statistics
 
@@ -36,7 +35,7 @@ GUI
 Analysis
 ========
 * Add option to bootstrap confidence intervals
-* Allow registration to more MNI templates
+* Allow registration to more templates (such as http://ccraddock.github.io/cluster_roi/)
 * Allow registration to custom templates and ROI atlases
 * Add ability to skip running a file through analysis if file has already been ran through analysis
     - May be good for combining large datasets or adding new participants to the analysis

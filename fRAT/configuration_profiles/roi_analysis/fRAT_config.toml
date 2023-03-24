@@ -1,5 +1,5 @@
 # Version Info
-version = '1.2.0'
+version = '1.3.0'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
@@ -16,7 +16,6 @@ parameter_file = 'paramValues.csv'                                              
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 ## Installation testing
-full_comparison = false                                                           # Check no files are missing after running analysis. NOTE: Requires the full example dataset to run the full comparison.
 delete_test_folder = 'If completed without error'                                 # Option to choose whether the folder generated while running tests is deleted upon completion. This only applies when running the full comparison. Options: ['Always', 'If completed without error', 'Never'].
 verbose_errors = true                                                             # true or false. Print all missing files and differences found during testing to the terminal.
 
@@ -66,9 +65,9 @@ interaction_effects = false                                                     
 max_below_thresh = 0                                                              # Recommended value 0.  For a given ROI, this value sets the maximum percent of sessions that can be excluded (due to having insufficient voxel count) before the ROI is not included in r2 vs voxel count statistics. With the default value of 100(%) an ROI will not be included in this calculation if any sessions have been excluded.
 
 # Parsing
-parameter_dict1 = ['']                                                            # Comma-separated list of independent variables.  As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
-parameter_dict2 = ['']                                                            # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
-make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
+parameter_dict1 = ['Multiband', 'SENSE']                                          # Comma-separated list of independent variables.  As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
+parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
+make_folder_structure = false                                                     # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
 
 # Plotting

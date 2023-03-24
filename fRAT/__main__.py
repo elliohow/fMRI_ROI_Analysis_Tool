@@ -147,12 +147,14 @@ class GUI:
 
         self.statmap_reset_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_reset_button.place(relx=0.5, rely=0.08, height=42, width=105)
-        self.statmap_reset_button.configure(command=lambda: Reset_settings(['Statistical_maps']), text='''Reset settings''')
+        self.statmap_reset_button.configure(command=lambda: Reset_settings(['Statistical_maps']),
+                                            text='''Reset settings''')
         Tooltip.CreateToolTip(self.statmap_reset_button, 'Reset statistical map settings')
 
         self.statmap_settings_button = ttk.Button(self.statmap_settings_frame)
         self.statmap_settings_button.place(relx=0.17, rely=0.55, height=42, width=150)
-        self.statmap_settings_button.configure(command=lambda: self.change_frame('Statistical_maps'), text='''Settings''')
+        self.statmap_settings_button.configure(command=lambda: self.change_frame('Statistical_maps'),
+                                               text='''Settings''')
 
     def statmap_run_frame_create(self, window):
         self.statmap_run_frame = tk.LabelFrame(window)
@@ -197,7 +199,8 @@ class GUI:
                     try:
                         eval(curr_page)[setting[0]]['Current'] = current_setting
                     except KeyError:
-                        warnings.warn(f'"{setting[0]}" not present in config setup file. Configuration file may be outdated.')
+                        warnings.warn(
+                            f'"{setting[0]}" not present in config setup file. Configuration file may be outdated.')
 
     def banner_draw(self, window):
         img = Image.open(f'{Path(os.path.abspath(__file__)).parents[0]}/images/fRAT.gif')
@@ -676,7 +679,8 @@ class GUI:
                     else:
                         current_options2_menu[current_widget['label']] = []
 
-                    current_widget['Current'][len(current_options2_menu[current_widget['label']])] = self.dynamic_widgets[widget].val.get()
+                    current_widget['Current'][len(current_options2_menu[current_widget['label']])] = \
+                    self.dynamic_widgets[widget].val.get()
 
         for frame in self.frames:
             frame.destroy()
@@ -847,79 +851,59 @@ def run_tests(GUI):
     GUI.change_frame('General')
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
-    path_to_example_data_input, path_to_example_data_output = find_example_dataset()
+    path_to_example_data = find_example_dataset()
 
     # Create tSNR maps and run ROI analysis
-    statmap_calc('Temporal SNR', __version__, 'test_config.toml', path_to_example_data_input)
-    fRAT('test_config.toml', path_to_example_data_input)
+    statmap_calc('Temporal SNR', __version__, 'test_config.toml', path_to_example_data)
+    fRAT('test_config.toml', path_to_example_data)
 
     # Run tests to check if output of fRAT matches the example data
-    if General['full_comparison']['Current'] == 'true':
-        roi_output_test = TestDifferences([f'{path_to_example_data_input}/sub-02/statmaps/test_maps',
-                                            f'{path_to_example_data_input}/sub-02/statmaps/temporalSNR_report'],
-                                           General['verbose_errors']['Current'])
+    roi_output_test = TestDifferences([f'{path_to_example_data}/sub-02/statmaps/test_maps',
+                                       f'{path_to_example_data}/sub-02/statmaps/temporalSNR_report'],
+                                      General['verbose_errors']['Current'])
 
-        voxelwise_map_test = TestDifferences([f'{path_to_example_data_input}/test_ROI_report',
-                                              f'{path_to_example_data_output}'],
-                                             General['verbose_errors']['Current'])
+    voxelwise_map_test = TestDifferences([f'{path_to_example_data}/test_ROI_report',
+                                          f'{path_to_example_data}/HarvardOxford-Cortical_ROI_report'],
+                                         General['verbose_errors']['Current'])
 
-        # Delete files
-        if General['delete_test_folder']['Current'] == 'Always' \
-                or (General['delete_test_folder']['Current'] == 'If completed without error'
-                    and voxelwise_map_test.status == 'No errors'
-                    and roi_output_test.status == 'No errors'):
-            shutil.rmtree(f'{path_to_example_data_input}/test_ROI_report')
-            shutil.rmtree(f'{path_to_example_data_input}/sub-01/statmaps/test_maps')
-            shutil.rmtree(f'{path_to_example_data_input}/sub-02/statmaps/test_maps')
-            shutil.rmtree(f'{path_to_example_data_input}/sub-03/statmaps/test_maps')
+    # Delete files
+    if General['delete_test_folder']['Current'] == 'Always' \
+            or (General['delete_test_folder']['Current'] == 'If completed without error'
+                and voxelwise_map_test.status == 'No errors'
+                and roi_output_test.status == 'No errors'):
+        shutil.rmtree(f'{path_to_example_data}/test_ROI_report')
+        shutil.rmtree(f'{path_to_example_data}/sub-01/statmaps/test_maps')
+        shutil.rmtree(f'{path_to_example_data}/sub-02/statmaps/test_maps')
 
-            print('Deleted test folders.')
+        print('Deleted test folders.')
 
-        else:
-            print('Retaining test folders.')
-
-        if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
-            print("\n--- End of installation testing, no errors found ---")
-        else:
-            warnings.warn("\n--- End of installation testing, errors found ---")
     else:
-        print("\n--- End of installation testing ---")
+        print('Retaining test folders.')
+
+    if voxelwise_map_test.status == 'No errors' and roi_output_test.status == 'No errors':
+        print("\n--- End of installation testing, no errors found ---")
+    else:
+        warnings.warn("\n--- End of installation testing, errors found ---")
 
 
 def find_example_dataset():
-    output_data_folders = glob(os.path.expanduser('~/Documents/fRAT/*example_data*/*HarvardOxford-Cortical_ROI_report*'))
-    subject_data_folders = glob(os.path.expanduser('~/Documents/fRAT/*subject_example_data*'))
+    example_data_folders = glob(os.path.expanduser('~/Documents/fRAT/*example_data*'))
 
     if not os.path.exists(os.path.expanduser('~/Documents/fRAT/')):
         raise FileNotFoundError(f'fRAT folder not present in documents directory.\n'
                                 'Run mkdir ~/Documents/fRAT in the terminal, then download the example dataset from '
                                 'https://osf.io/pbm3d/, extract it and place it into this folder.')
 
-    if not subject_data_folders:
-        raise FileNotFoundError(f'No "subject_example_data" folder in fRAT directory.\n'
+    if not example_data_folders:
+        raise FileNotFoundError(f'No "example_data" folder in fRAT directory.\n'
                                 f'Download it from https://osf.io/pbm3d/ and place it into the fRAT directory '
                                 f'("~/Documents/fRAT/").')
 
-    if len(output_data_folders) > 1:
-        raise FileExistsError('More than one HarvardOxford-Cortical_ROI_report folder found in example data folder. '
+    if len(example_data_folders) > 1:
+        raise FileExistsError('More than one example dataset folder found in fRAT directory. '
                               'Only keep the version that matches your fRAT version.')
 
-    if len(subject_data_folders) > 1:
-        raise FileExistsError('More than one subject example dataset folder found in fRAT directory. '
-                              'Only keep the version that matches your fRAT version.')
-
-    if General['full_comparison']['Current'] == 'true' and not output_data_folders:
-        raise FileNotFoundError('Full comparison selected, but HarvardOxford-Cortical_ROI_report is not present in '
-                                '"subject_example_data" folder. Download it from https://osf.io/pbm3d/.')
-
-    subject_data_folder = subject_data_folders[0]
-
-    try:
-        output_data_folder = output_data_folders[0]
-    except IndexError:
-        output_data_folder = None
-
-    return subject_data_folder, output_data_folder
+    return example_data_folders[0]
 
 
 def check_stale_state():
@@ -946,7 +930,8 @@ def check_stale_state():
 
         elif widget['Current'] == 'FILL IV TYPE AS BETWEEN-SUBJECTS':
             # Set all IV's to between subjects if not been modified already
-            dynamic_widgets[counter]['Current'] = [widget['Options2'][widget['DefaultNumber']]] * len(current_critical_params)
+            dynamic_widgets[counter]['Current'] = [widget['Options2'][widget['DefaultNumber']]] * len(
+                current_critical_params)
 
         elif widget['Current'] == 'INCLUDE ALL VARIABLES':
             dynamic_widgets[counter]['Current'] = current_critical_params
@@ -1148,11 +1133,12 @@ def make_table():
     elif config.automatically_create_statistics_options_file and config.parameter_dict1 == ['']:
         print(f"\nstatisticsOptions.csv not saved, no independent variables given in parsing menu.")
 
+
 def create_statistics_file(directory=''):
     Save_settings(pages, f'roi_analysis/{ConfigurationFiles.analysis_config}')
 
     config = Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/roi_analysis',
-             ConfigurationFiles.analysis_config)
+                               ConfigurationFiles.analysis_config)
 
     if not directory:
         directory = Utils.file_browser('Select base directory or report output directory')
@@ -1194,7 +1180,8 @@ def create_statistics_file(directory=''):
 
 def create_noise_file():
     print('--- Creating noiseValues.csv ---')
-    Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/maps', ConfigurationFiles.statmap_config)
+    Utils.load_config(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/maps',
+                      ConfigurationFiles.statmap_config)
 
     directory = Utils.file_browser('Select base directory')
     _, participant_names = Utils.find_participant_dirs(directory=directory)

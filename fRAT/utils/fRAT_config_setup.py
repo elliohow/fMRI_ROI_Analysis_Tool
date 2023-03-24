@@ -60,10 +60,6 @@ General = {
     'run_tests': {'type': 'Button', 'Command': 'run_tests', 'Text': 'Run installation tests', 'Pass self': True,
                   'Description': 'Requires example data set. The link can be found on the fRAT website.'},
 
-    'full_comparison': {'type': 'CheckButton', 'Recommended': 'false',
-                        'Description': 'Check no files are missing after running analysis.\nNOTE: Requires the full '
-                                       'example dataset to run the full comparison.'},
-
     'delete_test_folder': {'type': 'OptionMenu',
                            'Recommended': 'If completed without error',
                            'Options': ['Always', 'If completed without error', 'Never'],

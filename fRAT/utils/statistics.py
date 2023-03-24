@@ -425,10 +425,18 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
                 print("\n=============================================================================="
                       "\nCreating standardised and unstandardised coefficient brain maps"
                       "\n==============================================================================\n")
-            Coefficient_map.to_braingrid(standardised_coeffs_df, "standardised_coeffs",
-                                         standardise_cbar=True, subsubfolder=glm_formula_type)
-            Coefficient_map.to_braingrid(unstandardised_coeffs_df, "unstandardised_coeffs",
-                                         standardise_cbar=False, subsubfolder=glm_formula_type)
+
+            if not standardised_coeffs_df.empty:
+                Coefficient_map.to_braingrid(standardised_coeffs_df, "standardised_coeffs",
+                                             standardise_cbar=True, subsubfolder=glm_formula_type)
+            elif config.verbose:
+                print('Skipping creation of standardised coefficient brain maps, all ROIs below p-value threshold.')
+
+            if not unstandardised_coeffs_df.empty:
+                Coefficient_map.to_braingrid(unstandardised_coeffs_df, "unstandardised_coeffs",
+                                             standardise_cbar=False, subsubfolder=glm_formula_type)
+            elif config.verbose:
+                print('Skipping creation of unstandardised coefficient brain maps, all ROIs below p-value threshold.')
 
 
 def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_formula_type):
@@ -455,7 +463,7 @@ def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_for
                          f'Standardised coefficients:\n'
                          f'{standardised_coeffs}')
 
-    with open(f"{STATISTICS_PATH}/{glm_formula_type}/Overall/{r_square_type}_vs_voxels_GLM.csv", "w") as f:
+    with open(f"{STATISTICS_PATH}/{glm_formula_type}/{r_square_type}_vs_voxels_GLM.csv", "w") as f:
         f.write(result.summary().as_csv())
 
     # Scatter plot
@@ -482,12 +490,12 @@ def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_for
     )
     )
 
-    figure.save(f"{STATISTICS_PATH}/{glm_formula_type}/Overall/{r_square_type}_vs_voxels.png",
+    figure.save(f"{STATISTICS_PATH}/{glm_formula_type}/{r_square_type}_vs_voxels.png",
                 height=config.plot_scale,
                 width=config.plot_scale * 2,
                 verbose=False, limitsize=False)
 
-    figure.save(f"{STATISTICS_PATH}/{glm_formula_type}/Overall/{r_square_type}_vs_voxels.svg",
+    figure.save(f"{STATISTICS_PATH}/{glm_formula_type}/{r_square_type}_vs_voxels.svg",
                 height=config.plot_scale,
                 width=config.plot_scale * 2,
                 verbose=False, limitsize=False)
@@ -897,7 +905,7 @@ def calculate_glm_standardised_coeffs(current_df, folder, formula, glm_formula_t
     zscored_result = zscored_model.fit()
 
     if folder == 'R2':
-        path = f"{STATISTICS_PATH}/{glm_formula_type}/Overall/{variation}_vs_voxels_GLM_standardised_coeffs.csv"
+        path = f"{STATISTICS_PATH}/{glm_formula_type}/{variation}_vs_voxels_GLM_standardised_coeffs.csv"
         standardised_coeffs = pd.DataFrame(
             data=pd.concat([zscored_result.params[1:], zscored_result.conf_int()[1:]], axis=1))
     else:
