@@ -1,5 +1,5 @@
 # Version Info
-version = '1.3.0'
+version = '1.3.1'
 
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
@@ -46,7 +46,7 @@ print_result = true                                                             
 minimum_voxels = 400                                                              # For bootstrapped change versus baseline, for each ROI, the average number of voxels per session for an ROI must be above this value to be included in the analysis.For running the linear mixed model, for each ROI, any sessions with a voxel count below this value will be removed. Highly recommended to set a value here, as ROIs with a small number of voxels may suggest poor fitting. Recommended value 400
 bootstrap_samples = 1000                                                          # Recommended value 1000.  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 bootstrap_confidence_interval = 95                                                # Recommended value: 95  Note: Bootstrapping is only used to calculate percentage change versus baseline.
-regional_stats_rois = [2, 4, 5, 3]                                                # Provide a comma-separated list of regions, e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+regional_stats_rois = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]                     # Provide a comma-separated list of regions, e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
 include_as_variable = ['Multiband', 'SENSE']                                      # Select which variables to include in statistical analysis. Used to determine which variables to use as fixed effects in linear mixed models and which variables to take to average across when running main effect t-tests.
 brain_map_p_thresh = 0.05                                                         # P-value threshold to use when creating brain coefficient maps. Any fixed effect that doesn't have a p-value equal to or less than this value will not be included in the coefficient map.
 
