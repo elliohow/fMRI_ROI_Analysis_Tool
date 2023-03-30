@@ -1,6 +1,3 @@
-# Version Info
-version = '1.3.3'
-
 # General
 run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
 run_statistics = false                                                            # true or false.

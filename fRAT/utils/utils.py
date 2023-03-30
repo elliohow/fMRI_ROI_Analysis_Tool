@@ -17,6 +17,7 @@ import toml
 from fRAT.utils.fRAT_config_setup import *
 
 config = None
+version = None
 
 
 class Utils:
@@ -135,23 +136,26 @@ class Utils:
     @staticmethod
     def save_config(newdir, config_path, config_filename, additional_info=None, relevant_sections='all', new_config_name='config_log'):
         with open(f'{newdir}/{new_config_name}.toml', 'w') as f, open(f'{config_path}/{config_filename}', 'r') as r:
+            f.write(f"# General information\n"
+                    f"version = {version}\n"
+                    f"config_file_used = '{config_filename}'\n")
+
             if additional_info:
                 for line in additional_info:
                     f.write(line)
 
                 f.write('\n')
 
-            f.write(f"config_file_used = '{config_filename}'\n")
             f.write('\n')
 
             current_section = None
             for line in r:
-                if line[0] == '#':
+                if line.startswith('#') and not line.startswith('##'):
                     current_section = line.replace('#', '')[1:-1]
 
                 if relevant_sections == 'all':
                     f.write(line)
-                elif current_section == 'Version Info' or current_section in relevant_sections:
+                elif current_section in relevant_sections:
                     f.write(line)
 
     @staticmethod
@@ -452,6 +456,9 @@ class Utils:
 
     @staticmethod
     def checkversion(frat_version):
+        global version
+        version = frat_version
+
         # Check Python version:
         expect_major = 3
         expect_minor = 10

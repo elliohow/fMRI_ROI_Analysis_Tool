@@ -62,7 +62,7 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
                                       vmax=vmax, symmetric_cbar=True, cbar_tick_format="%.2f",
                                       display_mode='xz', cut_coords=(0, 18),
                                       cmap='seismic')
-        plot.savefig(f"{STATISTICS_PATH}/{subfolder}/images/{file_name}.png")
+        plot.savefig(f"{STATISTICS_PATH}/{subfolder}/Images/{file_name}.png")
         plot.close()
 
     @classmethod

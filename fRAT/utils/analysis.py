@@ -128,7 +128,8 @@ class Environment_Setup:
             if config.verbose:
                 print(f'Finding subject directories in directory: {config.brain_file_loc}\n')
 
-        # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be harder to find
+        # Save copy of analysis_log.toml to retain settings. It is saved here as after changing directory it will be
+        # harder to find
         Utils.save_config(cls.base_directory, config_path, config_filename,
                           new_config_name='analysis_log',
                           relevant_sections=['General', 'Analysis', 'Parsing'])

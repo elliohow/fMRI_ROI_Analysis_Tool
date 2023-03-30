@@ -22,6 +22,9 @@ from fRAT.utils import dash_report
 from fRAT.utils.printResults import printResults
 from fRAT.utils.statmap import main as statmap_calc
 
+from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE, SIG_DFL)
+
 w = None
 WIDGET_Y_PADDING = 9
 WIDGET_X_PADDING = 10
@@ -67,7 +70,7 @@ class GUI:
             self.style.theme_use('clam')
 
             window.geometry("+100+100")
-            window.resizable(0, 0)
+            window.resizable(True, True)
             window.title("fRAT GUI")
             window.configure(background=self.background)
             window.configure(highlightbackground=self.background)

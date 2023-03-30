@@ -34,10 +34,7 @@ class Figures:
         Utils.save_config('Figures', config_path, config_filename,
                           new_config_name='figure_log',
                           relevant_sections=['Parsing',
-                                             'Plotting', 'General plot settings',
-                                             'Violin plot',
-                                             'Brain table', 'Regional bar chart',
-                                             'Regional histogram'],
+                                             'Plotting'],
                           additional_info=[f'data_used_for_figures = '
                                            f'"{cfg.averaging_type.replace(" ", "_").lower()}"'])
 
