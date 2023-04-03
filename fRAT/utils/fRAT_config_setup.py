@@ -134,7 +134,7 @@ Analysis = {
     'run_fsl_fast': {'type': 'OptionMenu',
                      'Options': ['Run if files not found', 'Never run'],
                      'Recommended': 'Run if files not found',
-                     'Description': 'Recommended: "Run if files not found".\n These files will only be searched for '
+                     'Description': 'Recommended: "Run if files not found".\nThese files will only be searched for '
                                     '(and thus created) if "Use FSL FAST segmentation" is set to true.',
                      'label': 'Run FSL FAST',
                      'save_as': 'string'},
@@ -331,7 +331,10 @@ Parsing = {
     'parameter_dict1': {'type': 'Entry',
                         'status': 'important',
                         'Recommended': 'MB, SENSE', 'save_as': 'list', 'label': 'Critical parameters',
-                        'Description': 'Comma-separated list of independent variables. '
+                        'Description': 'Comma-separated list of independent variables.'
+                                       '\nThe critical parameter settings are used to supply the names and file name '
+                                       'abbreviations of the independent variables, therefore `fRAT` supports the use '
+                                       'of any parameters (and any number of them).'
                                        '\nAs these critical parameters will also be used when labelling the rows and '
                                        'columns of both the violin plots and histograms, they should be written as '
                                        'you want them to appear in these figures.'

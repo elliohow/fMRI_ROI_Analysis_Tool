@@ -9,6 +9,7 @@ import textwrap
 
 from PIL import ImageTk
 from operator import itemgetter
+from tkinter import font
 
 from fRAT.nogui import fRAT
 from fRAT._version import __version__
@@ -28,7 +29,6 @@ signal(SIGPIPE, SIG_DFL)
 w = None
 WIDGET_Y_PADDING = 9
 WIDGET_X_PADDING = 10
-
 
 def start_gui():
     '''Starting point when module is the main routine.'''
@@ -76,6 +76,13 @@ class GUI:
             window.configure(highlightbackground=self.background)
             window.configure(highlightcolor="black")
 
+            self.default_font = None
+            self.important_font = None
+            self.subheading_font = None
+            self.heading_font = None
+
+            self.setup_fonts()
+
         self.change_page_specific_settings(window)
 
         if page == 'Statistical_maps':
@@ -95,26 +102,27 @@ class GUI:
             self.create_homestar_runner_frame(self.settings_frame)
             self.create_statmap_frame(window)
 
+    def setup_fonts(self):
+        self.default_font = font.Font(font='TkDefaultFont')
+        self.important_font = font.Font(font='TkDefaultFont')
+        self.heading_font = font.Font(font='TkDefaultFont')
+        self.subheading_font = font.Font(font='TkDefaultFont')
+
+        self.important_font.configure(weight='bold')
+        self.heading_font.configure(weight='bold', size=20)
+        self.subheading_font.configure(weight='bold', size=18)
+
     def change_page_specific_settings(self, window):
-        if platform.system() == 'Darwin':
-            statistics_width = "530"
-            home_width = "512"
-            statmap_width = "500"
-            general_width = "480"
-            parsing_width = "450"
-        else:
-            statistics_width = "550"
-            home_width = "530"
-            statmap_width = "520"
-            general_width = "500"
-            parsing_width = "480"
+        statistics_width = "530"
+        home_width = "512"
+        parsing_width = "450"
 
         if self.page == 'Home':
             window.geometry(f"{home_width}x860")
         elif self.page == 'General':
-            window.geometry(f"{general_width}x860")
+            window.geometry(f"{home_width}x860")
         elif self.page == 'Analysis':
-            window.geometry(f"{general_width}x860")
+            window.geometry(f"{home_width}x860")
         elif self.page == 'Parsing':
             window.geometry(f"{parsing_width}x280")
         elif self.page == 'Plotting':
@@ -122,14 +130,14 @@ class GUI:
         elif self.page == 'Statistics':
             window.geometry(f"{statistics_width}x860")
         elif self.page == 'Statistical_maps':
-            window.geometry(f"{statmap_width}x860")
+            window.geometry(f"{home_width}x860")
 
     def create_statmap_frame(self, window):
         self.statmap_frame = tk.LabelFrame(window)
         self.frames.append(self.statmap_frame)
 
         self.statmap_frame.place(relx=0.02, rely=0.77, relheight=0.22, relwidth=0.973)
-        self.statmap_frame.configure(text='Statistical maps', font='Helvetica 18 bold')
+        self.statmap_frame.configure(text='Statistical maps', font=self.heading_font)
         self.format_frame(self.statmap_frame, borderwidth=1)
 
         self.statmap_run_frame_create(self.statmap_frame)
@@ -139,7 +147,7 @@ class GUI:
         self.statmap_settings_frame = tk.LabelFrame(window)
         self.frames.append(self.statmap_settings_frame)
         self.statmap_settings_frame.place(relx=0.02, rely=0, height=140, relwidth=0.467)
-        self.statmap_settings_frame.configure(text='Settings', font='Helvetica 18 bold')
+        self.statmap_settings_frame.configure(text='Settings', font=self.heading_font)
         self.format_frame(self.statmap_settings_frame, borderwidth=1)
 
         self.statmap_save_button = ttk.Button(self.statmap_settings_frame)
@@ -163,7 +171,7 @@ class GUI:
         self.statmap_run_frame = tk.LabelFrame(window)
         self.frames.append(self.statmap_run_frame)
         self.statmap_run_frame.place(relx=0.5, rely=0, height=140, relwidth=0.467)
-        self.statmap_run_frame.configure(text='Run', font='Helvetica 18 bold')
+        self.statmap_run_frame.configure(text='Run', font=self.heading_font)
         self.format_frame(self.statmap_run_frame, borderwidth=1)
 
         statmap_options = ('Image SNR', 'Temporal SNR', 'Add Gaussian noise')
@@ -228,7 +236,7 @@ class GUI:
     def create_home_options_frame(self, window):
         self.Options_frame = tk.LabelFrame(window)
         self.Options_frame.place(relx=0.5, rely=0.01, height=150, relwidth=0.345)
-        self.Options_frame.configure(text=f'''Options''', font='Helvetica 18 bold')
+        self.Options_frame.configure(text=f'''Options''', font=self.heading_font)
         self.format_frame(self.Options_frame, borderwidth=1)
         self.frames.append(self.Options_frame)
 
@@ -247,7 +255,7 @@ class GUI:
     def create_home_atlas_frame(self, window):
         self.Atlas_frame = tk.LabelFrame(window)
         self.Atlas_frame.place(relx=0.5, rely=0.348, height=128, relwidth=0.467)
-        self.Atlas_frame.configure(text=f'''Atlas information''', font='Helvetica 18 bold')
+        self.Atlas_frame.configure(text=f'''Atlas information''', font=self.heading_font)
         self.format_frame(self.Atlas_frame, borderwidth=1)
         self.frames.append(self.Atlas_frame)
 
@@ -283,7 +291,7 @@ class GUI:
     def create_homestar_runner_frame(self, window):
         self.Run_frame = tk.LabelFrame(window)
         self.Run_frame.place(relx=0.025, rely=0.69, height=145, relwidth=0.945)
-        self.Run_frame.configure(text=f'''Run''', font='Helvetica 18 bold')
+        self.Run_frame.configure(text=f'''Run''', font=self.heading_font)
         self.format_frame(self.Run_frame, borderwidth=1)
         self.frames.append(self.Run_frame)
 
@@ -318,13 +326,13 @@ class GUI:
             self.frames.append(self.settings_frame)
 
             self.settings_frame.place(relx=0.02, rely=0.15, relheight=0.61, relwidth=0.973)
-            self.settings_frame.configure(text='fRAT', font='Helvetica 18 bold')
+            self.settings_frame.configure(text='fRAT', font=self.heading_font)
             self.format_frame(self.settings_frame, borderwidth=1)
 
             self.General_settings_frame = tk.LabelFrame(self.settings_frame)
             self.frames.append(self.General_settings_frame)
             self.General_settings_frame.place(relx=0.025, rely=0.01, height=330, relwidth=0.41)
-            self.General_settings_frame.configure(text=f'''Settings''', font='Helvetica 18 bold')
+            self.General_settings_frame.configure(text=f'''Settings''', font=self.heading_font)
             self.format_frame(self.General_settings_frame, borderwidth=1)
             current_frame = self.General_settings_frame
 
@@ -349,7 +357,7 @@ class GUI:
         self.plot_settings_frame = tk.LabelFrame(self.settings_frame)
         self.frames.append(self.plot_settings_frame)
         self.plot_settings_frame.grid(row=row, column=0, columnspan=1)
-        self.plot_settings_frame.configure(text=f'''Specific plot settings''', font='Helvetica 18 bold')
+        self.plot_settings_frame.configure(text=f'''Specific plot settings''', font=self.heading_font)
         self.format_frame(self.plot_settings_frame, borderwidth=1)
 
         return row + 1
@@ -393,7 +401,7 @@ class GUI:
 
             row += 1
 
-        self.settings_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font='Helvetica 18 bold')
+        self.settings_frame.configure(text=f'''{self.page.replace('_', ' ')}''', font=self.heading_font)
         self.format_frame(self.settings_frame)
 
         if create_return_button == True:
@@ -495,7 +503,7 @@ class GUI:
 
         return dynamic_widgets, row
 
-    def label_create(self, name, row, info=None, font=None, fixed_name=False):
+    def label_create(self, name, row, info=None, fixed_name=False):
         self.__setattr__(name, tk.Label(self.settings_frame))
         label_name = getattr(self, name)
 
@@ -512,14 +520,14 @@ class GUI:
         if info['type'] != 'subheading':
             Tooltip.CreateToolTip(label_name, info['Description'])
             label_name.grid(row=row, column=0, pady=WIDGET_Y_PADDING, padx=WIDGET_X_PADDING, sticky='W')
-            label_name.configure(text=f'''{name.replace("_", " ")}:''', font=font)
+            label_name.configure(text=f'''{name.replace("_", " ")}:''', font=self.default_font)
         else:
             label_name.grid(row=row, column=0, pady=(30, 5), ipadx=WIDGET_X_PADDING, sticky='SW')
-            label_name.configure(text=name, font=('Helvetica', 17, 'bold'))
+            label_name.configure(text=name, font=self.subheading_font)
 
         try:
             if info['status'] == 'important':
-                label_name.configure(font=('Helvetica', 14, 'bold'))
+                label_name.configure(font=self.important_font)
         except KeyError:
             pass
 
@@ -628,10 +636,9 @@ class GUI:
 
         return {name: widget}
 
-    @staticmethod
-    def entry_default_settings(widget):
+    def entry_default_settings(self, widget):
         widget.configure(background="white")
-        widget.configure(font="Helvetica")
+        widget.configure(font=self.default_font)
         widget.configure(foreground="#000000")
         widget.configure(insertbackground="black")
         widget.configure(selectforeground="white")
@@ -712,6 +719,9 @@ class Tooltip:
         self.id = None
         self.x = self.y = 0
 
+        self.font = font.Font(font='TkTooltipFont')
+        self.font.configure(size=12)
+
     def showtip(self, text):
         "Display text in tooltip window"
         self.text = text
@@ -736,7 +746,7 @@ class Tooltip:
 
         label = tk.Label(tooltip_window, text=self.text, justify=tk.LEFT,
                          background="#ffffe0", relief=tk.SOLID, borderwidth=1,
-                         font=("tahoma", "12", "normal"))
+                         font=self.font)
         label.pack(ipadx=1)
 
         tooltip_window.update_idletasks()

@@ -21,7 +21,7 @@ project = 'fRAT'
 copyright = '2022, Elliot Howley'
 author = 'Elliot Howley'
 
-frat_version = "1.3.4"
+frat_version = "1.3.5"
 python_version = "3.10"
 fsl_version = "6.0.6.2"
 

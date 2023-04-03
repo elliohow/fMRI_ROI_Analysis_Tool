@@ -13,7 +13,7 @@ parameter_file = 'paramValues.csv'                                              
 file_cleanup = 'move'                                                             # Move or delete intermediate files. Options: ['move', 'delete'].
 
 ## Installation testing
-delete_test_folder = 'If completed without error'                                 # Option to choose whether the folder generated while running tests is deleted upon completion. This only applies when running the full comparison. Options: ['Always', 'If completed without error', 'Never'].
+delete_test_folder = 'Never'                                                      # Option to choose whether the folder generated while running tests is deleted upon completion. This only applies when running the full comparison. Options: ['Always', 'If completed without error', 'Never'].
 verbose_errors = true                                                             # true or false. Print all missing files and differences found during testing to the terminal.
 
 # Analysis

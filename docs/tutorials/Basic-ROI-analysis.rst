@@ -33,12 +33,28 @@ be structured with functional files organised into folders named using the forma
     Anatomical volumes can also be placed in this folder, however they should be moved from the ``func``
     folder into the ``anat`` folder when it is created.
 
-Next, enter the "Parsing" options menu found under the "Settings" panel in the GUI. The "critical parameters" setting
-indicates what are the independent variables of the experiment and will be used when labelling plots, whereas the
-"critical parameters abbreviation" setting indicates how these variables are represented in the filenames of the scans
-(if at all). For example, the "critical parameters" option may contain "Multiband, Sense", whereas the "critical
-parameters abbreviation" option will instead contain "mb, s". In this case, the file name ``P1_MB3_S2_matchBW.nii``
-will represent that multiband 3 and SENSE 2 were used.
+Next, enter the ``Parsing`` page found under the "Settings" panel in the GUI. The `critical parameters` setting
+indicates what the independent variables of the experiment are and will be used when labelling plots and creating the
+parameter csv file, whereas the `critical parameters abbreviation` setting indicates how these variables are represented
+in the filenames of the scans (if at all). For example, the `critical parameters` option may contain "Multiband, SENSE",
+whereas the "critical parameters abbreviation" option will instead contain "mb, s". In this case, the file name
+``P1_MB3_S2_matchBW.nii`` will represent that Multiband 3 and SENSE 2 were used.
+
+.. note::
+    The critical parameter settings are used to supply the names and file name abbreviations of the independent
+    variables, therefore `fRAT` supports the use of any parameters (and any number of them).
+
+    If `critical parameters` is left blank, the ROI analysis will combine all datasets, regardless of the independent
+    variable used for each file. This can be useful for calculating tSNR across the entire dataset, if the independent
+    variable does not affect tSNR.
+
+    It is also possible to only supply one critical parameter. For example, if `critical parameters` was set to
+    "Coffee cups drank" and `critical parameters abbreviation` was set to "cf". For the filename ``cf1.nii``, for
+    the independent variable "Coffee cups drank" the condition would be set to 1. It would then be possible to get a
+    summary of t-statistic maps by ROI for each condition. To do this, you would need to calculate
+    t-statistic maps for each condition prior to running the ROI analysis, and place the maps in each participant's
+    statmap folder.
+
 
 After filling these options in, select the "Make folder structure" option. This will create the basic folder structure
 required for the fRAT and will sort the files into the correct directory. After returning to the home
@@ -113,10 +129,14 @@ analysis. Again, the default options should be sufficient, however the **bolded*
 need changing. In particular, the ``General`` option menu allows ROI analysis pipeline steps to be skipped if desired.
 Further, the "Statistical map folder" setting in the "Analysis" option menu should be changed to "temporalSNR_report".
 If you wish to analyse any of the other files output by the tSNR map creation, the "Statistical map suffix" option can
-for example be changed to "tStd.nii.gz". The ``Atlas information`` option on the home page allows you to print the
-ROIs and their corresponding numeric key for the atlas chosen from the dropdown menu. This allows you to both select
-which atlas is more appropriate to use for analysis, but also allows you to specify using this numeric tags which
-ROIs to produce figures and statistics for, e.g. ``1,5,32`` to choose specific ROIs or ``all`` for all ROIs.
+for example be changed to "tStd.nii.gz".
+
+The ``Atlas information`` section on the home page allows you to view the ROIs defined by each atlas, allowing you to
+select the most appropriate atlas to use for your analysis. To change which atlas is used for your analysis, change the
+`Atlas` option on the ``Analysis`` page. The numeric key corresponding to ROIs can be used in the `ROIs to calculate
+statistics for` and `ROIs to plot` settings (in the ``Statistics`` and ``Plotting`` menus respectively) to be more
+selective in ROI choice for statistics and figure creation. For example, for these settings, input ``1,5,32`` to specify
+ROIs 1, 5, and 32 for the chosen atlas or ``all`` for all ROIs.
 
 .. note::
     If running the ``Plotting`` or ``Statistics`` steps separately, the folder output by the analysis should be selected
