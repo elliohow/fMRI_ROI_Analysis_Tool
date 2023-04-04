@@ -15,8 +15,6 @@ assignees: ''
 
 ### How to replicate the behavior
 
-### Workflow details (if applicable)
-
 ### Platform details:
  - OS: [e.g. MacOS Catalina]
  - Python version: [e.g. 3.10.2]
