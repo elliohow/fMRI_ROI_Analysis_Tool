@@ -50,7 +50,7 @@ To learn how to run an ROI analysis, follow this :doc:`tutorial </tutorials/Basi
 
 Reporting bugs
 --------------
-To report a bug or suggest a new feature, please go to `fRAT's Issues <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues/new>`_.
+To report a bug or suggest a new feature, please go to `fRAT's Issues <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues/new/choose>`_.
 
 For other questions, issues or discussion please go to `fRAT's Discussions <https://github.com/elliohow/fMRI_ROI_Analysis_Tool/discussions>`_.
 
