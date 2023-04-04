@@ -43,8 +43,9 @@ Prior to version 1.0.0, this project used an MIT license.
 ## Images
 <img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/GUI.png?raw=true" title="Example of the fRAT GUI" width=700>
 
+<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/HTML_report.png?raw=true" title="Example of a HTML report output by fRAT" width=600>
+
 <img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/ROI_example.png?raw=true" 
   title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
-width=700>
+width=200>
 
-<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/HTML_report.png?raw=true" title="Example of a HTML report output by fRAT" width=600>
