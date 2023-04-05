@@ -23,27 +23,13 @@ Documentation:
 
 ## Reporting bugs
 
-To report a bug, please go to [fRAT's Issues](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues/new).
+To report a bug or suggest a new feature, please go to [fRAT's Issues](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/issues/new/choose).
 
 For other questions, issues or discussion please go to [fRAT's Discussions](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/discussions).
 
-## Contributing with development
+## Contributing to the project
 
-The [Fork & Pull Request Workflow](https://docs.github.com/en/get-started/quickstart/contributing-to-projects) is used for contributing. Below is a summary of the necessary steps for this workflow:
-
-1. Fork this repository.
-2. Clone the repository at your machine.
-3. Add your changes in a branch named after the feature (`lower-case-with-hyphens`).
-4. Make a pull request to `fRAT`, targeting the `master` branch.
-
-## Images
-<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/GUI.png?raw=true" title="Example of the fRAT GUI" width=700>
-
-<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/ROI_example.png?raw=true" 
-  title="A region of interest map created using fRAT, showing the mean temporal Signal-to-Noise for each region. Data is displayed in MNI152 standard space and combines data from multiple subjects." 
-width=700>
-
-<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/HTML_report.png?raw=true" title="Example of a HTML report output by fRAT" width=600>
+If you'd like to contribute to the project please read our [contributing guidelines](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/CONTRIBUTING.md). Please also read through our [code of conduct](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/CODE_OF_CONDUCT.md).
 
 ## Versioning
 We use [Semantic versioning](http://semver.org/) for versioning. For the versions available, see the
@@ -53,3 +39,8 @@ We use [Semantic versioning](http://semver.org/) for versioning. For the version
 This project uses the Apache 2.0 license. For the text version of the license see
 [here](https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/LICENSE). 
 Prior to version 1.0.0, this project used an MIT license.
+
+## Images
+<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/GUI.png?raw=true" title="Example of the fRAT GUI" width=700>
+
+<img src="https://github.com/elliohow/fMRI_ROI_Analysis_Tool/blob/master/docs/images/HTML_report.png?raw=true" title="Example of a HTML report output by fRAT" width=600>
