@@ -37,9 +37,21 @@ pipx can then be upgraded with::
 On Linux and WSL2
 -----------------
 
-You will need python 3.10 on your path. One way to do this is by using the method described below, however this can
+You will need Python 3.10 on your path. One way to do this is by using the method described below, however this can
 also be achieved by using `miniconda <https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_ or
 `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_.
+
+.. warning::
+    If using Conda or Anaconda to install Python, the Tkinter version downloaded alongside Python `may not have access
+    to the Freetype library <https://github.com/ContinuumIO/anaconda-issues/issues/6833>`_. In this case the GUI will not render text properly, with text appearing as the wrong size
+    or missing style settings such as bold. If the ``Run analysis``, ``Run statistics``, ``Run plotting`` settings on
+    the `General` page are bold, then the GUI is rendering properly.
+
+    If desired, although not recommended this can be fixed by removing Conda's Tkinter. This causes Python to use the
+    system's Tkinter library::
+
+    conda remove --force tk
+
 
 Install python 3.10::
 

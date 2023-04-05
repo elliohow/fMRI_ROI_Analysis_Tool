@@ -109,8 +109,13 @@ class GUI:
         self.subheading_font = font.Font(font='TkDefaultFont')
 
         self.important_font.configure(weight='bold')
-        self.heading_font.configure(weight='bold', size=20)
-        self.subheading_font.configure(weight='bold', size=18)
+
+        if platform.system() == 'Darwin':
+            self.heading_font.configure(weight='bold', size=20)
+            self.subheading_font.configure(weight='bold', size=18)
+        else:
+            self.heading_font.configure(weight='bold', size=15)
+            self.subheading_font.configure(weight='bold', size=12)
 
     def change_page_specific_settings(self, window):
         statistics_width = "530"
@@ -720,7 +725,11 @@ class Tooltip:
         self.x = self.y = 0
 
         self.font = font.Font(font='TkTooltipFont')
-        self.font.configure(size=12)
+
+        if platform.system() == 'Darwin':
+            self.font.configure(size=12)
+        else:
+            self.font.configure(size=10)
 
     def showtip(self, text):
         "Display text in tooltip window"
