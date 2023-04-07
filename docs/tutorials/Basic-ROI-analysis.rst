@@ -48,14 +48,6 @@ whereas the "critical parameters abbreviation" option will instead contain "mb, 
     variable used for each file. This can be useful for calculating tSNR across the entire dataset, if the independent
     variable does not affect tSNR.
 
-    It is also possible to only supply one critical parameter. For example, if `critical parameters` was set to
-    "Coffee cups drank" and `critical parameters abbreviation` was set to "cf". For the filename ``cf1.nii``, for
-    the independent variable "Coffee cups drank" the condition would be set to 1. It would then be possible to get a
-    summary of t-statistic maps by ROI for each condition. To do this, you would need to calculate
-    t-statistic maps for each condition prior to running the ROI analysis, and place the maps in each participant's
-    statmap folder.
-
-
 After filling these options in, select the "Make folder structure" option. This will create the basic folder structure
 required for the fRAT and will sort the files into the correct directory. After returning to the home
 page, click the :guilabel:`Setup parameters` button in the "Run" panel of the GUI. This will parse files names for critical
