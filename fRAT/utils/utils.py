@@ -324,7 +324,7 @@ class Utils:
         if config.max_core_usage == 'max':
             workers = mp.cpu_count()
         else:
-            workers = config.max_core_usage
+            workers = int(config.max_core_usage)
 
         ctx = mp.get_context('forkserver')  # This stops segmentation fault for MacOS
 

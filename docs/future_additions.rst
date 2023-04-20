@@ -21,9 +21,9 @@ General
     - Long names currently get cutoff
 * Give user ability to find fRAT version
 * Print log of terminal output. This will allow the user to track where fRAT terminated in the case of a crash
+* Save path of last analysed folder so its easier to string together statmap creation and ROI analysis
 * (Potential) Add ability to analyse more than fMRI volumes (such as anatomical volumes)
 * (Potential) Add easy way load analysis results data so jupyter notebook can be used to explore the data with graphs/statistics
-
 
 GUI
 ===
@@ -61,6 +61,7 @@ Statistics
 ==========
 * Add ability to compare if linear mixed model coefficients significantly vary between regions
 * Add figures and testing for linear mixed model assumptions (linearity, normality and homogeneity)
+* Add :math:`r^{2}` statistics to t-tests
 
 Statmaps
 ========

@@ -338,8 +338,8 @@ class BrainGrid(Figures):
         plot.savefig(png_path, dpi=cls.config.plot_dpi)
         plot.close()
 
-        im = Image.open(png_path)
-        width, height = im.size
+        with Image.open(png_path) as im:
+            width, height = im.size
 
         return png_path, indiv_brain_imgs, (width, height)
 
