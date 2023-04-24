@@ -996,10 +996,6 @@ def Print_atlas_ROIs(selection):
 
 def Save_settings(page_list, file):
     with open(f'{Path(os.path.abspath(__file__)).parents[0]}/configuration_profiles/{file}', 'w') as f:
-        f.write(f"# Version Info\n")
-        f.write(f"version = '{__version__}'\n")
-        f.write("\n")
-
         for page in page_list:
             if page == 'Home':
                 continue

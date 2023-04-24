@@ -18,6 +18,9 @@ from PIL import Image
 
 from .utils import Utils
 
+import matplotlib
+matplotlib.use('agg')  # Use non-GUI backend to prevent memory leak caused by creating subplots in a loop
+
 
 class Figures:
     config = None
@@ -189,7 +192,7 @@ class BrainGrid(Figures):
                 f"_{statistic}.nii.gz",
                 f"_{statistic}_within_roi_scaled.nii.gz",
                 # f"_{statistic}_mixed_roi_scaled.nii.gz"
-                               ]
+            ]
 
             for base_extension in brain_plot_exts:
                 indiv_brain_imgs = cls.setup(combined_results_df, base_extension, statistic, subfolder)
