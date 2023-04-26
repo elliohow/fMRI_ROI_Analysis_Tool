@@ -46,7 +46,7 @@ Installation instructions for fRAT can be found `here <https://fmri-roi-analysis
 Before running fRAT, it is also recommended that the fRAT and project dependency installation is tested. Information on how
 to do this can also be found on the installation instructions page.
 
-To learn how to run an ROI analysis, follow this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
+To learn how to use fRAT, see this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
 
 Reporting bugs
 --------------
@@ -85,6 +85,7 @@ Prior to version 1.0.0, this project used an MIT license.
     :maxdepth: 3
 
     Home <self>
+    statement_of_need
     key_concepts_of_frat
     installation
     tutorials
