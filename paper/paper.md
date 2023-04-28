@@ -13,7 +13,7 @@ authors:
     corresponding: true
   - name: Susan Francis
     orcid: 0000-0003-0903-7507
-    affiliation: 2
+    affiliation: "2, 3"
   - name: Denis Schluppeck
     orcid: 0000-0002-0634-7713
     affiliation: 1
@@ -22,6 +22,8 @@ affiliations:
    index: 1
  - name: Sir Peter Mansfield Imaging Centre, University of Nottingham, Nottingham, United Kingdom
    index: 2
+ - name: NIHR Nottingham Biomedical Research Centre, Nottingham University Hospitals NHS Trust and the University of Nottingham, Nottingham, United Kingdom
+   index: 3
 date: 26 April 2023
 bibliography: paper.bib
 ---
