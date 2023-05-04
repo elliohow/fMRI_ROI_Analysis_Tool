@@ -497,3 +497,10 @@ class Utils:
                 print(f'Output folder selection: {json_directory}')
 
         return json_directory
+
+    @staticmethod
+    def save_brain(data, ext, no_ext_file, output_folder, header=None):
+        brain = nib.Nifti1Pair(data, None, header)
+        nib.save(brain, f"{output_folder}/{no_ext_file}{ext}.nii.gz")
+
+        return f"{output_folder}/{no_ext_file}{ext}.nii.gz"

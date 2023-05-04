@@ -5,6 +5,7 @@ from nipype.interfaces import fsl
 import logging
 import time
 
+from ..HOUSE.handler import HOUSE
 from .utils import *
 
 config = None
@@ -12,7 +13,7 @@ config_path = ''
 config_filename = ''
 
 
-def file_setup(func):
+def statmap_file_setup(func):
     file_location = config.input_folder_name
 
     if config.output_folder_name != 'DEFAULT':
@@ -21,8 +22,6 @@ def file_setup(func):
         output_folder = 'statmaps/imageSNR_report'
     elif func == 'Temporal SNR':
         output_folder = 'statmaps/temporalSNR_report'
-    elif func == 'Add Gaussian noise':
-        output_folder = 'added_noise'
 
     if config.base_folder in ("", " "):
         print('Select the directory which contains the subject folders.')
@@ -39,14 +38,11 @@ def file_setup(func):
         # Find all nifti and analyze files
         participants[participant] = Utils.find_files(f"{participant}/{file_location}", "hdr", "nii.gz", "nii")
 
-        if 'statmaps' in output_folder:
-            Utils.check_and_make_dir(f"{participant}/statmaps")
-            Utils.check_and_make_dir(f"{participant}/{output_folder}", delete_old=True)
-            Utils.save_config(f"{participant}/{output_folder}", config_path, config_filename,
-                              additional_info=[f"statistical_map_created = '{func}'\n"],
-                              new_config_name='statmap_config')
-        else:
-            Utils.check_and_make_dir(f"{participant}/{file_location}/{output_folder}", delete_old=True)
+        Utils.check_and_make_dir(f"{participant}/statmaps")
+        Utils.check_and_make_dir(f"{participant}/{output_folder}", delete_old=True)
+        Utils.save_config(f"{participant}/{output_folder}", config_path, config_filename,
+                          additional_info=[f"statistical_map_created = '{func}'\n"],
+                          new_config_name='statmap_config')
 
     return participants, output_folder, file_location
 
@@ -57,13 +53,6 @@ def calculate_sigma_in_volumes(file_path):
 
     # Equation found here: https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=FSL;f6fd75a6.1709
     return 1 / (2 * config.highpass_filter_cutoff * TR)
-
-
-def save_brain(data, ext, no_ext_file, output_folder, header=None):
-    brain = nib.Nifti1Pair(data, None, header)
-    nib.save(brain, f"{output_folder}/{no_ext_file}{ext}.nii.gz")
-
-    return f"{output_folder}/{no_ext_file}{ext}.nii.gz"
 
 
 def temporalSNR_calc(file, no_ext_file, output_folder):
@@ -125,7 +114,7 @@ def separate_noise_from_func(file, no_ext_file, output_folder, participant):
     else:
         raise Exception('Noise volume location not valid.')
 
-    noise_file = save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
+    noise_file = Utils.save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
 
     func_file = save_to_cleaned_folder(func_data, header, no_ext_file, participant,
                                        f'Removed noise volume from {config.noise_volume_location.lower()} of timeseries')
@@ -138,7 +127,7 @@ def save_to_cleaned_folder(data, header, no_ext_file, participant, method):
         f.seek(0)  # Go to start of file
         f.write(f'{no_ext_file}: {method}\n')
 
-    data = save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+    data = Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
 
     return data
 
@@ -180,7 +169,7 @@ def prepare_statmap_files(file, no_ext_file, output_folder, participant):
 
     # Save original copy of file which may be overwritten later, however allows this folder to always be used
     data, header = Utils.load_brain(file)
-    save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+    Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
 
     if config.noise_volume:
         file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder, participant)
@@ -297,76 +286,6 @@ def calculate_statistical_maps(participants, output_folder, file_location, func)
         Utils.join_processing_pool(pool, restart=False)
 
 
-def prepare_to_run_utility(participants, output_folder, file_location, func):
-    if config.multicore_processing:
-        pool = Utils.start_processing_pool()
-    else:
-        pool = None
-
-    if config.verbose:
-        print(f'\nSaving output in directory: {config.input_folder_name}/{output_folder}')
-
-    for participant, files in participants.items():
-        participant_dir = f"{participant}/{file_location}"
-
-        if config.verbose:
-            print(f"\nRunning '{func}' utility on participant: {participant_dir.split('/')[-2]}"
-                  f"\n      Running utility on {len(files)} files")
-
-        iterable = zip(files,
-                       itertools.repeat(participant_dir),
-                       itertools.repeat(output_folder),
-                       itertools.repeat(func),
-                       itertools.repeat(config))
-
-        if config.multicore_processing:
-            list(pool.starmap(run_utility, iterable))
-
-        else:
-            list(itertools.starmap(run_utility, iterable))
-
-    if config.multicore_processing:
-        Utils.join_processing_pool(pool, restart=False)
-
-
-def run_utility(file, participant_dir, output_folder, func, cfg):
-    global config
-    config = cfg
-
-    no_ext_file = Utils.strip_ext(file)
-    file = f"{participant_dir}/{file}"
-    base_sub_location = Path(participant_dir).parents[1]
-    participant_name = os.path.split(Path(participant_dir).parents[0])[1]
-
-    if config.verbose:
-        print(f'        Running utility on file: {no_ext_file}')
-
-    if func == 'Add Gaussian noise':
-        noise_value_csv = pd.read_csv(f'{base_sub_location}/noiseValues.csv')
-        participant_noise_level = float(
-            noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise over time'])
-        add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level)
-
-
-def add_noise_to_file(file, no_ext_file, participant_dir, output_folder, participant_noise_level):
-    data, header = Utils.load_brain(file)
-
-    # Save initial data with no added noise
-    save_brain(data, ext=f'_noiselevel0', no_ext_file=no_ext_file,
-               output_folder=f"{participant_dir}/{output_folder}", header=header)
-
-    for multiplier in config.noise_multipliers:
-        gaussian_noise = np.random.default_rng().normal(loc=0.0,
-                                                        scale=participant_noise_level * multiplier,
-                                                        size=data.shape)
-
-        noisy_data = data + gaussian_noise
-        noisy_data[noisy_data < 0] = 0  # Set values below 0 to 0
-
-        save_brain(noisy_data, ext=f'_noiselevel{multiplier}', no_ext_file=no_ext_file,
-                   output_folder=f"{participant_dir}/{output_folder}", header=header)
-
-
 def main(func, version, config_file, path=None):
     global config, config_path, config_filename
 
@@ -392,12 +311,22 @@ def main(func, version, config_file, path=None):
         print('"Noise volume included in time series" is false. Trying to find values for each participant in '
               'noiseValues.csv instead. If this is not correct, set "Noise volume included in time series" to true.\n')
 
-    participants, output_folder, file_location = file_setup(func)
+    if func in ['Add Gaussian noise', 'Add motion']:
+        print('\n--------------------------------\n'
+              '-------- Running utility --------\n'
+              '--------------------------------\n'
+              f'\nRunning {func} utility.\n')
 
-    if func in ['Add Gaussian noise']:
-        prepare_to_run_utility(participants, output_folder, file_location, func)
+        HOUSE(config, func)
 
     else:
+        if config.verbose:
+            print('\n--------------------------------\n'
+                  '--- Statistical map creation ---\n'
+                  '--------------------------------\n'
+                  f'\nCreating {func} maps.\n')
+
+        participants, output_folder, file_location = statmap_file_setup(func)
         calculate_statistical_maps(participants, output_folder, file_location, func)
 
     if config.verbose:
