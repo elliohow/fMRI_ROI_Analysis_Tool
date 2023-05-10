@@ -58,30 +58,31 @@ def calculate_sigma_in_volumes(file_path):
 def temporalSNR_calc(file, no_ext_file, output_folder):
     fsl.maths.MeanImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
-    fsl.maths.StdImage(in_file=file, out_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz').run()  # Standard dev over time
+    fsl.maths.StdImage(in_file=file,
+                       out_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz').run()  # Standard dev over time
 
     # tMean / tStd
     fsl.maths.BinaryMaths(operation='div', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
-                      operand_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz',
-                      out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
+                          operand_file=f'{output_folder}/{no_ext_file}_tStd.nii.gz',
+                          out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
 
     # Threshold volume so any tSNR values above 1000 are set to 0
     fsl.maths.Threshold(in_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz', thresh=1000.0, direction='above',
-                    out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
+                        out_file=f'{output_folder}/{no_ext_file}_tSNR.nii.gz').run()
 
 
 def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant_dir):
-    fsl.maths.MeanImage(in_file=func_file, out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
-
-    if config.iSNR_std_use_only_nonzero_voxels:
-        std_string = '-S'
-    else:
-        std_string = '-s'
+    fsl.maths.MeanImage(in_file=func_file,
+                        out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()  # Mean over time
 
     if config.noise_volume:
-        std = fsl.ImageStats(in_file=noise_file, op_string=std_string,
-                         terminal_output='allatonce').run()  # Std dev of entire volume
-        noise_value = std.outputs.get()['out_stat']
+        file, _ = Utils.load_brain(noise_file)
+
+        # Std dev of entire volume
+        if config.iSNR_std_use_only_nonzero_voxels:
+            noise_value = file[file != 0].std()
+        else:
+            noise_value = file.std()
 
     else:
         base_sub_location = Path(participant_dir).parents[0]
@@ -92,9 +93,9 @@ def imageSNR_calc(func_file, noise_file, no_ext_file, output_folder, participant
 
     # tMean / Std
     fsl.maths.BinaryMaths(operation='div',
-                      in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
-                      operand_value=noise_value,
-                      out_file=f'{output_folder}/{no_ext_file}_iSNR.nii.gz').run()
+                          in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
+                          operand_value=noise_value,
+                          out_file=f'{output_folder}/{no_ext_file}_iSNR.nii.gz').run()
 
     if config.magnitude_correction:
         magnitude_correction(f'{output_folder}/{no_ext_file}_iSNR.nii.gz')
@@ -104,30 +105,12 @@ def magnitude_correction(file_name):
     fsl.maths.BinaryMaths(in_file=file_name, operation='mul', operand_value=0.7, out_file=file_name).run()
 
 
-def separate_noise_from_func(file, no_ext_file, output_folder, participant):
-    data, header = Utils.load_brain(file)
-
-    if config.noise_volume_location == 'End':
-        noise_data, func_data = data[:, :, :, -1], data[:, :, :, :-1]
-    elif config.noise_volume_location == 'Beginning':
-        noise_data, func_data = data[:, :, :, 0], data[:, :, :, 1:]
-    else:
-        raise Exception('Noise volume location not valid.')
-
-    noise_file = Utils.save_brain(noise_data, '_noise_volume', no_ext_file, output_folder, header)
-
-    func_file = save_to_cleaned_folder(func_data, header, no_ext_file, participant,
-                                       f'Removed noise volume from {config.noise_volume_location.lower()} of timeseries')
-
-    return func_file, noise_file
-
-
-def save_to_cleaned_folder(data, header, no_ext_file, participant, method):
-    with open(f'{participant}/{config.input_folder_name}_cleaned/changes_made_to_files.txt', 'a+') as f:
+def save_to_preprocessed_folder(data, header, no_ext_file, participant, method):
+    with open(f'{participant}/{config.input_folder_name}_preprocessed/changes_made_to_files.txt', 'a+') as f:
         f.seek(0)  # Go to start of file
         f.write(f'{no_ext_file}: {method}\n')
 
-    data = Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+    data = Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_preprocessed', header)
 
     return data
 
@@ -138,12 +121,12 @@ def highpass_filtering(file_path, output_folder, no_ext_file):
     fsl.maths.MeanImage(in_file=f'{file_path}', out_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz').run()
 
     fsl.TemporalFilter(in_file=f'{file_path}',
-                   out_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
-                   highpass_sigma=sigma_in_volumes).run()
+                       out_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
+                       highpass_sigma=sigma_in_volumes).run()
 
     fsl.maths.BinaryMaths(operation='add', in_file=f'{output_folder}/{no_ext_file}_tMean.nii.gz',
-                      operand_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
-                      out_file=f'{output_folder}/{no_ext_file}_filtered_restoredmean.nii.gz').run()
+                          operand_file=f'{output_folder}/{no_ext_file}_filtered.nii.gz',
+                          out_file=f'{output_folder}/{no_ext_file}_filtered_restoredmean.nii.gz').run()
 
     return f'{output_folder}/{no_ext_file}_filtered_restoredmean.nii.gz', \
            f'{output_folder}/{no_ext_file}_filtered.nii.gz'
@@ -169,11 +152,15 @@ def prepare_statmap_files(file, no_ext_file, output_folder, participant):
 
     # Save original copy of file which may be overwritten later, however allows this folder to always be used
     data, header = Utils.load_brain(file)
-    Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_cleaned', header)
+    Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_preprocessed', header)
 
     if config.noise_volume:
-        file, noise_file = separate_noise_from_func(file, no_ext_file, output_folder, participant)
-        redundant_files.append(noise_file)
+        file = f'{participant}/func_volumes/{no_ext_file}.nii.gz'
+        noise_file = f'{participant}/noise_volume/{no_ext_file}_noise_volume.nii.gz'
+
+        if not os.path.exists(file) or not os.path.exists(noise_file):
+            raise FileNotFoundError('Could not find separate noise and functional volumes. '
+                                    'Run the "separate noise volumes" utility to create these files.')
 
     if config.remove_motion_outliers:
         file, outlier_timepoints, outlier_files = remove_motion_outliers(file, no_ext_file, output_folder, participant)
@@ -187,7 +174,7 @@ def prepare_statmap_files(file, no_ext_file, output_folder, participant):
         file = output
 
         data, header = Utils.load_brain(file)
-        file = save_to_cleaned_folder(data, header, no_ext_file, participant, 'Motion corrected data')
+        file = save_to_preprocessed_folder(data, header, no_ext_file, participant, 'Motion corrected data')
 
     if config.spatial_smoothing:
         fsl.SUSAN(in_file=file, fwhm=config.smoothing_fwhm, brightness_threshold=config.smoothing_brightness_threshold,
@@ -223,7 +210,7 @@ def remove_motion_outliers(file, no_ext_file, output_folder, participant):
     data = np.delete(data, outlier_timepoints, axis=3)
 
     # Save copy of motion outlier removed files as it may make registration better during main analysis
-    file = save_to_cleaned_folder(data, header, no_ext_file, participant, 'Removed motion outlier timepoints')
+    file = save_to_preprocessed_folder(data, header, no_ext_file, participant, 'Removed motion outlier timepoints')
 
     return file, [no_ext_file, len(outlier_timepoints)], [outlier_file, outlier_plot, outlier_values]
 
@@ -262,7 +249,11 @@ def calculate_statistical_maps(participants, output_folder, file_location, func)
             print(f'\nCreating statistical maps for participant: {participant_dir.split("/")[-1]}'
                   f'\n      Creating statmaps for {len(files)} files')
 
-        Utils.check_and_make_dir(f'{participant_dir}/{config.input_folder_name}_cleaned', delete_old=True)
+        Utils.check_and_make_dir(f'{participant_dir}/{config.input_folder_name}_preprocessed', delete_old=True)
+
+        # Save blank txt file
+        with open(f'{participant_dir}/{config.input_folder_name}_preprocessed/changes_made_to_files.txt', 'w') as f:
+            f.write('')
 
         iterable = zip(files,
                        itertools.repeat(participant_dir),
@@ -299,19 +290,13 @@ def main(func, version, config_file, path=None):
     # Load config file
     config = Utils.load_config(config_path, config_file, path=path)
 
-    if config.verbose:
-        print('\n--------------------------------\n'
-              '--- Statistical map creation ---\n'
-              '--------------------------------\n'
-              f'\nCreating {func} maps.\n')
-
     logging.getLogger('nipype.workflow').setLevel(0)  # Suppress workflow terminal output
 
     if func == 'Image SNR' and not config.noise_volume and config.verbose:
         print('"Noise volume included in time series" is false. Trying to find values for each participant in '
               'noiseValues.csv instead. If this is not correct, set "Noise volume included in time series" to true.\n')
 
-    if func in ['Add Gaussian noise', 'Add motion']:
+    if func in ['Add Gaussian noise', 'Add motion', 'Separate noise volumes']:
         print('\n--------------------------------\n'
               '-------- Running utility --------\n'
               '--------------------------------\n'

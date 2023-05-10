@@ -101,17 +101,16 @@ After inspecting the settings, to create the tSNR maps return to the home screen
 "Statistical maps" section, select "Temporal SNR" from the dropdown menu then click "Make maps". A file explorer will
 appear allowing you to navigate to the base folder where your subject folders are located. After selecting this base
 folder, tSNR maps for each functional volume will be calculated and placed into the ``statmaps`` folder. During
-creation of the maps, the folder ``func_cleaned`` will be created, which contains functional volumes better suited to be
-used for the ROI analysis.
+creation of the maps, the folder ``func_preprocessed`` will be created, which contains functional volumes better suited
+to be used for the ROI analysis.
 
 .. image:: ../images/input_folder_statistics.png
     :width: 300
 
 .. note::
-    The ``changes_made_to_files.txt`` contain details of how the files have been cleaned. While ``func_cleaned`` is the
-    default folder that the ROI analysis will search for function volumes in, if you are unhappy with using
-    these files over the original files, this option can be changed using the ``Input folder name``
-    setting on the analysis screen of the GUI.
+    The ``changes_made_to_files.txt`` contain details of how the files have been preprocessed. While
+    ``func_preprocessed`` is the default folder that the ROI analysis will search for functional volumes in.
+    This option can be changed using the ``Input folder name`` setting on the analysis screen of the GUI.
 
 Running the ROI analysis
 ------------------------

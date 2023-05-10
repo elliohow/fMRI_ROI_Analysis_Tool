@@ -92,12 +92,12 @@ Analysis = {
                      ],
                      'Description': ''},
 
-    'input_folder_name': {'type': 'Entry', 'Recommended': "func_cleaned", 'save_as': 'string',
+    'input_folder_name': {'type': 'Entry', 'Recommended': "func_preprocessed", 'save_as': 'string',
                           'Description': 'Folder found in each subjects directory containing the files to be analysed. '
-                                         'func_cleaned is the default option as this folder will automatically be '
+                                         'func_preprocessed is the default option as this folder will automatically be '
                                          'created when making statmaps. If the "Noise volume included in time series" '
                                          'option was set to true, or motion outlier removal was used when creating '
-                                         'the statmaps, this folder will contain cleaned versions of the original func '
+                                         'the statmaps, this folder will contain preprocessed versions of the original func '
                                          'files. However if these options were not used when creating the statmaps, '
                                          'the folder will still be present, however the files will be identical to '
                                          'those in the "func" folder.'},

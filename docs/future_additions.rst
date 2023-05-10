@@ -65,4 +65,4 @@ Statistics
 
 Statmaps
 ========
-* Handle the func_cleaned folder more elegantly, currently its replaced each time statmaps are created
+* Handle the func_preprocessed folder more elegantly, currently it is replaced each time statmaps are created

@@ -3,27 +3,45 @@ import pandas as pd
 
 from fRAT.utils import Utils
 
+UTILITY_NAME = "Add Gaussian noise"
+FOLDER_NAME = "added_noise"
 
-def add_noise_to_file(config, file, no_ext_file, project_root, participant_name, participant_dir, output_folder):
-    # Get noise level for participant
-    noise_value_csv = pd.read_csv(f'{project_root}/noiseValues.csv')
-    participant_noise_level = float(noise_value_csv[noise_value_csv['Participant'] == participant_name]['Noise over time'])
 
-    # Load brain
-    data, header = Utils.load_brain(file)
+def run(*args, **kwargs):
+    AddNoise(*args, **kwargs)
 
-    # Save initial data with no added noise
-    Utils.save_brain(data, ext=f'_noiselevel0', no_ext_file=no_ext_file,
-                     output_folder=f"{participant_dir}/{output_folder}", header=header)
 
-    # Apply noise multiplier to gaussian noise
-    for multiplier in config.noise_multipliers:
-        gaussian_noise = np.random.default_rng().normal(loc=0.0,
-                                                        scale=participant_noise_level * multiplier,
-                                                        size=data.shape)
+class AddNoise:
+    def __init__(self, *args, **kwargs):
+        self.config = args[0]
+        self.file = args[1]
+        self.no_ext_file = args[2]
+        self.project_root = args[3]
+        self.participant_name = args[4]
+        self.participant_dir = args[5]
+        self.output_folder = args[6]
 
-        noisy_data = data + gaussian_noise
-        noisy_data[noisy_data < 0] = 0  # Set values below 0 to 0
+        self.data, self.header = Utils.load_brain(self.file)
+        self.add_noise_to_file()
 
-        Utils.save_brain(noisy_data, ext=f'_noiselevel{multiplier}', no_ext_file=no_ext_file,
-                         output_folder=f"{participant_dir}/{output_folder}", header=header)
+    def add_noise_to_file(self):
+        # Get noise level for participant
+        noise_value_csv = pd.read_csv(f'{self.project_root}/noiseValues.csv')
+        participant_noise_level = float(
+            noise_value_csv[noise_value_csv['Participant'] == self.participant_name]['Noise over time'])
+
+        # Save initial data with no added noise
+        Utils.save_brain(self.data, ext=f'_noiselevel0', no_ext_file=self.no_ext_file,
+                         output_folder=f"{self.participant_dir}/{self.output_folder}", header=self.header)
+
+        # Apply noise multiplier to gaussian noise
+        for multiplier in self.config.noise_multipliers:
+            gaussian_noise = np.random.default_rng().normal(loc=0.0,
+                                                            scale=participant_noise_level * multiplier,
+                                                            size=self.data.shape)
+
+            noisy_data = self.data + gaussian_noise
+            noisy_data[noisy_data < 0] = 0  # Set values below 0 to 0
+
+            Utils.save_brain(noisy_data, ext=f'_noiselevel{multiplier}', no_ext_file=self.no_ext_file,
+                             output_folder=f"{self.participant_dir}/{self.output_folder}", header=self.header)

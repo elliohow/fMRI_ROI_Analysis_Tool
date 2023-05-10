@@ -179,7 +179,7 @@ class GUI:
         self.statmap_run_frame.configure(text='Run', font=self.heading_font)
         self.format_frame(self.statmap_run_frame, borderwidth=1)
 
-        statmap_options = ('Image SNR', 'Temporal SNR', 'Add Gaussian noise')
+        statmap_options = ('Image SNR', 'Temporal SNR', 'Add Gaussian noise', 'Add motion', 'Separate noise volumes')
         state = tk.StringVar()
         state.set(statmap_options[1])
         self.statmap_option = tk.OptionMenu(self.statmap_run_frame, state, *statmap_options)

@@ -76,15 +76,12 @@ Statistical_maps = {
     'noise_volume': {'type': 'CheckButton', 'Recommended': 'false', 'label': 'Noise volume included in time series',
                      'Description': 'true or false. Select true if a noise volume has been collected as part of the fMRI '
                                     'time series.\n'
-                                    'NOTE: If true, the noise volume in the time series will be separated from the '
-                                    'functional volumes and will be placed into the folder "func_noiseVolumeRemoved".\n'
+                                    'If true, the noise volume in the time series will be separated from the '
+                                    'functional volumes and will be placed into the folder "noise_volume", and the '
+                                    'functional volumes will be placed into the "func_volumes" folder. '
                                     'If "noise volume" is true and "noise value" is not none, the noise volume '
-                                    'will be used in image SNR calculation rather than the user defined noise value.'},
-
-    'noise_volume_location': {'type': 'OptionMenu', 'Recommended': 'End', 'Options': ['Beginning', 'End'],
-                              'save_as': 'string',
-                              'Description': "'max' to select number of cores available on the system, alternatively "
-                                             "an int to manually select number of cores to use. Recommended: 'max'"},
+                                    'will be used in image SNR calculation rather than the user defined noise value.\n'
+                                    'NOTE: Use the "separate noise volume" utility before creating image SNR maps.'},
 
     'iSNR_std_use_only_nonzero_voxels': {'type': 'CheckButton', 'Recommended': 'true',
                                          'label': 'Use only nonzero voxels for iSNR calc',
@@ -114,8 +111,15 @@ Statistical_maps = {
                                                'even if a noise value has been provided in this file.'},
 
     'noise_multipliers': {'type': 'Entry', 'Recommended': 1, 'save_as': 'list', 'label': 'Noise multiplier(s)',
-                          'Description': "Provide a comma-separated list of multipliers for the standard deviation of "
-                                         "the gaussian noise to plot e.g. '1, 5'. A separate file will be produced for each multiplier."
-                                         "\nNOTE: Noise has a gaussian distribution, with a mean of 0 and a "
-                                         "standard deviation of the noise level of each participant * multiplier."}
+                          'Description': "Provide a comma-separated list of multipliers, "
+                                         "e.g. '1, 5'. A separate file will be produced for each multiplier."
+                                         "\nNOTE: Added has a gaussian distribution, with a mean of 0 and a "
+                                         "standard deviation of the noise level of each participant * multiplier."},
+
+    'motion_multipliers': {'type': 'Entry', 'Recommended': 1, 'save_as': 'list', 'label': 'Motion multiplier(s)',
+                           'Description': "Provide a comma-separated list of multipliers, "
+                                          "e.g. '1, 5'. A separate file will be produced for each multiplier."
+                                          "\nNOTE: Added motion has a gaussian distribution, with a mean of 0 and a "
+                                          "standard deviation of the average rotation/translation of each "
+                                          "participant * multiplier."},
 }
