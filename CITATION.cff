@@ -1,0 +1,44 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Howley
+  given-names: Elliot
+  orcid: "https://orcid.org/0000-0002-3868-2516"
+- family-names: Francis
+  given-names: Susan
+  orcid: "https://orcid.org/0000-0003-0903-7507"
+- family-names: Schluppeck
+  given-names: Denis
+  orcid: "https://orcid.org/0000-0002-0634-7713"
+contact:
+- family-names: Howley
+  given-names: Elliot
+  orcid: "https://orcid.org/0000-0002-3868-2516"
+doi: 10.5281/zenodo.7877605
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Howley
+    given-names: Elliot
+    orcid: "https://orcid.org/0000-0002-3868-2516"
+  - family-names: Francis
+    given-names: Susan
+    orcid: "https://orcid.org/0000-0003-0903-7507"
+  - family-names: Schluppeck
+    given-names: Denis
+    orcid: "https://orcid.org/0000-0002-0634-7713"
+  date-published: 2023-05-11
+  doi: 10.21105/joss.05200
+  issn: 2475-9066
+  issue: 85
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 5200
+  title: "fRAT: an interactive, Python-based tool for region-of-interest
+    summaries of functional imaging data"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.05200"
+  volume: 8
+title: "fRAT: an interactive, Python-based tool for region-of-interest
+  summaries of functional imaging data"
