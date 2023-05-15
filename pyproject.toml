@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "frat-brain"
-version = "1.4.0"
+version = "1.5.0"
 description = "Application for ROI fMRI data analysis."
 authors = ["Elliot Howley <elliohow@hotmail.com>"]
 readme = "README.md"
