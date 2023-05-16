@@ -42,11 +42,19 @@ Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 Using fRAT
 ----------
-Installation instructions for fRAT can be found `here <https://fmri-roi-analysis-tool.readthedocs.io/en/latest/installation.html>`_.
-Before running fRAT, it is also recommended that the fRAT and project dependency installation is tested. Information on how
+Installation instructions for `fRAT` can be found `here <https://fmri-roi-analysis-tool.readthedocs.io/en/latest/installation.html>`_.
+Before running `fRAT`, it is also recommended that the `fRAT` and project dependency installation is tested. Information on how
 to do this can also be found on the installation instructions page.
 
-To learn how to use fRAT, see this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
+To learn how to use `fRAT`, see this :doc:`tutorial </tutorials/Basic-ROI-analysis>`.
+
+Citation
+--------
+
+**When using fRAT, please include the following citation:**
+
+Howley, E., Francis, S., & Schluppeck, D. (2023). fRAT: an interactive, Python-based tool for region-of-interest summaries of functional imaging data. Journal of Open Source Software, 8(85), 5200. https://doi.org/10.21105/joss.05200
+
 
 Reporting bugs
 --------------
