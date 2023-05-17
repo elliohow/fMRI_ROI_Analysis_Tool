@@ -144,7 +144,7 @@ def create_statmaps(func, file, no_ext_file, noise_file, output_folder, particip
         temporalSNR_calc(file, no_ext_file, output_folder)
 
 
-def prepare_statmap_files(file, no_ext_file, output_folder, participant):
+def prepare_statmap_files(func, file, no_ext_file, output_folder, participant):
     noise_file = None
 
     redundant_files = []
@@ -154,7 +154,7 @@ def prepare_statmap_files(file, no_ext_file, output_folder, participant):
     data, header = Utils.load_brain(file)
     Utils.save_brain(data, '', no_ext_file, f'{participant}/{config.input_folder_name}_preprocessed', header)
 
-    if config.noise_volume:
+    if func == 'Image SNR' and config.noise_volume:
         file = f'{participant}/func_volumes/{no_ext_file}.nii.gz'
         noise_file = f'{participant}/noise_volume/{no_ext_file}_noise_volume.nii.gz'
 
@@ -226,7 +226,7 @@ def process_files_for_statmaps(file, participant, output_folder, file_location, 
     if config.verbose:
         print(f'        Analysing file: {no_ext_file}')
 
-    file, noise_file, redundant_files, outliers = prepare_statmap_files(file, no_ext_file, output_folder, participant)
+    file, noise_file, redundant_files, outliers = prepare_statmap_files(func, file, no_ext_file, output_folder, participant)
     create_statmaps(func, file, no_ext_file, noise_file, output_folder, participant)
 
     delete_files(redundant_files)

@@ -9,19 +9,23 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+import toml
+pyproject_path = "../pyproject.toml"
+pyproject_dict = toml.load(pyproject_path)
 
 project = 'fRAT'
 copyright = '2022, Elliot Howley'
 author = 'Elliot Howley'
 
-frat_version = "1.5.0"
+frat_version = pyproject_dict['tool']['poetry']['version']
 python_version = "3.10"
 fsl_version = "6.0.6.2"
 
