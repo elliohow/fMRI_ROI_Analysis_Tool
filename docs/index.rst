@@ -33,7 +33,7 @@ converting voxelwise maps into ROI-wise maps. An installation of FSL is required
 Project repository: https://github.com/elliohow/fMRI_ROI_Analysis_Tool
 
 .. note::
-    fRAT is written using Python version |python_version| for **MacOS, Linux and WSL2** and tested with FSL |fsl_version|.
+    fRAT |frat_version| is written using Python version |python_version| for **MacOS, Linux and WSL2** and tested with FSL |fsl_version|.
 
 .. figure:: images/ROI_example.png
 
