@@ -10,6 +10,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import toml
+
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
@@ -17,7 +19,6 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import toml
 pyproject_path = "../pyproject.toml"
 pyproject_dict = toml.load(pyproject_path)
 

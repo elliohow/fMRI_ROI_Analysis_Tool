@@ -153,6 +153,10 @@ class Utils:
                 if line.startswith('#') and not line.startswith('##'):
                     current_section = line.replace('#', '')[1:-1]
 
+                if not line.startswith(('#', '\n')):
+                    # Remove parameter help text
+                    line = f"{line.split('#')[0]}\n"
+
                 if relevant_sections == 'all':
                     f.write(line)
                 elif current_section in relevant_sections:
