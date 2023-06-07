@@ -1,7 +1,3 @@
-import toml
-import pathlib
+import importlib.metadata
 
-pyproject_path = f"{pathlib.Path(__file__).parents[1].resolve()}/pyproject.toml"
-pyproject_dict = toml.load(pyproject_path)
-
-__version__ = pyproject_dict['tool']['poetry']['version']
+__version__ = importlib.metadata.version("frat-brain")

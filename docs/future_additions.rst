@@ -43,6 +43,7 @@ Analysis
     - Currently output folder is deleted when rerunning analysis due to mcf files
     - Need to find a way to deal with files which have now been set to ignore in paramValues.csv
     - Need to also force the analysis to rerun if parameter values have changed
+* Increase clarity of output files
 
 
 Figures
