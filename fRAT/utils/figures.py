@@ -468,14 +468,16 @@ class ViolinPlot(Figures):
                   + pltn.ylim(0, None)
                   + pltn.ylab(cls.config.table_x_label)
                   + pltn.xlab("")
-                  + pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True,
-                                    labeller="label_both")
                   + pltn.theme_538()  # Set theme
                   + pltn.theme(panel_grid_major_y=pltn.themes.element_line(alpha=1),
                                panel_grid_major_x=pltn.themes.element_line(alpha=0),
                                panel_background=pltn.element_rect(fill="gray", alpha=0.1),
                                axis_text_x=pltn.element_blank(),
                                dpi=cls.config.plot_dpi))
+
+        if cls.config.table_rows or cls.config.table_cols:
+            figure += pltn.facet_grid(f'{cls.config.table_rows}~{cls.config.table_cols}', drop=True,
+                              labeller="label_both")
 
         if cls.config.violin_show_data:
             if cls.config.violin_jitter:
@@ -499,7 +501,10 @@ class Barchart(Figures):
     @classmethod
     def setup(cls, df, pool):
         if cls.config.single_roi_fig_x_axis == '':
-            raise Exception('Parameter to plot along the x-axes of the barcharts has not been set.')
+            print('\nParameter to plot along the x axis of the barcharts has not been set. Skipping barchart creation. '
+                  '\nChange this setting from the plotting menu.')
+
+            return
 
         Utils.check_and_make_dir("Figures/Barcharts")
 
@@ -629,14 +634,17 @@ class Histogram(Figures):
                      Utils.find_files("Overall/Raw_results", "json")]
             combined_raw_df = cls.load_and_restructure_jsons(cls.config, jsons, combined_df, data_type='plotting')
 
-            combined_raw_dfs = []
+            separated_roi_dfs = []
+            separated_roi_averages = []
             for roi in chosen_rois:
-                combined_raw_dfs.append(
-                    cls.get_mean_and_median_for_each_chosen_roi(roi, combined_raw_df, combined_df))
+                roi_df, df_averages = cls.get_mean_and_median_for_each_chosen_roi(roi, combined_raw_df, combined_df)
+
+                separated_roi_dfs.append(roi_df)
+                separated_roi_averages.append(df_averages)
 
             xlim = 0
             while True:
-                iterable = zip(itertools.repeat(cls.make), chosen_rois, combined_raw_dfs,
+                iterable = zip(itertools.repeat(cls.make), chosen_rois, separated_roi_dfs, separated_roi_averages,
                                itertools.repeat(xlim), itertools.repeat(cls.figure_save),
                                itertools.repeat(cls.find_axis_limit), itertools.repeat(cls.config))
 
@@ -666,7 +674,7 @@ class Histogram(Figures):
         # Set up the df for each chosen roi
 
         if thisroi == "No ROI":
-            return pd.DataFrame()
+            return pd.DataFrame(), []
         elif thisroi == "Overall":
             current_df = combined_raw_df.copy()
             current_df['ROI'] = "Overall"
@@ -692,31 +700,28 @@ class Histogram(Figures):
             if column not in keys:
                 current_df = current_df.drop(columns=column)
 
-        current_df = pd.melt(current_df, id_vars=keys[:-2], var_name="Statistic",
-                             value_vars=["Mean", "Median"], value_name="stat_value")  # Put df into tidy format
+        average = None
+        if cls.config.histogram_stat == 'Mean':
+            average = current_df['Mean'][0]
 
-        if cls.config.histogram_show_mean and not cls.config.histogram_show_median:
-            current_df = current_df.loc[current_df["Statistic"] == "Mean"]
-        elif cls.config.histogram_show_median and not cls.config.histogram_show_mean:
-            current_df = current_df.loc[current_df["Statistic"] == "Median"]
+        if cls.config.histogram_stat == 'Median':
+            average = current_df['Median'][0]
 
-        return current_df
+        return current_df, average
 
     @staticmethod
-    def make(thisroi, combined_raw_df, xlimit, save_function, find_xlim_function, config):
-        if combined_raw_df.empty:
+    def make(thisroi, roi_df, average, xlimit, save_function, find_xlim_function, config):
+        if roi_df.empty:
             if config.verbose:
                 print('INFO: Histograms cannot be made for the No ROI category.')
             return
         else:
             figure = (
-                    pltn.ggplot(combined_raw_df, pltn.aes(x="voxel_value"))
+                    pltn.ggplot(roi_df, pltn.aes(x="voxel_value"))
                     + pltn.theme_538()
                     + pltn.geom_histogram(binwidth=config.histogram_binwidth, fill=config.histogram_fig_colour,
                                           boundary=0,
                                           na_rm=True)  # Boundary centers the bars, na_rm cancels error from setting an xlimit
-                    + pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
-                                      drop=True, labeller="label_both")
                     + pltn.labs(x=config.histogram_fig_label_x, y=config.histogram_fig_label_y)
                     + pltn.theme(
                 panel_grid_minor_x=pltn.themes.element_line(alpha=0),
@@ -734,16 +739,15 @@ class Histogram(Figures):
             )
             )
 
-            # Display mean or median as vertical lines on plot
-            if config.histogram_show_mean or config.histogram_show_median:
-                figure += pltn.geom_vline(pltn.aes(xintercept="stat_value", color="Statistic"),
-                                          size=config.histogram_stat_line_size)
-                figure += pltn.scale_color_manual(values=[config.colorblind_friendly_plot_colours[3],
-                                                          config.colorblind_friendly_plot_colours[1]])
+            if config.histogram_fig_y_facet or config.histogram_fig_x_facet:
+                figure += pltn.facet_grid(f"{config.histogram_fig_y_facet}~{config.histogram_fig_x_facet}",
+                                          drop=True, labeller="label_both")
 
-            # Display legend for mean and median
-            if not config.histogram_show_legend:
-                figure += pltn.theme(legend_position='none')
+            # Display mean or median as vertical lines on plot
+            if average:
+                figure += pltn.geom_vline(xintercept=average,
+                                          colour=config.colorblind_friendly_plot_colours[1],
+                                          size=config.histogram_stat_line_size,)
 
             if xlimit:
                 # Set y limit of figure (used to make it the same for every barchart)

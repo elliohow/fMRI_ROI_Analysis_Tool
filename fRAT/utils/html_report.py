@@ -117,8 +117,11 @@ def str_format(string):
                      ("same_xlim", ""),
                      ('_', ' '))
 
-    for char in replace_chars:
-        string = string.replace(char[0], char[1])
+    try:
+        for char in replace_chars:
+            string = string.replace(char[0], char[1])
+    except AttributeError:
+        return string
 
     return string
 
@@ -131,7 +134,10 @@ def plot_figs(figure_type, figures):
         length = len(figure_type)
 
     for fig in figures:
-        fig_name = os.path.split(str_format(fig))[1][:-(length+3)]  # Format name for better presentation
+        try:
+            fig_name = os.path.split(str_format(fig))[1][:-(length+3)]  # Format name for better presentation
+        except TypeError:
+            fig_name = 'Error: Plotting was stopped before completion.'
 
         l = tr()
         l.add(td(a(h4(str_format(fig_name)), href=f"../{fig}")))  # Add plot title

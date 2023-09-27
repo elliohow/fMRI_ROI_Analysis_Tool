@@ -278,6 +278,8 @@ class Utils:
 
             if column_loc:
                 critical_column_locs.append(column_loc)
+            elif key == '':
+                critical_column_locs = None
             else:
                 raise Exception(f'Key "{key}" not found in {config.parameter_file}. Check the Critical Parameters '
                                 f'option in the Parsing menu (parameter_dict1 if not using the GUI) correctly match '

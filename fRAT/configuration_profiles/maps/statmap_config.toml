@@ -5,7 +5,7 @@ verbose = true                                                                  
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 base_folder = ''                                                                  # Either the absolute location of the folder containing the subjects or blank, if blank then a browser window will allow you to search for the files at runtime.
-input_folder_name = 'func'                                                        # Folder found in each subjects directory containing the files to be analysed.
+input_folder_name = 'motion_comp_func'                                            # Folder found in each subjects directory containing the files to be analysed.
 output_folder_name = 'DEFAULT'                                                    # Directory to save output. If set to DEFAULT, the default name for the statistical map created will be used. Recommended: DEFAULT
 
 ## High pass filtering
@@ -13,7 +13,7 @@ temporal_filter = true                                                          
 highpass_filter_cutoff = 0.01                                                     # Highpass filter cutoff frequency converted into sigma in seconds using the formula 1/(2*f*TR). Recommended: 0.01
 
 ## Motion correction
-remove_motion_outliers = true                                                     # true or false. Use fsl_motion_outliers to remove motion outliers(uses default fsl_motion_outliers settings). Recommended: true
+remove_motion_outliers = false                                                    # true or false. Use fsl_motion_outliers to remove motion outliers(uses default fsl_motion_outliers settings). Recommended: true
 motion_correction = true                                                          # true or false. Use MCFLIRT to motion correct volumes (uses default MCFLIRT settings). Recommended: true
 
 ## Spatial smoothing
@@ -23,7 +23,7 @@ smoothing_brightness_threshold = 2000.0                                         
 
 ## Image SNR calculation
 magnitude_correction = true                                                       # true or false. Correction factor of 0.7 applied when running iSNR calculations, to correct for Rayleigh distributed noise when using magnitude vs complex images.  Reference: Constantinides, C. D., Atalar, E., & McVeigh, E. R. (1997). Signal-to-Noise Measurements in Magnitude Images from NMR Phased Arrays.
-noise_volume = true                                                               # true or false. Select true if a noise volume has been collected as part of the fMRI time series. NOTE: If true, the noise volume in the time series will be separated from the functional volumes and will be placed into the folder "func_noiseVolumeRemoved". If "noise volume" is true and "noise value" is not none, the noise volume will be used in image SNR calculation rather than the user defined noise value.
+noise_volume = false                                                              # true or false. Select true if a noise volume has been collected as part of the fMRI time series. If true, the noise volume in the time series will be separated from the functional volumes and will be placed into the folder "noise_volume", and the functional volumes will be placed into the "func_volumes" folder. If "noise volume" is true and "noise value" is not none, the noise volume will be used in image SNR calculation rather than the user defined noise value. NOTE: Use the "separate noise volume" utility before creating image SNR maps.
 iSNR_std_use_only_nonzero_voxels = true                                           # true or false.
 
 ## Add Gaussian noise

@@ -364,7 +364,7 @@ class Participant:
                                    'finally learn the Brodmann areas',
                                    'read the Tidy Data paper by Hadley Wickham']
 
-                        print(f'Participant {self.participant_name} missing FSL FAST files. '
+                        print(f'{self.participant_name} missing FSL FAST files. '
                               f'Running FSL FAST (maybe {choice(phrases)}, this may take a while).')
 
                     # Need to change directory here to get around error caused by nipype trying to find fslfast output
@@ -998,12 +998,7 @@ class MatchedBrain:
     def find_shared_params(cls, participant_list):
         table, _ = Utils.load_paramValues_file()
 
-        if len(table.columns) == 4:
-            # Length will be equal to 4 if no parameters have been given
-            ignore_column_loc = 2
-            critical_column_locs = None
-        else:
-            ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
+        ignore_column_loc, critical_column_locs, _ = Utils.find_column_locs(table)
 
         matched_brains = dict()
         for row in table.itertuples(index=False):
@@ -1770,10 +1765,3 @@ def remove_outliers(outlier_bool_array, roi_temp_store):
         roi_temp_store[0, :] = np.nanmax(np.vstack((outlier_float_array, roi_temp_store[0, :])), axis=0)
 
     return roi_temp_store
-
-
-def json_search():
-    if len(json_file_list) == 0:
-        raise NameError('Folder selection error. Could not find json files in the "Summarised_results" directory.')
-    else:
-        return json_file_list

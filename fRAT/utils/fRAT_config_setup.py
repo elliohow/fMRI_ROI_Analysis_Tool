@@ -502,14 +502,12 @@ Plotting = {
     'histogram_stat_line_size': {'type': 'Entry', 'Recommended': 1.5, 'label': 'Statistic line size',
                                  'Description': ''},
 
-    'histogram_show_mean': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show mean',
-                            'Description': 'true or false.'},
-
-    'histogram_show_median': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show median',
-                              'Description': 'true or false.'},
-
-    'histogram_show_legend': {'type': 'CheckButton', 'Recommended': 'true', 'label': 'Show legend',
-                              'Description': 'true or false.'},
+    'histogram_stat': {'type': 'OptionMenu', 'Recommended': 'Mean',
+                          'Options': ['Mean', 'Median', 'None'],
+                          'save_as': 'string', 'label': 'Histogram stat line',
+                          'Description': 'Setting to choose whether to draw a line representing the mean or median on '
+                                         'the histogram. '
+                                         'Recommended: Mean.'},
 
     'histogram_fig_x_facet': {'type': 'Dynamic', 'Recommended': 'DEFAULT', 'label': 'x-axis facet',
                               'Options': 'Parsing["parameter_dict1"]',

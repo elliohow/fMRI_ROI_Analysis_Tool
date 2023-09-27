@@ -1263,18 +1263,16 @@ def parse_params_from_file_name(json_file_name, cfg=config):
 
         else:
             # Float search
-            param = re.search("{}[0-9][p|.][0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
+            param = re.search(f"{parameter}\d+(p\d+)?(?=[_.]|$)", json_file_name, flags=re.IGNORECASE)
+
             if param is not None:
-                param_nums.append(param[0][1] + "." + param[0][-1])
+                param = param[0].replace(parameter, '').lower()
+                param = param.replace('p', '.')  # replace p with .
 
-            # If float search didn't work then integer search
+                param_nums.append(param)
+
             else:
-                param = re.search("{}[0-9]".format(parameter), json_file_name, flags=re.IGNORECASE)
-                if param is not None:
-                    param_nums.append(param[0][-1])  # Extract the number from the parameter
-
-                else:
-                    param_nums.append(str(param))  # Save None if parameter not found in file name
+                param_nums.append(str(param))  # Save None if parameter not found in file name
 
         keys.append(key)
 
