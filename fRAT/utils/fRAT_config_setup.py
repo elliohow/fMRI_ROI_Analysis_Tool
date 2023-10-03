@@ -366,8 +366,8 @@ Parsing = {
 Plotting = {
     'General plot settings': {'type': 'subheading'},
 
-    'plot_dpi': {'type': 'Entry', 'Recommended': 600, 'label': 'Figure DPI',
-                 'Description': 'Recommended value 600'},
+    'plot_dpi': {'type': 'Entry', 'Recommended': 300, 'label': 'Figure DPI',
+                 'Description': 'Recommended value 300'},
 
     'plot_font_size': {'type': 'Entry', 'Recommended': 40, 'label': 'Figure font size',
                        'Description': 'Recommended value 30'},

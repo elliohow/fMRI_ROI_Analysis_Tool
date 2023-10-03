@@ -71,7 +71,7 @@ parsing_folder = 'func'                                                         
 # Plotting
 
 ## General plot settings
-plot_dpi = 450                                                                    # Recommended value 450
+plot_dpi = 300                                                                    # Recommended value 300
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
 make_violin_plot = true                                                           # true or false.
