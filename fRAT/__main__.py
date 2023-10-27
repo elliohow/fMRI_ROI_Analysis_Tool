@@ -1167,8 +1167,11 @@ def create_statistics_file(directory=''):
         # Go back to base folder if report folder is selected
         directory += '/..'
 
-    data = []
+    if config.parameter_dict1 == ['']:
+        print('No independent variables given in parsing menu..')
+        return
 
+    data = []
     for parameter in config.parameter_dict1:
         data.append([parameter, 'Calculate main effect'])
 
