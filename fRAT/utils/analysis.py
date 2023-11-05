@@ -191,7 +191,8 @@ class Participant:
                 self.statmap_folder = os.path.split(statmap_folders[0])[1]
 
                 if config.verbose:
-                    print(f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
+                    print(
+                        f'Searching for {self.participant_name} statmaps in directory: statmaps/{self.statmap_folder}/\n')
 
     def setup_participant(self, environment_globals, cfg):
         global config
@@ -439,7 +440,7 @@ class Brain:
         self.stat_brain = f"{participant_folder}/statmaps/{statmap_folder}/{self.no_ext_brain}{config.stat_map_suffix}"
         self.mni_brain = f"{self.save_location}mni_to_{self.no_ext_brain}.nii.gz"
         self.roi_results = None
-        self.roi_temp_store = None
+        self.raw_results_loc = None
         self.roi_stat_list = ""
         self.file_list = []
         self.participant_name = participant_name
@@ -720,15 +721,14 @@ class Brain:
         #     roi_results = roi_stats_bootstrap(roi_temp_store, roi_results, roiNum, brain_number_current,
         #                                           brain_number_total)  # Bootstrapping
 
-        reformat_and_save_raw_data(roi_temp_store, self._labelArray,
-                                   self.save_location, self.parameters,
-                                   session_number=self.session_number)  # Save results
+        self.raw_results_loc = reformat_and_save_raw_data(roi_temp_store, self._labelArray,
+                                                          self.save_location, self.parameters,
+                                                          session_number=self.session_number)  # Save results
 
         self.save_roi_results(roi_results)
 
-        # Retain variables for atlas_scale function
+        # Retain variable for atlas_scale function
         self.roi_results = roi_results
-        self.roi_temp_store = roi_temp_store
 
     def save_roi_results(self, roi_results):
         headers = ['Voxels', 'Mean', 'Std_dev',
@@ -927,7 +927,8 @@ class Brain:
 
         # Multiply mni_to_fMRI with binary_mask_filled
         extra_cranial_voxels = fsl_functions(self, self.save_location, self.no_ext_brain, 'maths.BinaryMaths',
-                                             self.stat_brain, 'extra_cranial_voxels_', binary_mask, 'mul', 'Save to file list')
+                                             self.stat_brain, 'extra_cranial_voxels_', binary_mask, 'mul',
+                                             'Save to file list')
 
         extra_cranial_vox_volume, _ = Utils.load_brain(extra_cranial_voxels)
 
@@ -939,6 +940,7 @@ class Brain:
         roi_temp_store = remove_outliers(outlier_bool_array, roi_temp_store)
 
         return roi_results, roi_temp_store, noise_threshold
+
 
 class MatchedBrain:
     label_array = []
@@ -1026,7 +1028,8 @@ class MatchedBrain:
 
     @staticmethod
     def find_brain_object(row, participant_list):
-        participant = next((participant for participant in participant_list if participant.participant_name == row[0]), None)
+        participant = next((participant for participant in participant_list if participant.participant_name == row[0]),
+                           None)
 
         if not participant:
             raise FileNotFoundError(f'Subject {row[0]} exists in {config.parameter_file} but no longer '
@@ -1048,8 +1051,11 @@ class MatchedBrain:
 
         self.save_location = f"{path}/{self.save_location}"
 
-        # Combine raw results
-        self.ungrouped_raw_results = np.concatenate(self.ungrouped_raw_results, axis=1)
+        # Load roi_temp_store results from binary numpy file and combine them
+        raw_results = []
+        for roi_temp_store in self.ungrouped_raw_results:
+            raw_results.append(np.load(roi_temp_store))
+        self.ungrouped_raw_results = np.concatenate(raw_results, axis=1)
 
         self.create_array_to_calculate_excluded_voxels()
 
@@ -1059,6 +1065,8 @@ class MatchedBrain:
         # Save results
         reformat_and_save_raw_data(self.ungrouped_raw_results, self.label_array,
                                    self.save_location, self.parameters)
+
+        del self.ungrouped_raw_results  # Clear numpy array from memory
 
         return self
 
@@ -1121,7 +1129,8 @@ class MatchedBrain:
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
-        with open(f"{self.save_location}/Summarised_results/Participant_averaged_results/{self.parameters}.json", 'w') as file:
+        with open(f"{self.save_location}/Summarised_results/Participant_averaged_results/{self.parameters}.json",
+                  'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
 
         self.participant_averaged_results = results_df.to_numpy()
@@ -1168,7 +1177,8 @@ class MatchedBrain:
 
         results_df = pd.DataFrame(index=pd.Index(row_labels), data=results, columns=self.label_array)
 
-        with open(f"{self.save_location}/Summarised_results/Session_averaged_results/{self.parameters}.json", 'w') as file:
+        with open(f"{self.save_location}/Summarised_results/Session_averaged_results/{self.parameters}.json",
+                  'w') as file:
             json.dump(results_df.to_dict(), file, indent=2)
 
         self.session_averaged_results = results_df.to_numpy()
@@ -1263,7 +1273,8 @@ class MatchedBrain:
 
         for scale_stat in scale_stats:
             if scale_stat[0] is not None:
-                type(scale_stat[0]) # todo: was getting error from np ndarray being dtype object, change type conversion to whatever is output by this
+                type(scale_stat[
+                         0])  # todo: was getting error from np ndarray being dtype object, change type conversion to whatever is output by this
                 scaled_brain = nib.Nifti1Image(np.float64(scale_stat[0]), affine)
                 scaled_brain.to_filename(scale_stat[1])
 
@@ -1555,10 +1566,18 @@ def reformat_and_save_raw_data(roi_temp_store, labelArray, save_location, no_ext
     roidict = Utils.dataframe_to_dict(raw_results)
 
     raw_results_path = f"{save_location}Raw_results/"
+
     Utils.check_and_make_dir(raw_results_path)
+    Utils.check_and_make_dir(f"{raw_results_path}/numpy_arrays/", delete_old=False)
 
     with open(f"{raw_results_path}{no_ext_brain}{session_suffix}_raw.json", 'w') as file:
         json.dump(roidict, file, indent=2)
+
+    # Save roi_temp_store as binary numpy file to preserve space
+    numpy_array_loc = f"{raw_results_path}/numpy_arrays/{no_ext_brain}{session_suffix}_raw.npy"
+    np.save(numpy_array_loc, roi_temp_store)
+
+    return numpy_array_loc
 
 
 def verify_param_values():

@@ -142,7 +142,7 @@ def run_pooled_analysis(brain_list, matched_brains, config, pool):
             try:
                 if brain.no_ext_brain in parameter_comb.brains[brain.participant_name]:
                     parameter_comb.ungrouped_summarised_results.append(brain.roi_results)
-                    parameter_comb.ungrouped_raw_results.append(brain.roi_temp_store)
+                    parameter_comb.ungrouped_raw_results.append(brain.raw_results_loc)
                     parameter_comb.participant_grouped_summarised_results[brain.participant_name].append(brain.roi_results)
 
             except KeyError:

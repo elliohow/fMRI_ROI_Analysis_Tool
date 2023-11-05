@@ -1238,7 +1238,8 @@ def find_participant_dirs(base_directory, config):
     if len(participant_dirs) == 0:
         raise FileNotFoundError('Participant directories not found.\n'
                                 'Make sure participant directories are labelled e.g. sub-01 and the selected '
-                                'directory contains all participant directories.')
+                                'directory contains all participant directories.\n'
+                                'NOTE: Make sure participant directories are using a hyphen not an underscore.')
     elif config.verbose:
         print(f'Found {len(participant_dirs)} participant folders.')
 

@@ -22,6 +22,8 @@ General
 * Give user ability to find fRAT version
 * Print log of terminal output. This will allow the user to track where fRAT terminated in the case of a crash
 * Save path of last analysed folder so its easier to string together statmap creation and ROI analysis
+* Separation of noise volumes currently returns false positives
+* Add option to use atlases with the 25 or 50 probability threshold
 * (Potential) Add ability to analyse more than fMRI volumes (such as anatomical volumes)
 * (Potential) Add easy way load analysis results data so jupyter notebook can be used to explore the data with graphs/statistics
 
@@ -44,6 +46,7 @@ Analysis
     - Need to find a way to deal with files which have now been set to ignore in paramValues.csv
     - Need to also force the analysis to rerun if parameter values have changed
 * Increase clarity of output files
+* fRAT should check paramValues.csv before running anatomical file alignment to see if any subjects can be skipped
 
 
 Figures
