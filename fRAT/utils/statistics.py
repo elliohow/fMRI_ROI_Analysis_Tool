@@ -244,8 +244,10 @@ def find_baseline_parameters():
                              f'versus baseline.\n')
 
     else:
+        categorical_variables = [x.lower() for x in config.categorical_variables]
+
         for param, value in baseline_params[0].items():
-            if param in config.categorical_variables:
+            if param in categorical_variables:
                 baseline_params[0][param] = f'"{value}"'
 
         baseline_param_query = " & ".join(" == ".join((str(k), str(v))) for k, v in baseline_params[0].items())
