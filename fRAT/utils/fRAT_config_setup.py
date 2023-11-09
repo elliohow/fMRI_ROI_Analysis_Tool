@@ -257,6 +257,14 @@ Statistics = {
                                            'and which variables to take into account when balancing data for the main '
                                            'effect t test data.'},
 
+    'exclude_data': {'type': 'Dynamic', 'Recommended': '',
+                            'status': 'important',
+                            'Options': 'Parsing["parameter_dict1"]',
+                            'subtype': 'Entry',
+                            'save_as': 'list',
+                            'Description': 'Use this option to exclude data associated with a specific variable from '
+                                           'the statistical analysis. Should be in the same form as in paramValues.csv.'},
+
     'brain_map_p_thresh': {'type': 'Entry', 'Recommended': 0.05,
                            'label': 'Coefficient map p-threshold',
                            'Description': "P-value threshold to use when creating brain coefficient maps. "
@@ -276,15 +284,6 @@ Statistics = {
                 'label': 'IV type', 'status': 'important', 'DefaultNumber': 1,
                 'Description': 'Type of variable collected. Used to choose which t-test to use for pairwise '
                                'comparisons.'},
-
-    # 'glm_statistic': {'type': 'OptionMenu',
-    #                   'label': 'GLM statistic for overall effect',
-    #                   'Recommended': 'Mean',
-    #                   'Options': ['Mean', 'Median'],
-    #                   'save_as': 'string',
-    #                   'Description': 'Mean or Median.\nNote: this setting is only used when '
-    #                                  'looking at the overall effect, as statistics ran on individual ROIs will use raw '
-    #                                  'voxel values.'},
 
     'Linear mixed models': {'type': 'subheading'},
 

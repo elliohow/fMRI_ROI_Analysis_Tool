@@ -396,6 +396,8 @@ class Utils:
 
                     Utils.clean_config_options(config)
 
+                config.categorical_or_binary_vars = list(set(config.categorical_variables + config.binary_params))
+
                 if filename == 'test_config.toml':
                     # Set test config settings so files are retrieved from and outputted to the correct place
                     config.brain_file_loc = path

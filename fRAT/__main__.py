@@ -208,7 +208,11 @@ class GUI:
                     continue
 
                 elif line != '\n':
-                    setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
+                    if "exclude_data" in line:
+                        # Change regex for the "exclude_data" variable as string cannot be converted to list otherwise
+                        setting = [x.strip() for x in re.split(" = |\n|(?<!')#.*", line) if x]
+                    else:
+                        setting = [x.replace("'", "").strip() for x in re.split(" = |\[|\]|\n|(?<!')#.*", line) if x]
 
                     current_setting = Utils.convert_toml_input_to_python_object(setting[1])
 
@@ -482,7 +486,7 @@ class GUI:
                 pass
 
             if len(info['Current']) != len(text):
-                info['Current'] = info['Current'] * len(text)
+                info['Current'] = ['Between-subjects'] * len(text)
 
             for counter, value in enumerate(text):
                 widget = self.optionmenu_create(f"{name}_{value}", info, row, counter)
@@ -496,7 +500,7 @@ class GUI:
 
         elif info['subtype'] == 'Checkbutton':
             if info['Current'] == 'INCLUDE ALL VARIABLES':
-                info['Current'] = Parsing['parameter_dict1']['Current'].split(', ')
+                info['Current'] = info['Current'] = Parsing['parameter_dict1']['Current'].split(', ')
 
             for value in text:
                 widget = self.checkbutton_create(f"{name}_{value}", info, row)
@@ -505,6 +509,27 @@ class GUI:
                 dynamic_widgets = {**dynamic_widgets, **widget}
 
                 row += 1
+
+        elif info['subtype'] == 'Entry':
+            if info['Current'] == '':
+                info['Current'] = [''] * len(text)
+            elif len(info['Current']) != len(text):
+                info['Current'].extend([''] * (len(text) - len(info['Current'])))
+
+            row += 1
+            temp_current_entry = info['Current']
+            for counter, value in enumerate(text):
+                self.label_create(f"                {value} variables", row, info, fixed_name=True)
+                widget = self.entry_create(f"{name}_{value}", info, row)
+                [widget.delete(0, tk.END) for widget in widget.values()]
+                [widget.insert(0, temp_current_entry[counter]) for widget in widget.values()]
+
+                dynamic_widgets = {**dynamic_widgets, **widget}
+
+                row += 1
+
+            # Reassign info['Current'] as it is converted into a string during entry widget creation
+            info['Current'] = temp_current_entry
 
         return dynamic_widgets, row
 
@@ -682,11 +707,19 @@ class GUI:
                         eval(self.page)[params[0]]['Current'].append(
                             '')  # If list is empty, set first element to blank string
 
+            elif self.dynamic_widgets[widget].winfo_class() == 'Entry':
+                 params = widget.rsplit('_', 1)
+
+                 all_entry_widgets = [key for key in self.dynamic_widgets if params[0] in key]
+                 widget_index = next(index for index, string in enumerate(all_entry_widgets) if widget in string)
+
+                 eval(self.page)[params[0]]['Current'][widget_index] = self.dynamic_widgets[widget].get()
+
             else:
                 try:
                     eval(self.page)[widget]['Current'] = self.dynamic_widgets[widget].val.get()
                 except KeyError:
-                    # Will raise KeyError for OptionsMenu2
+                    # Will raise KeyError for OptionMenu2
                     current_widget = eval(self.page)[widget.rpartition('_')[0]]
 
                     if current_widget['label'] in current_options2_menu:
@@ -695,7 +728,7 @@ class GUI:
                         current_options2_menu[current_widget['label']] = []
 
                     current_widget['Current'][len(current_options2_menu[current_widget['label']])] = \
-                    self.dynamic_widgets[widget].val.get()
+                        self.dynamic_widgets[widget].val.get()
 
         for frame in self.frames:
             frame.destroy()

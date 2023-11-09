@@ -57,6 +57,8 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
     @classmethod
     def save_brain_imgs(cls, file_name, subfolder, vmax):
         # Save brain image using nilearn
+        warnings.filterwarnings("ignore", category=UserWarning)  # Turn off warning regarding nan values being converted to zeros
+        warnings.filterwarnings("ignore", category=FutureWarning)
         plot = plotting.plot_stat_map(f"{STATISTICS_PATH}/{subfolder}/NIFTI_ROI/{file_name}.nii.gz",
                                       draw_cross=False, annotate=False, colorbar=True,
                                       vmax=vmax, symmetric_cbar=True, cbar_tick_format="%.2f",
@@ -64,6 +66,8 @@ class Coefficient_map(MatchedBrain, Environment_Setup):
                                       cmap='seismic')
         plot.savefig(f"{STATISTICS_PATH}/{subfolder}/Images/{file_name}.png")
         plot.close()
+        warnings.filterwarnings("default", category=UserWarning)
+        warnings.filterwarnings("default", category=FutureWarning)
 
     @classmethod
     def create_images(cls, df, subfolder, standardise_cbar):
@@ -176,7 +180,8 @@ def clean_results(individual_roi_results, excluded_parameters, raw_data,
         session_count = len(individual_roi_results[roi])
         below_thresh_number = np.count_nonzero(individual_roi_results[roi]['voxel_amount'] < voxel_cutoff)
 
-        individual_roi_results[roi] = individual_roi_results[roi][individual_roi_results[roi]['voxel_amount'] > voxel_cutoff]
+        individual_roi_results[roi] = individual_roi_results[roi][
+            individual_roi_results[roi]['voxel_amount'] > voxel_cutoff]
 
         averaged_roi_results[roi] = averaged_roi_results[roi][averaged_roi_results[roi]['voxel_amount'] > voxel_cutoff]
 
@@ -198,7 +203,8 @@ def extract_statistics_options_info():
                                         statistics_options_table[statistics_options_table.isnull().all(1)].index)
 
     # Drop any blank rows
-    statistics_options_table = [df.dropna(how='all') for df in statistics_options_table if not df.dropna(how='all').empty]
+    statistics_options_table = [df.dropna(how='all') for df in statistics_options_table if
+                                not df.dropna(how='all').empty]
 
     main_effect_parameters = {}
     simple_effect_parameters = {}
@@ -244,7 +250,7 @@ def find_baseline_parameters():
                              f'versus baseline.\n')
 
     else:
-        categorical_variables = [x.lower() for x in config.categorical_variables]
+        categorical_variables = [x.lower() for x in config.categorical_or_binary_vars]
 
         for param, value in baseline_params[0].items():
             if param in categorical_variables:
@@ -258,7 +264,12 @@ def find_baseline_parameters():
 
 
 def structure_data(config, participant_paths):
-    combined_results = Utils.read_combined_results(os.getcwd(), config.averaging_type)
+    excluded_variables = '\n'.join([f'{x}: {y}' for x, y in zip(config.parameter_dict1, config.exclude_data) if y])
+    Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
+                         '\nRemoving data associated with variables:\n'
+                         f"{excluded_variables}")
+
+    combined_results, combined_results_path = Utils.read_combined_results(os.getcwd(), config.averaging_type)
 
     all_subject_result_jsons = []  # Used for lmm
     averaged_subject_result_jsons = []  # Used for t-tests
@@ -273,14 +284,33 @@ def structure_data(config, participant_paths):
              Utils.find_files(f"{path}/Summarised_results/Averaged_results/", "json")
              if 'combined_results' not in jsn])
 
-    individual_roi_results = Histogram.load_and_restructure_jsons(config, all_subject_result_jsons, combined_results[0],
+    individual_roi_results = Histogram.load_and_restructure_jsons(config, all_subject_result_jsons, combined_results,
                                                                   data_type='statistics')
 
     averaged_roi_results = Histogram.load_and_restructure_jsons(config, averaged_subject_result_jsons,
-                                                                combined_results[0],
+                                                                combined_results,
                                                                 data_type='statistics')
 
-    return individual_roi_results, averaged_roi_results, combined_results
+    individual_roi_results = exclude_variables(individual_roi_results)
+    averaged_roi_results = exclude_variables(averaged_roi_results)
+    combined_results = exclude_variables(combined_results)
+
+    return individual_roi_results, averaged_roi_results, combined_results, combined_results_path
+
+
+def exclude_variables(df):
+    for counter, exclude_vars in enumerate(config.exclude_data):
+        if not exclude_vars:
+            continue
+
+        exclude_vars = Utils.convert_toml_input_to_python_object(exclude_vars)
+        if not isinstance(exclude_vars, list):
+            exclude_vars = [exclude_vars]
+
+        for var in exclude_vars:
+            df = df.loc[df[config.parameter_dict1[counter]] != Utils.convert_toml_input_to_python_object(var)]
+
+    return df
 
 
 def split_dict_by_roi(result_dict):
@@ -310,7 +340,8 @@ def statistics(param_queries, critical_params):
         calculate_percent_change_versus_baseline(param_queries, combined_roi_results, combined_roi_results_path)
 
     if config.run_t_tests or config.run_linear_mixed_models:
-        if not [parameter for parameter in [*main_effect_parameters.values(), *simple_effect_parameters.values()] if parameter] \
+        if not [parameter for parameter in [*main_effect_parameters.values(), *simple_effect_parameters.values()] if
+                parameter] \
                 and config.run_t_tests:
             warnings.warn('No main or simple effects chosen in statisticsOptions.csv.'
                           '\nUpdate this file to run t-tests.')
@@ -327,14 +358,14 @@ def statistics(param_queries, critical_params):
 def load_data():
     participants, _ = Utils.find_participant_dirs(os.getcwd())
 
-    individual_roi_results, averaged_roi_results, combined_results = structure_data(config, participants)
+    individual_roi_results, averaged_roi_results, combined_results, combined_results_path = structure_data(config, participants)
 
     individual_roi_results = split_dict_by_roi(individual_roi_results)
     averaged_roi_results = split_dict_by_roi(averaged_roi_results)
 
     raw_data = copy.deepcopy(individual_roi_results)
 
-    return individual_roi_results, averaged_roi_results, raw_data, combined_results[0], combined_results[1]
+    return individual_roi_results, averaged_roi_results, raw_data, combined_results, combined_results_path
 
 
 def roi_statistics(critical_params, rois_below_max_r2_thresh,
@@ -423,8 +454,6 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
             for rsquare_type in r_square_dict:
                 compute_rsquare_regression(voxel_data, r_square_dict[rsquare_type], rsquare_type, glm_formula_type)
 
-
-
             if config.verbose:
                 print("\n=============================================================================="
                       "\nCreating standardised and unstandardised coefficient brain maps"
@@ -434,13 +463,15 @@ def roi_statistics(critical_params, rois_below_max_r2_thresh,
                 Coefficient_map.to_braingrid(standardised_coeffs_df, "standardised_coeffs",
                                              standardise_cbar=True, subsubfolder=glm_formula_type)
             elif config.verbose:
-                print('Skipping creation of standardised coefficient brain maps, all ROIs below p-value threshold.')
+                print('Skipping creation of standardised coefficient brain maps. All ROIs below p-value threshold.')
 
             if not unstandardised_coeffs_df.empty:
                 Coefficient_map.to_braingrid(unstandardised_coeffs_df, "unstandardised_coeffs",
                                              standardise_cbar=False, subsubfolder=glm_formula_type)
             elif config.verbose:
-                print('Skipping creation of unstandardised coefficient brain maps, all ROIs below p-value threshold.')
+                print('Skipping creation of unstandardised coefficient brain maps. All ROIs below p-value threshold.')
+        elif config.verbose:
+                print('Skipping creation of coefficient brain maps. No suitable ROIs found to plot.')
 
 
 def compute_rsquare_regression(voxel_data, r_square_data, r_square_type, glm_formula_type):
@@ -543,7 +574,7 @@ def run_t_tests(dataset, critical_params, raw_data, main_effect_parameters, simp
         calculate_main_effects(ROI, critical_params, dataset, main_effect_parameters, raw_data)
 
     if number_of_simple_effect_params > 1:
-        calculate_simple_effects(ROI, critical_params, dataset, simple_effect_parameters)
+        calculate_simple_effects(ROI, dataset, simple_effect_parameters)
 
     elif number_of_simple_effect_params == 1:
         Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
@@ -552,8 +583,8 @@ def run_t_tests(dataset, critical_params, raw_data, main_effect_parameters, simp
 
 def calculate_main_effects(ROI, critical_params, dataset, main_effect_parameters, raw_data):
     t_test_results = []
-    for counter, param in enumerate(critical_params):
-        t_test_type = config.IV_type[counter]
+    for param in critical_params:
+        t_test_type = config.IV_type[config.parameter_dict1.index(param)]
 
         for main_effect_contrast in main_effect_parameters[param]:
             data1 = dataset.loc[dataset[param.lower()].astype(str) == main_effect_contrast.split(' v ')[0]].copy()
@@ -597,14 +628,14 @@ def calculate_main_effects(ROI, critical_params, dataset, main_effect_parameters
         t_test_df.to_csv(f"{STATISTICS_PATH}/Overall/{ROI}_main_effect_t_tests.csv", index=False)
 
 
-def calculate_simple_effects(ROI, critical_params, dataset, simple_effect_parameters):
+def calculate_simple_effects(ROI, dataset, simple_effect_parameters):
     t_test_results = []
 
-    for counter, param in enumerate(simple_effect_parameters):
+    for param in simple_effect_parameters:
         if not simple_effect_parameters[param] or len(simple_effect_parameters[param]) == 1:
             continue
 
-        t_test_type = config.IV_type[counter]
+        t_test_type = config.IV_type[config.parameter_dict1.index(param)]
 
         simple_effect_combinations = list(itertools.combinations(simple_effect_parameters[param], 2))
 
@@ -715,7 +746,8 @@ def balance_simple_effect_data(data_subsets, t_test_type):
 def balance_main_effect_data(critical_params, data_subsets, param, raw_data, t_test_type):
     # Compare parameters not currently being compared to see if they are the same between both datasets
     # If not, don't run the analysis
-    other_params = {other_param.lower(): config.IV_type[counter] for counter, other_param in enumerate(critical_params)
+    other_params = {other_param.lower(): config.IV_type[config.parameter_dict1.index(other_param)]
+                    for other_param in critical_params
                     if other_param != param}
     within_subject_params = [other_param for other_param in other_params if
                              other_params[other_param] == 'Within-subjects']
@@ -743,7 +775,8 @@ def balance_main_effect_data(critical_params, data_subsets, param, raw_data, t_t
                                            data_subsets[1]['subject'].drop_duplicates(),
                                            how='outer', indicator=True)
         participants_to_remove = participants_in_each_df.loc[(participants_in_each_df['_merge'] == 'left_only')
-                                                             | (participants_in_each_df['_merge'] == 'right_only')]['subject']
+                                                             | (participants_in_each_df['_merge'] == 'right_only')][
+            'subject']
 
         data_subsets[0] = data_subsets[0][~data_subsets[0]['subject'].isin(participants_to_remove)]
         data_subsets[1] = data_subsets[1][~data_subsets[1]['subject'].isin(participants_to_remove)]
@@ -901,14 +934,14 @@ def calculate_glm_standardised_coeffs(current_df, folder, formula, glm_formula_t
     # Convert values in numeric columns into zscored values, this will be used to find standardised zscores
     zscored_df = current_df.select_dtypes(include=[np.number]).apply(zscore, ddof=1)
 
+    if config.categorical_or_binary_vars and folder != 'R2':
+        categorical_columns = current_df[[x.lower() for x in config.categorical_or_binary_vars]]
+        zscored_df = pd.concat([categorical_columns, zscored_df], axis=1)
+
     if folder == 'R2':
         # Least squares regression
         zscored_model = smf.ols(formula=formula, data=zscored_df)
     else:
-        if config.categorical_variables != ['']:
-            categorical_columns = current_df[[x.lower() for x in config.categorical_variables]]
-            zscored_df = pd.concat([categorical_columns, zscored_df], axis=1)
-
         # Linear mixed model
         zscored_model = smf.mixedlm(formula=formula, data=zscored_df, groups=current_df["subject"])
 
@@ -945,7 +978,7 @@ def construct_glm_formula(critical_params, glm_formula_type):
         formula = f'voxel_value ~ {f" {symbol} ".join(critical_params).lower()}'
 
         for param in critical_params:
-            if param in config.categorical_variables:
+            if param in config.categorical_or_binary_vars:
                 formula = formula.replace(param.lower(), f"C({param.lower()})")
 
     return formula

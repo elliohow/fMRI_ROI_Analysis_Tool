@@ -1273,8 +1273,6 @@ class MatchedBrain:
 
         for scale_stat in scale_stats:
             if scale_stat[0] is not None:
-                type(scale_stat[
-                         0])  # todo: was getting error from np ndarray being dtype object, change type conversion to whatever is output by this
                 scaled_brain = nib.Nifti1Image(np.float64(scale_stat[0]), affine)
                 scaled_brain.to_filename(scale_stat[1])
 
