@@ -264,7 +264,7 @@ def find_baseline_parameters():
 
 
 def structure_data(config, participant_paths):
-    excluded_variables = '\n'.join([f'{x}: {y}' for x, y in zip(config.parameter_dict1, config.exclude_data) if y])
+    excluded_variables = '\n'.join([f'{x}: {y}' for x, y in zip(config.parameter_dict1, config.exclude_data_statistics) if y])
     Utils.print_and_save(STATISTICS_LOGFILE, config.print_result,
                          '\nRemoving data associated with variables:\n'
                          f"{excluded_variables}")
@@ -291,26 +291,11 @@ def structure_data(config, participant_paths):
                                                                 combined_results,
                                                                 data_type='statistics')
 
-    individual_roi_results = exclude_variables(individual_roi_results)
-    averaged_roi_results = exclude_variables(averaged_roi_results)
-    combined_results = exclude_variables(combined_results)
+    individual_roi_results = Utils.exclude_variables(individual_roi_results, config.exclude_data_statistics)
+    averaged_roi_results = Utils.exclude_variables(averaged_roi_results, config.exclude_data_statistics)
+    combined_results = Utils.exclude_variables(combined_results, config.exclude_data_statistics)
 
     return individual_roi_results, averaged_roi_results, combined_results, combined_results_path
-
-
-def exclude_variables(df):
-    for counter, exclude_vars in enumerate(config.exclude_data):
-        if not exclude_vars:
-            continue
-
-        exclude_vars = Utils.convert_toml_input_to_python_object(exclude_vars)
-        if not isinstance(exclude_vars, list):
-            exclude_vars = [exclude_vars]
-
-        for var in exclude_vars:
-            df = df.loc[df[config.parameter_dict1[counter]] != Utils.convert_toml_input_to_python_object(var)]
-
-    return df
 
 
 def split_dict_by_roi(result_dict):
@@ -814,12 +799,15 @@ def calculate_cohens_d(x1, x2):
 
 
 def calculate_r2_measurements(current_df, result, path_to_folder, ROI):
+    # Find variance for residuals, random and fixed effects
     var_resid = result.scale
     var_random_effect = float(result.cov_re.iloc[0])
     var_fixed_effect = result.predict(current_df).var()
 
+    # Calculate total variance
     total_var = var_fixed_effect + var_random_effect + var_resid
 
+    # Calculate marginal and conditional r2
     marginal_r2 = var_fixed_effect / total_var
     conditional_r2 = (var_fixed_effect + var_random_effect) / total_var
 
@@ -827,11 +815,8 @@ def calculate_r2_measurements(current_df, result, path_to_folder, ROI):
     if 'Intercept' in result.params.index:
         intercept_correction_factor = 1
 
-    adj_marginal_r2 = 1 - ((1 - marginal_r2) * (result.nobs - 1) / (
-            result.nobs - (len(result.params) - intercept_correction_factor) - 1))
-
-    adj_conditional_r2 = 1 - ((1 - conditional_r2) * (result.nobs - 1) / (
-            result.nobs - (len(result.params) - intercept_correction_factor) - 1))
+    adj_marginal_r2 = 1 - ((1 - marginal_r2) * (result.nobs - 1) / (result.nobs - len(result.params) - intercept_correction_factor))
+    adj_conditional_r2 = 1 - ((1 - conditional_r2) * (result.nobs - 1) / (result.nobs - len(result.params) - intercept_correction_factor))
 
     headers = ['Marginal R2',
                'Conditional R2',

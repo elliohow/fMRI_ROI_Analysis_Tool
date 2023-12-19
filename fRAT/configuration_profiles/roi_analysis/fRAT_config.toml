@@ -1,6 +1,6 @@
 # General
-run_analysis = true                                                               # true or false. Can skip this step if json files have already been created.
-run_statistics = true                                                             # true or false.
+run_analysis = false                                                              # true or false. Can skip this step if json files have already been created.
+run_statistics = false                                                            # true or false.
 run_plotting = true                                                               # true or false.
 verbose = true                                                                    # true or false.
 verbose_cmd_line_args = false                                                     # true or false.
@@ -28,7 +28,7 @@ fslfast_min_prob = 0.1                                                          
 stat_map_folder = ''                                                              # Folder name which contains the statistical map files. Example: temporalSNR_report
 stat_map_suffix = '_tSNR.nii.gz'                                                  # File name suffix of the statistical map files. Include the file extension. Example: _tSNR.img
 conf_level_number = '95%, 1.96'                                                   # Set the confidence level for confidence interval calculations. Numbers represent the confidence level and the corresponding critical z value. Recommended: 95%, 1.96. Options: ['80%, 1.28', '85%, 1.44', '90%, 1.64', '95%, 1.96', '98%, 2.33', '99%, 2.58'].
-binary_params = ['']                                                              # Add parameters here which will either be on or off.
+binary_params = ['Nordic']                                                        # Add parameters here which will either be on or off.
 
 ## Outlier detection
 noise_cutoff = true                                                               # true or false. Calculate a minimum cutoff value to be included in an ROI,based on voxels not assigned an ROI or that have been excluded from analysis. Voxels with values of 0 are not included when calculating the noise cutoff.  Useful for statistical maps where extracranial voxels are likely to have much lower values than those inside the brain such as tSNR maps. Recommended: true.
@@ -44,17 +44,17 @@ minimum_voxels = 400                                                            
 bootstrap_samples = 1000                                                          # Recommended value 1000.  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 bootstrap_confidence_interval = 95                                                # Recommended value: 95  Note: Bootstrapping is only used to calculate percentage change versus baseline.
 regional_stats_rois = ['all']                                                     # Provide a comma-separated list of regions, e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
-include_as_variable = ['INCLUDE ALL VARIABLES']                                   # Select which variables to include in statistical analysis. Used to determine which variables to use as fixed effects in linear mixed models and which variables to take into account when balancing data for the main effect t test data.
-exclude_data = ['']                                                               # Use this option to exclude data associated with a specific variable from the statistical analysis. Should be in the same form as in paramValues.csv.
+include_as_variable = ['Multiband', 'SENSE', 'Scanner']                           # Select which variables to include in statistical analysis. Used to determine which variables to use as fixed effects in linear mixed models and which variables to take into account when balancing data for the main effect t test data.
+exclude_data_statistics = ['', '', '', '']                                        # Use this option to exclude data associated with a specific variable from the statistical analysis. Should be in the same form as in paramValues.csv.
 brain_map_p_thresh = 0.05                                                         # P-value threshold to use when creating brain coefficient maps. Any fixed effect that doesn't have a p-value equal to or less than this value will not be included in the coefficient map. 
 
 ## T-tests
 run_t_tests = true                                                                # true or false. 
-IV_type = ['FILL IV TYPE AS BETWEEN-SUBJECTS']                                    # Type of variable collected. Used to choose which t-test to use for pairwise comparisons.
+IV_type = ['Within-subjects', 'Within-subjects', 'Within-subjects', 'Between-subjects']  # Type of variable collected. Used to choose which t-test to use for pairwise comparisons.
 
 ## Linear mixed models
 run_linear_mixed_models = true                                                    # true or false. 
-categorical_variables = ['']                                                      # Select which variables (if any) are categorical. Used for the LMM.
+categorical_variables = ['Scanner', 'Nordic']                                     # Select which variables (if any) are categorical. Used for the LMM.
 main_effects = true                                                               # true or false. Note: This option is independent from the other effect calculations.
 main_and_interaction_effects = true                                               # true or false. Note: This option is independent from the other effect calculations.
 interaction_effects = false                                                       # true or false. Note: This option is independent from the other effect calculations.
@@ -63,15 +63,15 @@ interaction_effects = false                                                     
 max_below_thresh = 0                                                              # Recommended value 0.  For a given ROI, this value sets the maximum percent of sessions that can be excluded (due to having insufficient voxel count) before the ROI is not included in r2 vs voxel count statistics. With the default value of 100(%) an ROI will not be included in this calculation if any sessions have been excluded.
 
 # Parsing
-parameter_dict1 = ['MB', 'SENSE']                                                 # Comma-separated list of independent variables. The critical parameter settings are used to supply the names and file name abbreviations of the independent variables, therefore `fRAT` supports the use of any parameters (and any number of them). As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
-parameter_dict2 = ['mb', 's']                                                     # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
+parameter_dict1 = ['Multiband', 'SENSE', 'Scanner', 'Nordic']                     # Comma-separated list of independent variables. The critical parameter settings are used to supply the names and file name abbreviations of the independent variables, therefore `fRAT` supports the use of any parameters (and any number of them). As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
+parameter_dict2 = ['mb', 's', '', 'nordic']                                       # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
 make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
 
 # Plotting
 
 ## General plot settings
-plot_dpi = 300                                                                    # Recommended value 300
+plot_dpi = 20                                                                     # Recommended value 300
 plot_font_size = 40                                                               # Recommended value 30
 plot_scale = 10                                                                   # Recommended value 10
 make_violin_plot = true                                                           # true or false.
@@ -80,6 +80,7 @@ make_one_region_fig = true                                                      
 make_histogram = true                                                             # true or false.
 colorblind_friendly_plot_colours = ['#ffeda0', '#feb24c', '#fc4e2a', '#bd0026']   # Hex values of colourblind friendly colour scale.
 regional_fig_rois = ['all']                                                       # Provide a comma-separated list of regions to plot e.g. '3, 5', the string 'all' for all rois or the string 'Runtime' to provide regions at runtime.
+exclude_data_plotting = ['', '', 'Achieva', 'On']                                 # Use this option to exclude data associated with a specific variable from the statistical analysis. Should be in the same form as in paramValues.csv.
 
 ## Brain table
 brain_tight_layout = false                                                        # true or false. Use a tight layout when laying out the figure. Recommended: false
@@ -87,10 +88,10 @@ brain_fig_value_min = 0                                                         
 brain_fig_value_max = 'None'                                                      # Provides the maximum value of the colourbar when creating mean and median images. For example, set maximum to 50 to make areas with values above 50 appear as the brighest colour on the colourbar. Recommended value: None. Note: will default to 100 for scaled maps.
 brain_x_coord = -1                                                                # Voxel location to slice the images at in the x axis. Recommended settings for both variables: 91 or 58
 brain_z_coord = 19                                                                # Voxel location to slice the images at in the z axis. Recommended settings for both variables: 91 or 58
-brain_table_col_labels = 'CHANGE TO DESIRED LABEL'                                # Label for columns.
-brain_table_row_labels = 'CHANGE TO DESIRED LABEL'                                # Label for rows.
-brain_table_cols = 'DEFAULT'                                                      # 
-brain_table_rows = 'DEFAULT'                                                      # 
+brain_table_col_labels = 'Multiband'                                              # Label for columns.
+brain_table_row_labels = 'SENSE'                                                  # Label for rows.
+brain_table_cols = 'Multiband'                                                    # 
+brain_table_rows = 'SENSE'                                                        # 
 
 ## Violin plot
 table_x_label = 'tSNR mean'                                                       # 
@@ -99,15 +100,15 @@ violin_show_data = true                                                         
 violin_jitter = true                                                              # true or false.
 violin_colour = '#fc4e2a'                                                         # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 boxplot_colour = '#feb24c'                                                        # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
-table_cols = 'DEFAULT'                                                            # 
-table_rows = 'DEFAULT'                                                            # 
+table_cols = 'Multiband'                                                          # 
+table_rows = 'SENSE'                                                              # 
 
 ## Regional bar chart
 single_roi_fig_label_x = 'Multiband factor'                                       # 
 single_roi_fig_label_y = 'temporal Signal to Noise Ratio'                         # 
 single_roi_fig_label_fill = 'SENSE factor'                                        # 
-single_roi_fig_x_axis = 'DEFAULT'                                                 # 
-single_roi_fig_colour = 'DEFAULT'                                                 # 
+single_roi_fig_x_axis = 'Multiband'                                               # 
+single_roi_fig_colour = 'SENSE'                                                   # 
 
 ## Regional histogram
 histogram_binwidth = 2                                                            # 
@@ -115,7 +116,7 @@ histogram_fig_label_x = 'temporal Signal to Noise Ratio'                        
 histogram_fig_label_y = 'Frequency'                                               # 
 histogram_stat_line_size = 1.5                                                    # 
 histogram_stat = 'Mean'                                                           # Setting to choose whether to draw a line representing the mean or median on the histogram. Recommended: Mean. Options: ['Mean', 'Median', 'None'].
-histogram_fig_x_facet = 'DEFAULT'                                                 # 
-histogram_fig_y_facet = 'DEFAULT'                                                 # 
+histogram_fig_x_facet = 'Multiband'                                               # 
+histogram_fig_y_facet = 'SENSE'                                                   # 
 histogram_fig_colour = '#fc4e2a'                                                  # Hex value of colour blind friendly colour. Value taken from colorblind friendly plot colours.
 

@@ -31,6 +31,8 @@ class Figures:
 
         combined_results_df, _ = Utils.read_combined_results(os.getcwd(), cls.config.averaging_type)
 
+        combined_results_df = cls.exclude_data(combined_results_df)
+
         if not os.path.exists('Figures'):
             os.makedirs('Figures')
 
@@ -71,6 +73,18 @@ class Figures:
         if pool:
             pool.close()
             pool.join()
+
+    @classmethod
+    def exclude_data(cls, df):
+        excluded_variables = '\n'.join([f'{x}: {y}' for x, y in zip(cls.config.parameter_dict1, cls.config.exclude_data_plotting) if y])
+
+        if cls.config.verbose:
+            print('\nRemoving data associated with variables:\n'
+                  f"{excluded_variables}")
+
+        df = Utils.exclude_variables(df, cls.config.exclude_data_plotting)
+
+        return df
 
     @staticmethod
     def find_axis_limit(thisroi, figure, axis):

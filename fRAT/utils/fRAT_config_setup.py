@@ -257,7 +257,7 @@ Statistics = {
                                            'and which variables to take into account when balancing data for the main '
                                            'effect t test data.'},
 
-    'exclude_data': {'type': 'Dynamic', 'Recommended': '',
+    'exclude_data_statistics': {'type': 'Dynamic', 'Recommended': '',
                             'status': 'important',
                             'Options': 'Parsing["parameter_dict1"]',
                             'subtype': 'Entry',
@@ -393,6 +393,14 @@ Plotting = {
     'regional_fig_rois': {'type': 'Entry', 'Recommended': 'all', 'save_as': 'list', 'label': 'ROIs to plot',
                           'Description': "Provide a comma-separated list of regions to plot e.g. '3, 5', the string "
                                          "'all' for all rois or the string 'Runtime' to provide regions at runtime."},
+
+    'exclude_data_plotting': {'type': 'Dynamic', 'Recommended': '',
+                     'status': 'important',
+                     'Options': 'Parsing["parameter_dict1"]',
+                     'subtype': 'Entry',
+                     'save_as': 'list',
+                     'Description': 'Use this option to exclude data associated with a specific variable from '
+                                    'the statistical analysis. Should be in the same form as in paramValues.csv.'},
 
     'Brain table': {'type': 'subheading'},
 

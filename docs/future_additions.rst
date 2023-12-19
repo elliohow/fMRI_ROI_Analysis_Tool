@@ -70,3 +70,8 @@ Statistics
 Statmaps
 ========
 * Handle the func_preprocessed folder more elegantly, currently it is replaced each time statmaps are created
+
+Known issues
+============
+* Coefficient map creation during statistics step can fail with interaction effects if the the IV's contain an
+independent variable.

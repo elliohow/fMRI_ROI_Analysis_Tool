@@ -439,6 +439,21 @@ class Utils:
         return data, header
 
     @staticmethod
+    def exclude_variables(df, variables):
+        for counter, exclude_vars in enumerate(variables):
+            if not exclude_vars:
+                continue
+
+            exclude_vars = Utils.convert_toml_input_to_python_object(exclude_vars)
+            if not isinstance(exclude_vars, list):
+                exclude_vars = [exclude_vars]
+
+            for var in exclude_vars:
+                df = df.loc[df[config.parameter_dict1[counter]] != Utils.convert_toml_input_to_python_object(var)]
+
+        return df
+
+    @staticmethod
     def strip_ext(path):
         extensions = ['.nii.gz', '.nii', '.hdr', '.json']
 

@@ -30,6 +30,7 @@ w = None
 WIDGET_Y_PADDING = 9
 WIDGET_X_PADDING = 10
 
+
 def start_gui():
     '''Starting point when module is the main routine.'''
     global val, w, root, top
