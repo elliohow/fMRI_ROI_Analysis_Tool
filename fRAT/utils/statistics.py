@@ -811,12 +811,8 @@ def calculate_r2_measurements(current_df, result, path_to_folder, ROI):
     marginal_r2 = var_fixed_effect / total_var
     conditional_r2 = (var_fixed_effect + var_random_effect) / total_var
 
-    intercept_correction_factor = 0
-    if 'Intercept' in result.params.index:
-        intercept_correction_factor = 1
-
-    adj_marginal_r2 = 1 - ((1 - marginal_r2) * (result.nobs - 1) / (result.nobs - len(result.params) - intercept_correction_factor))
-    adj_conditional_r2 = 1 - ((1 - conditional_r2) * (result.nobs - 1) / (result.nobs - len(result.params) - intercept_correction_factor))
+    adj_marginal_r2 = 1 - ((1 - marginal_r2) * (result.nobs - 1) / (result.nobs - len(result.params)))
+    adj_conditional_r2 = 1 - ((1 - conditional_r2) * (result.nobs - 1) / (result.nobs - len(result.params)))
 
     headers = ['Marginal R2',
                'Conditional R2',

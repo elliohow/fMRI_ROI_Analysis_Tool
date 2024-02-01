@@ -34,7 +34,7 @@ class SeparateNoiseVolumes:
         mean_of_timepoints = data.reshape(reduce(lambda x, y: x*y, data.shape[0:3]), data.shape[3]).mean(axis=0)
         outlier = np.where(np.abs(stats.zscore(mean_of_timepoints)) > 3)
 
-        if len(outlier[0]) == 1 and (outlier[0][0] in (0, data.shape[3] - 1)): # todo hook new folder up to isnr calc
+        if len(outlier[0]) == 1 and (outlier[0][0] in (0, data.shape[3] - 1)):  # todo hook new folder up to isnr calc
             noise_data = data[:, :, :, outlier]
             func_data = np.delete(data, outlier, axis=3)
 

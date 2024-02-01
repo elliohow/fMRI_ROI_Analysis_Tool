@@ -37,7 +37,7 @@ Statistical_maps = {
 
     'highpass_filter_cutoff': {'type': 'Entry', 'Recommended': 0.01,
                                'label': 'Highpass filter cutoff frequency (Hz)',
-                               'Description': 'Highpass filter cutoff frequency converted into sigma in seconds using '
+                               'Description': 'Highpass filter cutoff frequency converted into sigma in volumes using '
                                               'the formula 1/(2*f*TR). Recommended: 0.01'},
 
     'Motion correction': {'type': 'subheading'},
@@ -52,15 +52,16 @@ Statistical_maps = {
 
     'Spatial smoothing': {'type': 'subheading'},
 
-    'spatial_smoothing': {'type': 'CheckButton', 'Recommended': 'false',
+    'spatial_smoothing': {'type': 'CheckButton', 'Recommended': 'false', 'label': 'Spatially smooth data',
                           'Description': 'true or false. Uses SUSAN to spatial smooth. Recommended: true'},
 
     'smoothing_fwhm': {'type': 'Entry', 'Recommended': 8.0,
-                       'label': 'Spatial smoothing fwhm (mm)',
-                       'Description': 'fwhm of smoothing, in mm, gets converted using sqrt(8*log(2)). Recommended: 8.0'},
+                       'label': 'Gaussian Standard Deviation (mm)',
+                       'Description': 'Spatial extent of the smoothing kernel. The kernel is Gaussian with standard '
+                                      'deviation in mm. Recommended: 8.0'},
 
     'smoothing_brightness_threshold': {'type': 'Entry', 'Recommended': 2000.0,
-                                       'label': 'Spatial smoothing brightness threshold',
+                                       'label': 'Brightness threshold',
                                        'Description': 'Should be greater than noise level and less than contrast of '
                                                       'edges to be preserved. Recommended: 2000.0'},
 
