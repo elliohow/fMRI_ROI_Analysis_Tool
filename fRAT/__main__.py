@@ -1301,10 +1301,10 @@ def parse_params_from_file_name(json_file_name, cfg=config):
 
         else:
             # Float search
-            param = re.search(f"{parameter}\d+(p\d+)?(?=[_.]|$)", json_file_name, flags=re.IGNORECASE)
+            param = re.search(f"{parameter}\d+([p.]\d+)?(?=_|$)", json_file_name, flags=re.IGNORECASE)
 
             if param is not None:
-                param = param[0].replace(parameter, '').lower()
+                param = param[0].lower().replace(parameter, '')
                 param = param.replace('p', '.')  # replace p with .
 
                 param_nums.append(param)

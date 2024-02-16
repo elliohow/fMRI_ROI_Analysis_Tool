@@ -65,7 +65,7 @@ max_below_thresh = 0                                                            
 # Parsing
 parameter_dict1 = ['Multiband', 'SENSE', 'Scanner', 'Nordic']                     # Comma-separated list of independent variables. The critical parameter settings are used to supply the names and file name abbreviations of the independent variables, therefore `fRAT` supports the use of any parameters (and any number of them). As these critical parameters will also be used when labelling the rows and columns of both the violin plots and histograms, they should be written as you want them to appear in these figures. Note: Leave blank if you do not want to compare between different conditions, for example, if you wish to see the overall tSNR for each region across the entire dataset.
 parameter_dict2 = ['mb', 's', '', 'nordic']                                       # Comma-separated list of terms to parse the file name for. Each entry corresponds to a critical parameter above.  Optional if using table parameter verification, however if the file name contains this information it can use this information to auto-detect the critical parameters used for each fMRI volume. Note: This field can be blank.
-make_folder_structure = true                                                      # true or false. Make folder structure when creating paramValues.csv
+make_folder_structure = false                                                     # true or false. Make folder structure when creating paramValues.csv
 parsing_folder = 'func'                                                           # Folder to find files to add to paramValues.csv. If using "Make folder structure" option, this will be the directory the files in the participant folder will be moved to.
 
 # Plotting
