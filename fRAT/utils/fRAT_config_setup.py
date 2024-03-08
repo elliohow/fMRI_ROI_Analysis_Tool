@@ -400,7 +400,7 @@ Plotting = {
                      'subtype': 'Entry',
                      'save_as': 'list',
                      'Description': 'Use this option to exclude data associated with a specific variable from '
-                                    'the statistical analysis. Should be in the same form as in paramValues.csv.'},
+                                    'plots. Should be in the same form as in paramValues.csv.'},
 
     'Brain table': {'type': 'subheading'},
 

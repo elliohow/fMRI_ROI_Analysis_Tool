@@ -284,7 +284,7 @@ def main(func, version, config_file, path=None):
     Utils.checkversion(version)
 
     # Set global variables
-    config_path = f'{Path(os.path.abspath(__file__)).parents[1]}/configuration_profiles/maps/'
+    config_path = f'{Path(os.path.abspath(__file__)).parents[1]}/configuration_profiles/maps'
     config_filename = config_file
 
     # Load config file

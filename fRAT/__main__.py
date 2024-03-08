@@ -512,9 +512,9 @@ class GUI:
                 row += 1
 
         elif info['subtype'] == 'Entry':
-            if info['Current'] == '':
+            if info['Current'] == '' or len(info['Current']) > len(text):
                 info['Current'] = [''] * len(text)
-            elif len(info['Current']) != len(text):
+            elif len(info['Current']) < len(text):
                 info['Current'].extend([''] * (len(text) - len(info['Current'])))
 
             row += 1
