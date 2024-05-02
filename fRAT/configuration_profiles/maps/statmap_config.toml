@@ -5,20 +5,20 @@ verbose = true                                                                  
 multicore_processing = true                                                       # true or false. Use multicore processing during analysis? Multicore processing currently works within participants not between them. Recommended: true
 max_core_usage = 'max'                                                            # 'max' to select number of cores available on the system, alternatively an int to manually select number of cores to use. Recommended: 'max' Options: ['max', 6, 5, 4, 3, 2, 1].
 base_folder = ''                                                                  # Either the absolute location of the folder containing the subjects or blank, if blank then a browser window will allow you to search for the files at runtime.
-input_folder_name = 'motion_comp_func'                                            # Folder found in each subjects directory containing the files to be analysed.
+input_folder_name = 'func'                                                        # Folder found in each subjects directory containing the files to be analysed.
 output_folder_name = 'DEFAULT'                                                    # Directory to save output. If set to DEFAULT, the default name for the statistical map created will be used. Recommended: DEFAULT
 
 ## High pass filtering
 temporal_filter = true                                                            # true or false. Use a high pass filter to remove low frequency drift. Recommended: true
-highpass_filter_cutoff = 0.01                                                     # Highpass filter cutoff frequency converted into sigma in seconds using the formula 1/(2*f*TR). Recommended: 0.01
+highpass_filter_cutoff = 0.01                                                     # Highpass filter cutoff frequency converted into sigma in volumes using the formula 1/(2*f*TR). Recommended: 0.01
 
 ## Motion correction
 remove_motion_outliers = false                                                    # true or false. Use fsl_motion_outliers to remove motion outliers(uses default fsl_motion_outliers settings). Recommended: true
-motion_correction = true                                                          # true or false. Use MCFLIRT to motion correct volumes (uses default MCFLIRT settings). Recommended: true
+motion_correction = false                                                         # true or false. Use MCFLIRT to motion correct volumes (uses default MCFLIRT settings). Recommended: true
 
 ## Spatial smoothing
 spatial_smoothing = false                                                         # true or false. Uses SUSAN to spatial smooth. Recommended: true
-smoothing_fwhm = 8.0                                                              # fwhm of smoothing, in mm, gets converted using sqrt(8*log(2)). Recommended: 8.0
+smoothing_fwhm = 8.0                                                              # Spatial extent of the smoothing kernel. The kernel is Gaussian with standard deviation in mm. Recommended: 8.0
 smoothing_brightness_threshold = 2000.0                                           # Should be greater than noise level and less than contrast of edges to be preserved. Recommended: 2000.0
 
 ## Image SNR calculation

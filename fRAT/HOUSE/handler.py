@@ -62,7 +62,11 @@ def utility_handler(participants, output_folder, file_location, utility):
         print(f'\nSaving output in directory: {output_folder}')
 
     for participant_dir, files in participants.items():
-        if config.verbose:
+        if config.verbose and len(files) == 0:
+            print(f"0 files found for {participant_dir.split('/')[-1]} in {file_location} folder. Skipping participant.")
+            continue
+
+        elif config.verbose:
             print(f"\nRunning '{utility.UTILITY_NAME}' utility on participant: {participant_dir.split('/')[-1]}"
                   f"\n      Running utility on {len(files)} files")
 
@@ -79,6 +83,7 @@ def utility_handler(participants, output_folder, file_location, utility):
         else:
             return_val = list(itertools.starmap(run_utility, iterable))
 
+        # Run the function a second time if data needs to be combined between files, such as for adding motion
         if return_val[0] is not None:
                 iterable = zip(files,
                                itertools.repeat(participant_dir),
